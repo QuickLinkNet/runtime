@@ -1,0 +1,61 @@
+/*
+ * RUNTIME Match-Theme
+ * -------------------
+ * Hier stehen die wichtigsten Regler fuer das Spielfeld.
+ * Werte aendern, speichern und die laufende Vite-Seite aktualisiert sich direkt.
+ *
+ * Faustregel:
+ * - groessere Karten: --match-board-card-max-height erhoehen
+ * - insgesamt mehr/weniger Board: --match-board-height-reserve verkleinern/vergroessern
+ * - mehr Platz an der Mittellinie: --match-middle-height erhoehen
+ */
+:root {
+  /* Karten */
+  --match-hand-card-height: clamp(166px, 21.1vh, 198px);
+  --match-board-card-min-height: 72px;
+  --match-board-card-max-height: 160px;
+  --match-board-card-sizing-overhead: 236px;
+  --match-board-card-height: clamp(
+    var(--match-board-card-min-height),
+    calc((100dvh - var(--match-hand-card-height) - var(--match-board-card-sizing-overhead)) / 4),
+    var(--match-board-card-max-height)
+  );
+  --match-card-gap: clamp(8px, 1vw, 15px);
+  --match-row-gap: clamp(2px, .45vh, 5px);
+  --match-hand-card-overlap: -20px;
+
+  /* Hoehenaufteilung */
+  --match-board-max-width: 1500px;
+  --match-screen-side-padding: 22px;
+  --match-board-height-reserve: 100px;
+  --match-middle-height: 46px;
+  --match-hand-dock-extra-height: 18px;
+  --match-service-middle-gap: 3px;
+  --match-player-bar-height: clamp(42px, 5.8vh, 56px);
+
+  /* Text im Spielfeld */
+  --match-turn-font-size: 12px;
+  --match-event-font-size: 14px;
+  --match-player-label-font-size: 10px;
+  --match-player-name-font-size: 16px;
+  --match-meta-font-size: 11px;
+  --match-core-label-font-size: 10px;
+  --match-core-value-size: 38px;
+  --match-core-value-font-size: 18px;
+  --match-compute-value-size: 30px;
+  --match-compute-label-font-size: 11px;
+  --match-compute-orb-size: 70px;
+  --match-action-font-size: 12px;
+
+  /* Text auf kompakten Boardkarten */
+  --match-board-card-name-font-size: clamp(8px, .64vw, 10px);
+  --match-board-card-meta-font-size: 6px;
+  --match-board-card-stats-font-size: 9px;
+
+  /* Responsive Ersatzwerte */
+  --match-tablet-hand-card-height: 173px;
+  --match-tablet-board-card-height: clamp(72px, 10.8vh, 94px);
+  --match-mobile-hand-card-height: 157px;
+  --match-mobile-board-card-width: 96px;
+  --match-mobile-hand-dock-height: 178px;
+}

@@ -1,0 +1,35 @@
+.modal-backdrop { position: fixed; z-index: 200; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(4,8,6,.82); backdrop-filter: blur(8px); }
+.modal-shell { position: relative; width: min(780px, 100%); max-height: calc(100vh - 40px); overflow-y: auto; border: 1px solid #425147; border-radius: 14px; background: #121915; box-shadow: 0 28px 90px rgba(0,0,0,.72); }
+.modal-close { position: absolute; z-index: 3; top: 12px; right: 12px; display: grid; width: 34px; height: 34px; place-content: center; border: 1px solid var(--line); border-radius: 50%; color: var(--text); background: #121915; cursor: pointer; font-size: 20px; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid var(--line-soft); padding: 14px 20px 20px; }
+
+.card-detail-panel { position: relative; overflow: hidden; border-top: 4px solid var(--domain); padding: 28px; background: radial-gradient(circle at 90% 0, color-mix(in srgb, var(--domain) 10%, transparent), transparent 35%), linear-gradient(145deg, #202a24, #141b17 72%); }
+.card-detail-panel > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding-right: 36px; }
+.card-detail-domain { color: var(--domain); font-size: 9px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+.card-detail-panel h2 { margin: 7px 0 0; font-size: clamp(28px, 5vw, 46px); letter-spacing: -.045em; }
+.card-detail-cost { display: grid; min-width: 80px; justify-items: center; border: 1px solid #526058; border-radius: 9px; padding: 8px; color: var(--muted); font-size: 8px; text-transform: uppercase; }
+.card-detail-cost b { color: var(--accent); font-size: 25px; }
+.card-detail-stats { display: flex; gap: 8px; margin: 24px 0 12px; }
+.card-detail-stats > span { display: grid; min-width: 112px; grid-template-columns: 1fr auto; align-items: center; gap: 14px; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.card-detail-stats small { color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.card-detail-stats b { font-size: 22px; }
+.card-detail-text { margin: 13px 0 24px; border-left: 2px solid var(--domain); padding: 13px 15px; color: #edf3ef; background: rgba(0,0,0,.18); font-size: 14px; line-height: 1.6; }
+.card-explanations { border-top: 1px solid var(--line); padding-top: 18px; }
+.card-explanations > h3 { margin-bottom: 12px; color: var(--muted); font-size: 9px; letter-spacing: .16em; text-transform: uppercase; }
+.card-explanations > div { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.card-explanations article { border: 1px solid var(--line-soft); border-radius: 7px; padding: 10px 11px; background: rgba(0,0,0,.12); }
+.card-explanations article b { color: var(--accent); font-size: 9px; letter-spacing: .08em; }
+.card-explanations article p { margin: 4px 0 0; color: #aebbb3; font-size: 10px; line-height: 1.45; }
+.card-detail-panel.compact { padding: 20px; }
+.card-detail-panel.compact h2 { font-size: 30px; }
+.card-detail-panel.compact .card-detail-text { margin-bottom: 15px; }
+.card-detail-panel.compact .card-explanations > div { grid-template-columns: 1fr; }
+
+.glossary-shell { width: min(960px, 100%); padding: 26px 26px 0; }
+.glossary-shell > header h2 { margin: 8px 0; font-size: clamp(32px, 5vw, 54px); letter-spacing: -.05em; }
+.glossary-shell > header p { margin-bottom: 22px; }
+.glossary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.glossary-grid article { border: 1px solid var(--line-soft); border-radius: 8px; padding: 13px; background: var(--panel); }
+.glossary-grid b { color: var(--accent); font-size: 10px; letter-spacing: .09em; }
+.glossary-grid p { margin: 6px 0 0; font-size: 10px; line-height: 1.5; }
+.glossary-shell > .modal-actions { margin: 20px -26px 0; }

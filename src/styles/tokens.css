@@ -1,0 +1,32 @@
+:root {
+  /* Global color system */
+  --bg: #101613;
+  --bg-deep: #0a0e0c;
+  --panel: #18201c;
+  --panel-2: #202a25;
+  --line: #344139;
+  --line-soft: #29342e;
+  --text: #eef3ef;
+  --muted: #9ba9a1;
+  --accent: #b9f44a;
+  --accent-dark: #7fad29;
+  --danger: #ff7769;
+  --info: #65b9ff;
+
+  /* Shared shape and elevation */
+  --radius: 14px;
+  --radius-sm: 8px;
+  --shadow: 0 18px 60px rgba(0, 0, 0, .28);
+
+  /* Compatibility aliases for card components */
+  --card-h: var(--match-hand-card-height);
+  --board-card-h: var(--match-board-card-height);
+}
+
+.domain-frontend { --domain: #61b7ff; }
+.domain-backend { --domain: #b98cff; }
+.domain-infrastructure { --domain: #e5a95e; }
+.domain-data { --domain: #66d1b5; }
+.domain-security { --domain: #ff7d72; }
+.domain-ai { --domain: #d7ea69; }
+.domain-neutral, .domain-token { --domain: #9eaaa3; }

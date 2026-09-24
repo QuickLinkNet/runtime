@@ -1,0 +1,25 @@
+{
+  "name": "runtime-card-game",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:api": "php -S 127.0.0.1:8080 -t api scripts/api-router.php",
+    "dev:all": "node scripts/dev.mjs",
+    "build": "tsc -b && vite build",
+    "deploy": "npm run build && node scripts/deploy.mjs",
+    "test:php": "php tests/run.php"
+  },
+  "dependencies": {
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.12",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^5.0.2",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.7"
+  }
+}

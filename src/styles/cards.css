@@ -1,0 +1,33 @@
+.game-card { position: relative; display: flex; width: auto; height: var(--card-h); aspect-ratio: 1040 / 1408; flex: 0 0 auto; flex-direction: column; overflow: visible; isolation: isolate; border: 0; border-radius: 15px; padding: 0; color: var(--text); background: linear-gradient(155deg, #263029, #101512 68%); box-shadow: 0 10px 24px rgba(0,0,0,.3); cursor: pointer; text-align: left; transition: transform .16s, box-shadow .16s, filter .16s; }
+.game-card::before { content: ''; position: absolute; z-index: 0; inset: -2.5%; pointer-events: none; background: url('/card_background.png') center / 100% 100% no-repeat; filter: drop-shadow(0 8px 12px rgba(0,0,0,.34)); }
+.game-card > * { position: relative; z-index: 1; }
+.game-card:hover { z-index: 3; transform: translateY(-10px) scale(1.045); box-shadow: 0 20px 40px rgba(0,0,0,.5); }
+.game-card.is-compact { width: auto; min-width: 0; height: var(--board-card-h); aspect-ratio: 1040 / 1408; padding: 0; }
+.game-card.is-playable { box-shadow: 0 0 20px rgba(185,244,74,.22), 0 10px 24px rgba(0,0,0,.3); }
+.game-card.is-selected { z-index: 4; transform: translateY(-12px); box-shadow: 0 0 0 3px var(--accent), 0 0 28px rgba(185,244,74,.4), 0 18px 36px rgba(0,0,0,.48); }
+.game-card.is-targetable { border-color: #ffcf57; animation: targetPulse .7s infinite alternate; cursor: crosshair; }
+@keyframes targetPulse { to { box-shadow: 0 0 0 4px rgba(255,207,87,.14); } }
+.game-card.is-exhausted { filter: saturate(.45) brightness(.72); }
+.game-card.is-sandboxed::after { content: 'SANDBOX'; position: absolute; z-index: 3; inset: 3%; display: grid; place-content: center; border-radius: 12px; color: #b8c8ff; background: rgba(42,50,78,.76); font-size: 11px; font-weight: 900; letter-spacing: .1em; }
+.card-topline { position: absolute; top: 3.5%; right: 8%; left: 6%; display: flex; height: 10%; align-items: flex-start; justify-content: space-between; }
+.card-cost { display: grid; width: 17%; min-width: 0; aspect-ratio: 1; place-content: center; color: #11180d; font-size: clamp(10px, 1vw, 15px); font-weight: 950; }
+.card-domain, .card-type { color: var(--domain); font-size: clamp(6px, .48vw, 8px); font-weight: 900; letter-spacing: .09em; text-transform: uppercase; }
+.card-domain { max-width: 52%; overflow: hidden; padding-top: 2.5%; text-overflow: ellipsis; white-space: nowrap; }
+.card-name { position: absolute; top: 8.1%; right: 9%; left: 25%; overflow: hidden; font-size: clamp(10px, .84vw, 14px); line-height: 1.08; text-overflow: ellipsis; white-space: nowrap; }
+.card-type { position: absolute; top: 17%; right: 12%; left: 13%; color: var(--muted); }
+.card-text { position: absolute; top: 61%; right: 12%; bottom: 17%; left: 13%; overflow: hidden; color: #d2dbd5; font-size: clamp(7px, .55vw, 10px); line-height: 1.38; }
+.card-status { position: absolute; z-index: 2; top: 54.5%; left: 13%; color: #ffd46a; font-size: 7px; font-weight: 900; }
+.card-stats { position: absolute; right: 13%; bottom: 8%; left: 13%; display: flex; justify-content: space-between; font-size: clamp(9px, .72vw, 12px); font-weight: 950; }
+.card-detail-hint { position: absolute; right: 13%; bottom: 3.2%; left: 13%; color: #738179; font-size: 6px; font-weight: 800; letter-spacing: .08em; text-align: center; text-transform: uppercase; }
+.game-card.is-compact .card-name { font-size: var(--match-board-card-name-font-size); }
+.game-card.is-compact .card-text, .game-card.is-compact .card-type, .game-card.is-compact .card-detail-hint { display: none; }
+.game-card.is-compact .card-domain { font-size: var(--match-board-card-meta-font-size); }
+.game-card.is-compact .card-stats { font-size: var(--match-board-card-stats-font-size); }
+.game-card.is-compact:hover { transform: translateY(-5px) scale(1.035); }
+
+.keyword-term { position: relative; z-index: 1; color: var(--accent); font-weight: 900; }
+.keyword-tooltip { position: absolute; z-index: 180; bottom: calc(100% + 8px); left: 50%; display: none; width: 220px; transform: translateX(-50%); border: 1px solid #607454; border-radius: 6px; padding: 9px 10px; color: #cdd7d1; background: #111814; box-shadow: 0 12px 32px rgba(0,0,0,.45); font-size: 10px; font-weight: 400; line-height: 1.4; text-align: left; text-transform: none; }
+.keyword-tooltip::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 5px solid transparent; border-top-color: #607454; }
+.keyword-tooltip b { display: block; margin-bottom: 3px; color: var(--accent); font-size: 9px; letter-spacing: .08em; }
+@media (hover: hover) { .keyword-term:hover .keyword-tooltip { display: block; } }
+.card-hover-preview { position: fixed; z-index: 140; width: 390px; max-height: calc(100vh - 24px); overflow-y: auto; border-radius: 12px; box-shadow: 0 22px 70px rgba(0,0,0,.62); }

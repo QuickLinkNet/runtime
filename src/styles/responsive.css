@@ -1,0 +1,75 @@
+@media (max-width: 1180px) {
+  .board-row { gap: 5px; }
+}
+
+@media (max-width: 980px) {
+  .identity-screen { grid-template-columns: 1fr; }
+  .identity-aside { display: none; }
+  .menu-grid { grid-template-columns: 1fr 1fr; }
+  .mode-card.deck-mode { grid-column: 1 / -1; }
+  .deck-layout { grid-template-columns: 1fr; }
+  .deck-sidebar { position: static; }
+  .catalog-toolbar { align-items: stretch; flex-direction: column; }
+  .catalog-tools { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+  .match-screen { padding: 8px 8px calc(var(--card-h) + 18px); }
+  .hand-dock { min-height: calc(var(--card-h) + 14px); grid-template-columns: 86px minmax(0, 1fr) 96px; padding-inline: 8px; }
+  .glossary-grid { grid-template-columns: repeat(2, 1fr); }
+  :root { --card-h: var(--match-tablet-hand-card-height); --board-card-h: var(--match-tablet-board-card-height); }
+}
+
+@media (max-width: 680px) {
+  .screen { padding: 70px 20px 30px; }
+  .menu-screen { padding: 20px; }
+  .menu-hero { padding-top: 70px; }
+  .menu-grid, .connection-grid { grid-template-columns: 1fr; }
+  .mode-card.deck-mode { grid-column: auto; }
+  .resume-banner { align-items: stretch; flex-direction: column; }
+  .versus-slots { grid-template-columns: 1fr; gap: 12px; }
+  .versus-slots > i { transform: rotate(90deg); }
+  .player-slot { min-height: 180px; }
+  .screen-header { align-items: flex-start; flex-direction: column; }
+  .deck-domain-config { padding: 15px; }
+  .deck-section-heading { align-items: flex-start; }
+  .catalog-tools { grid-template-columns: 1fr; }
+  .catalog-search, .catalog-sort select { min-width: 0; width: 100%; }
+  .catalog-filters { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }
+  .catalog-filters button { white-space: nowrap; }
+  .catalog-grid { grid-template-columns: 1fr; }
+
+  .match-topbar .brand-small { display: none; }
+  .match-topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+  .match-header-actions { margin-left: auto; }
+  .rules-button { padding-inline: 8px; }
+  .turn-indicator { position: static; transform: none; }
+  .player-strip { grid-template-columns: 1fr auto; gap: 8px; }
+  .pile-stats { display: none; }
+  .match-screen { height: auto; min-height: 100dvh; overflow-x: hidden; overflow-y: auto; padding-bottom: 190px; }
+  .board { display: block; height: auto; }
+  .battlefield-side { display: block; width: 100%; }
+  .board-row, .board-row.infra-row { display: flex; width: 100%; min-width: 0; justify-content: flex-start; gap: 5px; overflow-x: auto; padding: 5px 3px; }
+  .empty-slot, .game-card.is-compact, .infra-row .empty-slot, .infra-row .game-card.is-compact { width: var(--match-mobile-board-card-width); height: auto; aspect-ratio: 1040 / 1408; flex: 0 0 var(--match-mobile-board-card-width); }
+  .game-card.is-compact .card-name { font-size: 7px; }
+  .game-card.is-compact .card-domain, .game-card.is-compact .card-text, .game-card.is-compact .card-type { display: none; }
+  .hand-dock { min-height: var(--match-mobile-hand-dock-height); grid-template-columns: 62px minmax(0, 1fr) 92px; padding: 6px 6px 10px; }
+  .compute-orb b { width: 48px; height: 48px; font-size: 19px; }
+  .compute-orb span { display: none; }
+  :root { --card-h: var(--match-mobile-hand-card-height); }
+  .hand .game-card { margin-left: -34px; }
+  .card-text { font-size: 7px; }
+  .turn-actions button { padding: 8px 5px; font-size: 9px; }
+  .event-feed span:nth-child(n+3) { display: none; }
+  .card-help-tip { top: 62px; right: 8px; width: calc(100vw - 16px); }
+
+  .modal-backdrop { align-items: end; padding: 8px; }
+  .modal-shell { max-height: calc(100dvh - 16px); border-radius: 12px 12px 8px 8px; }
+  .card-detail-panel { padding: 22px 17px; }
+  .card-detail-panel > header { gap: 10px; padding-right: 30px; }
+  .card-detail-panel h2 { font-size: 30px; }
+  .card-detail-cost { min-width: 65px; }
+  .card-detail-stats { flex-wrap: wrap; margin-top: 18px; }
+  .card-detail-stats > span { min-width: 100px; }
+  .card-explanations > div, .glossary-grid { grid-template-columns: 1fr; }
+  .glossary-shell { padding: 22px 17px 0; }
+  .glossary-shell > .modal-actions { margin: 16px -17px 0; }
+  .modal-actions { position: sticky; bottom: 0; background: #121915; }
+}

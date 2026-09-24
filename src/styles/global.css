@@ -1,0 +1,14 @@
+/*
+ * Compatibility entrypoint.
+ *
+ * New styles belong to the file that owns their concern. Keep imports ordered:
+ * design tokens -> foundations -> screens/features -> responsive overrides.
+ */
+@import './tokens.css';
+@import './base.css';
+@import './screens.css';
+@import './deck-builder.css';
+@import './match.css';
+@import './cards.css';
+@import './overlays.css';
+@import './responsive.css';

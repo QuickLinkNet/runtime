@@ -1,0 +1,20 @@
+# API
+
+Alle Endpunkte verwenden `api/index.php?action=…` und antworten mit `{ "success": true, "data": … }` oder einem strukturierten Fehler. Authentifizierte Requests senden `X-Player-Token`.
+
+| Action | Methode | Zweck |
+| --- | --- | --- |
+| `createPlayer` | POST | Namen registrieren und einmalig den Roh-Token erhalten |
+| `me` | GET | Aktuelle Identität prüfen |
+| `catalog` | GET | Karten und Starter-Decks laden |
+| `createMatch` | POST | Singleplayer- oder Multiplayer-Match anlegen |
+| `joinMatch` | POST | Privatem Raum beitreten |
+| `startMatch` | POST | Volles Multiplayer-Match starten |
+| `getMatchState` | GET | Versionsbasiert pollen |
+| `submitGameAction` | POST | Eine validierbare Spielabsicht senden |
+| `resumeMatch` | POST | Aktives Match des Spielers finden |
+| `leaveMatch` | POST | Match verlassen |
+
+`submitGameAction` erwartet `roomCode`, `expectedVersion` und eine `action`. Veraltete Versionen erhalten HTTP 409. Die möglichen Action-Typen sind `MULLIGAN`, `PLAY_CARD`, `ATTACK`, `DEBUG` und `END_TURN`.
+
+Fehler enthalten stabile Codes wie `NOT_YOUR_TURN`, `INVALID_TARGET`, `INSUFFICIENT_COMPUTE`, `VERSION_CONFLICT` oder `FIREWALL_ACTIVE`. Interne Stack Traces werden nicht ausgeliefert.

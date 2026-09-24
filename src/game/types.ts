@@ -1,0 +1,104 @@
+export type Domain = 'frontend' | 'backend' | 'infrastructure' | 'data' | 'security' | 'ai' | 'neutral' | 'token';
+export type CardType = 'service' | 'command' | 'infrastructure';
+
+export interface CardDefinition {
+  id: string;
+  name: string;
+  domain: Domain;
+  type: CardType;
+  cost: number;
+  power?: number;
+  integrity?: number;
+  keywords: string[];
+  effectId?: string;
+  overclockCost?: number;
+  text: string;
+  flavorText: string;
+  token?: boolean;
+  cannotAttack?: boolean;
+}
+
+export interface CardInstance {
+  instanceId: string;
+  definitionId: string;
+  costModifier?: number;
+  costModifierTurn?: number;
+}
+
+export interface BoardEntity extends CardInstance {
+  power: number;
+  integrity: number;
+  maxIntegrity: number;
+  redundancy: boolean;
+  sandboxed: boolean;
+  sandboxUntilTurn: number;
+  exhausted: boolean;
+  temporaryPower: number;
+}
+
+export interface PlayerView {
+  id: string;
+  name: string;
+  isBot: boolean;
+  domains: Domain[];
+  core: number;
+  deckCount: number;
+  handCount: number;
+  hand: CardInstance[];
+  services: BoardEntity[];
+  infrastructure: BoardEntity[];
+  trash: CardInstance[];
+  trashCount: number;
+  maxCompute: number | null;
+  compute: number | null;
+  temporaryCompute: number | null;
+  fatigue: number;
+  mulliganDone: boolean | null;
+  consecutiveTimeouts: number;
+}
+
+export interface GameEvent {
+  id: string;
+  type: string;
+  sequence: number;
+  playerId?: string;
+  targetId?: string;
+  amount?: number;
+  outcome?: string;
+}
+
+export interface GameState {
+  roomCode: string;
+  mode: 'single' | 'multi';
+  status: 'lobby' | 'mulligan' | 'active' | 'finished' | 'abandoned';
+  viewerId: string;
+  order: string[];
+  players: Record<string, PlayerView>;
+  activePlayerId: string | null;
+  startingPlayerId: string | null;
+  turn: number;
+  turnStartedAt: string | null;
+  turnDeadlineAt: string | null;
+  winnerId: string | null;
+  finishReason: string | null;
+  events: GameEvent[];
+}
+
+export interface MatchPayload {
+  roomCode?: string;
+  version: number;
+  state: GameState;
+  timedOut?: boolean;
+}
+
+export type GameAction =
+  | { type: 'MULLIGAN'; cardInstanceIds: string[] }
+  | { type: 'PLAY_CARD'; cardInstanceId: string; targetId?: string; overclock?: boolean }
+  | { type: 'ATTACK'; attackerId: string; targetId: string }
+  | { type: 'DEBUG'; targetId: string }
+  | { type: 'END_TURN' };
+
+export interface PlayerIdentity {
+  id: string;
+  name: string;
+}
