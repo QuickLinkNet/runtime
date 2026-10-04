@@ -1,8 +1,12 @@
 node_modules/
 dist/
 deploy/
+tmp/
+user_input/
+public/icons/
 .idea/
 api/config/config.php
 api/.env
+.env.deploy
 *.log
 .DS_Store

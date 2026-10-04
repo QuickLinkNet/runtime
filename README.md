@@ -48,21 +48,45 @@ Der Testlauf deckt Match-Start, Mulligan, Compute, Limits, Combat, Keywords, Cra
 
 ## Production / Shared Hosting
 
-1. Upload-Paket erzeugen:
+Das Deployment ist für beide öffentlichen Adressen eingerichtet:
 
-   ```text
-   npm run deploy
-   ```
+- `https://www.red-it.org/apps/runtime/`
+- `https://runtime.red-it.org/`
 
-2. Den vollständigen Inhalt des erzeugten Ordners `deploy/` in das Webroot der Domain oder Subdomain hochladen.
-3. Auf dem Server `api/config/config.example.php` nach `api/config/config.php` kopieren und die echten Zugangsdaten eintragen.
-4. Beim ersten API-Aufruf werden noch fehlende Migrationen automatisch und versionsbasiert ausgeführt.
-5. Sicherstellen, dass Frontend und `/api` über dieselbe HTTPS-Domain erreichbar sind.
+Ein Aufruf erledigt den vollständigen Ablauf:
+
+```text
+npm run deploy
+```
+
+Der Befehl:
+
+1. kompiliert TypeScript und baut das Frontend mit relativen Pfaden für Verzeichnis und Subdomain,
+2. erstellt den uploadfertigen Ordner `deploy/`,
+3. übernimmt die lokale, nicht versionierte RUNTIME-Datenbankkonfiguration,
+4. lädt Frontend, PHP-API und Kartenkatalog nach `/html/apps/runtime`,
+5. startet beim API-Aufruf noch fehlende Datenbankmigrationen und
+6. prüft anschließend die öffentliche Seite und den API-Healthcheck.
+
+Die FTP-Zugangsdaten liegen entweder in der ignorierten `.env.deploy` entsprechend `.env.deploy.example` oder werden in dieser lokalen Workspace-Struktur aus der vorhandenen Hosting-Konfiguration übernommen. Das Skript akzeptiert aus Sicherheitsgründen ausschließlich ein Zielverzeichnis, das auf `/runtime` endet, und löscht außerhalb des generierten Asset-Ordners keine Serverdateien.
 
 Node.js, Composer, Docker, Cronjobs oder ein dauerhaft laufender Prozess werden auf dem Server nicht benötigt.
+
+## Progressive Web App
+
+Der Production-Build erzeugt automatisch eine installierbare PWA:
+
+- Manifest und App-Icons für Android, iOS und Desktop
+- versionierter Service Worker mit vorgeladener App-Hülle
+- Karten-Artworks werden bei Benutzung begrenzt offline zwischengespeichert
+- API-, Spieler- und Matchantworten werden niemals vom Service Worker gecacht
+- neue Versionen werden angeboten und erst nach Bestätigung aktiviert
+- `npm run deploy` prüft Manifest, Service Worker und App-Icon nach dem Upload
+
+Service Worker funktionieren lokal nur im Production-Build (`npm run build` plus Vite Preview) und im Deployment über HTTPS. Im normalen Vite-Entwicklungsmodus werden sie absichtlich nicht registriert.
 
 ## API-Konfiguration
 
 Alternativ zu den Werten in `config.php` können `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` und `APP_ENV` als Umgebungsvariablen gesetzt werden. Roh-Tokens werden nie in der Datenbank gespeichert; dort liegt ausschließlich der SHA-256-Hash.
 
-Weitere Informationen: [Architektur](docs/architecture.md), [Frontend-Struktur](docs/frontend-architecture.md), [Spielregeln](docs/game-rules.md), [API](docs/api.md), [Kartensystem](docs/card-system.md), [Zukunftsideen](docs/future-ideas.md).
+Weitere Informationen: [Aktueller Projektstand](docs/project-status.md), [Architektur](docs/architecture.md), [Frontend-Struktur](docs/frontend-architecture.md), [Spielregeln](docs/game-rules.md), [API](docs/api.md), [Kartensystem](docs/card-system.md), [Zukunftsideen](docs/future-ideas.md).

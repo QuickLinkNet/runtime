@@ -1,34 +1,34 @@
+import type { GameEvent, PlayerView } from '../../../game/types';
 import type { MatchSelection } from '../model/types';
+import { MatchEventFeed } from './MatchEventFeed';
+import { SelectionPrompt } from './SelectionPrompt';
 
 interface MatchCenterProps {
-  events: Array<{ id: string; type: string }>;
+  events: GameEvent[];
+  players: Record<string, PlayerView>;
   selection: MatchSelection;
+  selectionMessage: string;
   overclock: boolean;
   optionalTarget: boolean;
   onOverclockChange: (value: boolean) => void;
   onPlayWithoutTarget: () => void;
   onCancel: () => void;
-  getEventLabel: (type: string) => string;
 }
 
-export function MatchCenter({ events, selection, overclock, optionalTarget, onOverclockChange, onPlayWithoutTarget, onCancel, getEventLabel }: MatchCenterProps) {
+export function MatchCenter({ events, players, selection, selectionMessage, overclock, optionalTarget, onOverclockChange, onPlayWithoutTarget, onCancel }: MatchCenterProps) {
   return (
     <div className="board-center">
-      <div className="event-feed" aria-live="polite">
-        {events.map((event) => <span key={event.id}>{getEventLabel(event.type)}</span>)}
-      </div>
+      <MatchEventFeed events={events} players={players} />
       {selection && (
-        <div className="selection-panel">
-          <span>{selection.kind === 'attacker' ? 'Ziel für Angriff wählen' : `${selection.definition.name}: Ziel wählen`}</span>
-          {selection.kind === 'card' && selection.definition.overclockCost && (
-            <label>
-              <input type="checkbox" checked={overclock} onChange={(event) => onOverclockChange(event.target.checked)} />
-              {' '}Overclock +{selection.definition.overclockCost}
-            </label>
-          )}
-          {optionalTarget && <button type="button" onClick={onPlayWithoutTarget}>Ausspielen</button>}
-          <button type="button" onClick={onCancel}>Abbrechen</button>
-        </div>
+        <SelectionPrompt
+          selection={selection}
+          message={selectionMessage}
+          overclock={overclock}
+          optionalTarget={optionalTarget}
+          onOverclockChange={onOverclockChange}
+          onPlayWithoutTarget={onPlayWithoutTarget}
+          onCancel={onCancel}
+        />
       )}
     </div>
   );

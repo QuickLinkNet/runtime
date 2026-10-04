@@ -11,9 +11,11 @@ interface CatalogToolbarProps {
   onFilterChange: (filter: CatalogFilter) => void;
   onQueryChange: (query: string) => void;
   onSortChange: (sort: SortMode) => void;
+  columns: 4 | 5;
+  onColumnsChange: (columns: 4 | 5) => void;
 }
 
-export function CatalogToolbar({ cardCount, domains, filter, query, sort, onFilterChange, onQueryChange, onSortChange }: CatalogToolbarProps) {
+export function CatalogToolbar({ cardCount, domains, filter, query, sort, onFilterChange, onQueryChange, onSortChange, columns, onColumnsChange }: CatalogToolbarProps) {
   return (
     <section className="catalog-controls" aria-labelledby="catalog-heading">
       <div className="deck-section-heading compact">
@@ -43,6 +45,14 @@ export function CatalogToolbar({ cardCount, domains, filter, query, sort, onFilt
               <option value="type">Kartentyp</option>
             </select>
           </label>
+          <div className="catalog-grid-switch" aria-label="Rastergröße">
+            <button type="button" className={columns === 4 ? 'active' : ''} onClick={() => onColumnsChange(4)} aria-label="Vier große Karten pro Reihe" title="Große Karten">
+              <span className="grid-icon grid-icon-four" aria-hidden="true" />
+            </button>
+            <button type="button" className={columns === 5 ? 'active' : ''} onClick={() => onColumnsChange(5)} aria-label="Fünf kompakte Karten pro Reihe" title="Kompakte Karten">
+              <span className="grid-icon grid-icon-five" aria-hidden="true" />
+            </button>
+          </div>
         </div>
       </div>
     </section>

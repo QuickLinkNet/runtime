@@ -61,3 +61,22 @@ export function canSelectAttacker(entity: BoardEntity): boolean {
   const definition = cardById.get(entity.definitionId);
   return !entity.exhausted && !entity.sandboxed && !definition?.cannotAttack;
 }
+
+export function selectionPrompt(selection: MatchSelection): string {
+  if (selection?.kind === 'attacker') return 'Wähle einen gegnerischen Service oder den Core.';
+  if (selection?.kind !== 'card') return '';
+
+  const prompts: Record<string, string> = {
+    infinite_rerender: 'Wähle einen Service für die Sandbox.',
+    hotfix: 'Wähle einen Service oder eine Infrastructure.',
+    horizontal_scaling: 'Wähle einen eigenen günstigen Service.',
+    emergency_patch: 'Wähle eine eigene Karte oder deinen Core.',
+    coffee: 'Wähle einen eigenen Service.',
+    force_push: 'Wähle einen Service.',
+    web_worker_deploy: 'Optional: Wähle einen eigenen Service.',
+    security_engineer_deploy: 'Optional: Wähle einen eigenen Service.',
+    sandbox_container_deploy: 'Wähle einen gegnerischen Service.',
+  };
+
+  return prompts[selection.definition.effectId ?? ''] ?? 'Karte ist bereit zum Ausspielen.';
+}

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { CardCatalog } from './components/CardCatalog';
 import { CatalogToolbar } from './components/CatalogToolbar';
 import { DeckHeader } from './components/DeckHeader';
@@ -13,6 +14,7 @@ interface DeckBuilderProps {
 
 export function DeckBuilder({ initialDeck, onSave, onCancel }: DeckBuilderProps) {
   const builder = useDeckBuilder(initialDeck);
+  const [catalogColumns, setCatalogColumns] = useState<4 | 5>(5);
 
   return (
     <main className="screen deck-screen">
@@ -32,6 +34,8 @@ export function DeckBuilder({ initialDeck, onSave, onCancel }: DeckBuilderProps)
         onFilterChange={builder.setFilter}
         onQueryChange={builder.setQuery}
         onSortChange={builder.setSort}
+        columns={catalogColumns}
+        onColumnsChange={setCatalogColumns}
       />
       <div className="deck-layout">
         <CardCatalog
@@ -40,6 +44,7 @@ export function DeckBuilder({ initialDeck, onSave, onCancel }: DeckBuilderProps)
           showingNeutral={builder.filter === 'neutral'}
           deckSize={builder.deck.length}
           counts={builder.counts}
+          columns={catalogColumns}
           onAdd={builder.addCard}
           onRemove={builder.removeCard}
         />

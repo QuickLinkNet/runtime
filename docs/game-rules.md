@@ -2,6 +2,14 @@
 
 Zwei Spieler beginnen mit je 30 Core-Integrität und einem validen 30-Karten-Deck aus genau zwei Tech-Domains plus neutralen Karten. Maximal zwei Kopien derselben Karte sind erlaubt.
 
+## Kartenarten und Domains
+
+Jede Karte besitzt genau einen Kartentyp: **Service**, **Command** oder **Infrastructure**. Services und Infrastructure werden in die jeweils passenden Board-Slots ausgespielt. Commands werden einmalig ausgeführt und anschließend in den Trash gelegt.
+
+Die sechs wählbaren Tech-Domains sind **Frontend**, **Backend**, **DevOps**, **Data**, **Security** und **AI**. Die sichtbare Domain **DevOps** wird intern aus Kompatibilitätsgründen weiterhin mit dem technischen Schlüssel `infrastructure` gespeichert. Sie ist nicht mit dem Kartentyp Infrastructure gleichzusetzen: Eine DevOps-Karte kann beispielsweise ein Service, Command oder eine Infrastructure sein.
+
+**Neutral** ist eine frei verwendbare Sonderkategorie und zählt nicht als gewählte Tech-Domain. **Token** ist ebenfalls kein Kartentyp, sondern kennzeichnet erzeugte Karten, die nicht in ein Deck aufgenommen werden können. Ein Token ist weiterhin entweder ein Service oder ein Command.
+
 Nach drei Startkarten wählen beide Spieler ihren Mulligan. Der zweite Spieler erhält zusätzlich `BOOTSTRAP`. Compute wächst zu Beginn des eigenen Zuges um eins bis maximal zehn, wird aufgefüllt und anschließend wird eine Karte gezogen.
 
 Pro Seite gibt es fünf Service- und zwei Infrastructure-Slots sowie maximal zehn Handkarten. Services können ab dem nächsten eigenen Zug einmal angreifen. Im Service-Kampf wird Schaden gleichzeitig ausgetauscht. FIREWALL schützt den Core, REDUNDANCY verhindert eine Schadensinstanz, SANDBOX deaktiviert Angriff und Effekte bis zum nächsten eigenen Zug.

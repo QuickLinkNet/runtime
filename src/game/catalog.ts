@@ -8,7 +8,7 @@ export const cardById = new Map(cards.map((card) => [card.id, card]));
 export const domainLabels: Record<Domain, string> = {
   frontend: 'Frontend',
   backend: 'Backend',
-  infrastructure: 'Infrastructure',
+  infrastructure: 'DevOps',
   data: 'Data',
   security: 'Security',
   ai: 'AI',

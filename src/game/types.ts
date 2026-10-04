@@ -62,9 +62,21 @@ export interface GameEvent {
   type: string;
   sequence: number;
   playerId?: string;
+  sourcePlayerId?: string;
   targetId?: string;
+  attackerId?: string;
+  entityId?: string;
+  sourceId?: string;
+  cardInstanceId?: string;
+  definitionId?: string;
   amount?: number;
+  prevented?: number;
+  cost?: number;
+  count?: number;
+  turn?: number;
   outcome?: string;
+  winnerId?: string;
+  reason?: string;
 }
 
 export interface GameState {

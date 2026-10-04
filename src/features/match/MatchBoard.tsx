@@ -2,15 +2,17 @@ import { GlossaryModal } from '../cards';
 import type { GameAction, GameState } from '../../game/types';
 import { BoardRow } from './components/BoardRow';
 import { CardHelpTip } from './components/CardHelpTip';
+import { CombatFeedbackLayer } from './components/CombatFeedbackLayer';
 import { HandDock } from './components/HandDock';
+import { InteractionNotice } from './components/InteractionNotice';
 import { MatchCenter } from './components/MatchCenter';
 import { MatchResult } from './components/MatchResult';
 import { MatchTopbar } from './components/MatchTopbar';
 import { MulliganScreen } from './components/MulliganScreen';
 import { PlayerStrip } from './components/PlayerStrip';
+import { TurnBanner } from './components/TurnBanner';
 import { WaitingLobby } from './components/WaitingLobby';
 import { useMatchController } from './hooks/useMatchController';
-import { eventLabel } from './model/eventLabels';
 
 interface MatchBoardProps {
   state: GameState;
@@ -65,6 +67,10 @@ export function MatchBoard({ state, pending, onAction, onExit }: MatchBoardProps
           onExit={onExit}
         />
 
+        <TurnBanner turn={state.turn} myTurn={match.myTurn} opponentName={opponent.name} />
+        <InteractionNotice message={match.interactionNotice} />
+        <CombatFeedbackLayer state={state} />
+
         {match.showCardTip && <CardHelpTip onClose={() => match.setShowCardTip(false)} />}
 
         <section className="board" aria-label="Spielfeld">
@@ -94,13 +100,14 @@ export function MatchBoard({ state, pending, onAction, onExit }: MatchBoardProps
 
           <MatchCenter
             events={match.latestEvents}
+            players={state.players}
             selection={match.selection}
+            selectionMessage={match.selectionMessage}
             overclock={match.overclock}
             optionalTarget={match.optionalTarget}
             onOverclockChange={match.setOverclock}
             onPlayWithoutTarget={match.playWithoutTarget}
             onCancel={() => match.setSelection(null)}
-            getEventLabel={eventLabel}
           />
 
           <div className="player-zone own-zone">
@@ -130,6 +137,7 @@ export function MatchBoard({ state, pending, onAction, onExit }: MatchBoardProps
         </section>
 
         <HandDock
+          state={state}
           player={player}
           selection={match.selection}
           myTurn={match.myTurn}

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { api, setToken } from '../api/client';
 import type { PlayerIdentity } from '../game/types';
+import { cacheIdentity } from '../pwa/identityCache';
 import { Button } from '../ui/atoms';
 
 interface IdentityPageProps {
@@ -19,6 +20,7 @@ export function IdentityPage({ onCreated }: IdentityPageProps) {
     try {
       const result = await api.createPlayer(name.trim());
       setToken(result.token);
+      cacheIdentity(result.player);
       onCreated(result.player);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Verbindung fehlgeschlagen.');

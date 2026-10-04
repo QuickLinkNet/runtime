@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { cardById, domainLabels } from '../../../game/catalog';
+import { cardArtworkById } from '../../../game/cardArtwork';
 import type { BoardEntity, CardInstance } from '../../../game/types';
+import { useValuePulse } from '../../../ui/hooks/useValuePulse';
 import { CardDetailModal, CardDetailPanel } from './CardDetails';
 import { KeywordText } from './KeywordText';
 
@@ -11,7 +13,11 @@ interface Props {
   playable?: boolean;
   targetable?: boolean;
   compact?: boolean;
+  detailsOnHover?: boolean;
+  detailsOnTap?: boolean;
+  style?: CSSProperties;
   actionLabel?: string;
+  combatId?: string;
   onClick?: () => void;
 }
 
@@ -27,21 +33,36 @@ function useCoarsePointer() {
   return coarse;
 }
 
-export function GameCard({ card, selected, playable, targetable, compact, actionLabel, onClick }: Props) {
+export function GameCard({ card, selected, playable, targetable, compact, detailsOnHover = true, detailsOnTap = false, style, actionLabel, combatId, onClick }: Props) {
   const definition = cardById.get(card.definitionId);
   const entity = 'integrity' in card ? card : null;
+  const integrityPulse = useValuePulse(entity?.integrity);
   const isCoarsePointer = useCoarsePointer();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const closeTimer = useRef<number | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [hoverStyle, setHoverStyle] = useState<CSSProperties | null>(null);
 
+  useEffect(() => {
+    if (!detailsOpen || !detailsOnTap) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setDetailsOpen(false);
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [detailsOpen, detailsOnTap]);
+
   if (!definition) return null;
+
+  const visualType = definition.token ? 'token' : definition.type;
+  const artwork = cardArtworkById[definition.id];
 
   const classes = [
     'game-card', `domain-${definition.domain}`,
+    `type-${visualType}`,
     selected ? 'is-selected' : '', playable ? 'is-playable' : '',
     targetable ? 'is-targetable' : '', compact ? 'is-compact' : '',
+    integrityPulse ? `is-${integrityPulse}` : '',
     entity?.exhausted ? 'is-exhausted' : '', entity?.sandboxed ? 'is-sandboxed' : '',
   ].filter(Boolean).join(' ');
 
@@ -53,16 +74,26 @@ export function GameCard({ card, selected, playable, targetable, compact, action
   }
 
   function showHoverPreview() {
-    if (isCoarsePointer || !buttonRef.current) return;
+    if (!detailsOnHover || isCoarsePointer || !buttonRef.current) return;
     clearCloseTimer();
     const rect = buttonRef.current.getBoundingClientRect();
-    const previewWidth = 390;
+    const viewportMargin = 12;
+    const previewWidth = Math.min(390, window.innerWidth - (viewportMargin * 2));
+    const previewHeight = Math.min(620, window.innerHeight - (viewportMargin * 2));
     const gap = 14;
     const left = rect.right + gap + previewWidth <= window.innerWidth
       ? rect.right + gap
-      : Math.max(12, rect.left - previewWidth - gap);
-    const top = Math.max(12, Math.min(rect.top - 70, window.innerHeight - 620));
-    setHoverStyle({ left, top });
+      : Math.max(viewportMargin, rect.left - previewWidth - gap);
+    const top = Math.max(
+      viewportMargin,
+      Math.min(rect.top - 70, window.innerHeight - previewHeight - viewportMargin),
+    );
+    setHoverStyle({
+      left,
+      top,
+      width: previewWidth,
+      maxHeight: window.innerHeight - top - viewportMargin,
+    });
   }
 
   function scheduleHidePreview() {
@@ -71,11 +102,15 @@ export function GameCard({ card, selected, playable, targetable, compact, action
   }
 
   function handleCardClick() {
-    if (isCoarsePointer) {
+    if (isCoarsePointer && detailsOnTap) {
       setDetailsOpen(true);
       return;
     }
-    onClick?.();
+    if (onClick) {
+      onClick();
+      return;
+    }
+    if (isCoarsePointer) setDetailsOpen(true);
   }
 
   return (
@@ -83,28 +118,43 @@ export function GameCard({ card, selected, playable, targetable, compact, action
       <button
         ref={buttonRef}
         className={classes}
+        data-combat-id={combatId}
+        style={style}
         onClick={handleCardClick}
-        onMouseEnter={showHoverPreview}
-        onMouseLeave={scheduleHidePreview}
-        onFocus={showHoverPreview}
-        onBlur={scheduleHidePreview}
+        onMouseEnter={detailsOnHover ? showHoverPreview : undefined}
+        onMouseLeave={detailsOnHover ? scheduleHidePreview : undefined}
+        onFocus={detailsOnHover ? showHoverPreview : undefined}
+        onBlur={detailsOnHover ? scheduleHidePreview : undefined}
         type="button"
         aria-pressed={selected}
-        aria-label={`${definition.name}. ${isCoarsePointer ? 'Antippen für Details.' : 'Details beim Darüberfahren.'}`}
+        aria-label={`${definition.name}. ${isCoarsePointer && detailsOnTap ? 'Antippen für Details.' : `${actionLabel ? `${actionLabel}. ` : ''}${detailsOnHover && !isCoarsePointer ? 'Details beim Darüberfahren.' : 'Karte anzeigen.'}`}`}
       >
-        <span className="card-topline">
-          <span className="card-cost" aria-label={`${definition.cost} Compute`}>{definition.cost}</span>
-          <span className="card-domain">{domainLabels[definition.domain]}</span>
-        </span>
+        {artwork && <span className="card-artwork" style={{ backgroundImage: `url(${artwork})` }} aria-hidden="true" />}
+        <span className="card-cost" aria-label={`${definition.cost} Compute`}>{definition.cost}</span>
         <strong className="card-name">{definition.name}</strong>
-        <span className="card-type">{definition.type}</span>
+        <span className="card-classification">
+          <span className={`card-type-badge type-${visualType}`} aria-hidden="true" />
+          <span className="card-classification-label">
+            <span className="card-domain">{domainLabels[definition.domain]}</span>
+            <i aria-hidden="true">·</i>
+            <span className="card-type">{visualType}</span>
+          </span>
+        </span>
         <span className="card-text"><KeywordText text={definition.text} /></span>
         {entity?.redundancy && <span className="card-status">REDUNDANCY</span>}
         {entity?.sandboxed && <span className="card-status">SANDBOX</span>}
         {(definition.type === 'service' || definition.type === 'infrastructure') && (
           <span className="card-stats">
-            {definition.type === 'service' && <span title="Power">{entity?.power ?? definition.power} ◆</span>}
-            <span title="Integrity">{entity ? `${entity.integrity}/${entity.maxIntegrity}` : definition.integrity} ♥</span>
+            {definition.type === 'service' && (
+              <span className="card-stat card-stat-power" title="Power">
+                <b>{entity?.power ?? definition.power}</b>
+                <small>Power</small>
+              </span>
+            )}
+            <span className="card-stat card-stat-integrity" title="Integrity">
+              <b>{entity ? `${entity.integrity}/${entity.maxIntegrity}` : `${definition.integrity}/${definition.integrity}`}</b>
+              <small>Integrity</small>
+            </span>
           </span>
         )}
         <span className="card-detail-hint">{isCoarsePointer ? 'Tippen: Details' : 'Hover: Details'}</span>
@@ -122,10 +172,24 @@ export function GameCard({ card, selected, playable, targetable, compact, action
         document.body,
       )}
 
+      {detailsOpen && detailsOnTap && createPortal(
+        <div className="card-visual-backdrop" role="presentation" onMouseDown={(event) => {
+          if (event.currentTarget === event.target) setDetailsOpen(false);
+        }}>
+          <div className="card-visual-dialog" role="dialog" aria-modal="true" aria-label={`Kartenansicht: ${definition.name}`}>
+            <button className="card-visual-close" type="button" onClick={() => setDetailsOpen(false)} aria-label="Kartenansicht schließen">×</button>
+            <div className="card-visual-stage">
+              <GameCard card={card} detailsOnHover={false} onClick={() => undefined} />
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
+
       <CardDetailModal
-        open={detailsOpen}
+        open={detailsOpen && !detailsOnTap}
         onClose={() => setDetailsOpen(false)}
-        onConfirm={onClick}
+        onConfirm={detailsOnTap ? undefined : onClick}
         confirmLabel={actionLabel}
         definition={definition}
         entity={entity}

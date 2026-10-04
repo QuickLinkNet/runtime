@@ -36,6 +36,7 @@ export function BoardRow({ entities, kind, targetable, onTarget, onSelect, selec
             compact
             selected={selectedId === entity.instanceId}
             targetable={validTarget}
+            combatId={entity.instanceId}
             actionLabel={validTarget ? 'Als Ziel wählen' : 'Service auswählen'}
             onClick={cardAction}
           />

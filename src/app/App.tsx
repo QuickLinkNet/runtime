@@ -9,6 +9,7 @@ import { BootPage } from '../pages/BootPage';
 import { IdentityPage } from '../pages/IdentityPage';
 import { MainMenuPage } from '../pages/MainMenuPage';
 import { MultiplayerPage } from '../pages/MultiplayerPage';
+import { cacheIdentity, cachedIdentity, clearCachedIdentity } from '../pwa/identityCache';
 import { RoomLobbyPage } from '../pages/RoomLobbyPage';
 import { ErrorToast } from '../ui/molecules';
 
@@ -39,10 +40,18 @@ export function App() {
       try {
         const [{ player }, resumeResult] = await Promise.all([api.me(), api.resume()]);
         setIdentity(player);
+        cacheIdentity(player);
         setResume(resumeResult.match);
         setScreen('menu');
       } catch {
+        const offlineIdentity = cachedIdentity();
+        if (!navigator.onLine && offlineIdentity) {
+          setIdentity(offlineIdentity);
+          setScreen('menu');
+          return;
+        }
         localStorage.removeItem('runtime.playerToken');
+        clearCachedIdentity();
         setScreen('name');
       }
     }

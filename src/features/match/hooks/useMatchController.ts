@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { cardById } from '../../../game/catalog';
 import type { BoardEntity, GameAction, GameState } from '../../../game/types';
-import { canPlayWithoutTarget, canSelectAttacker, canTargetCore, canTargetEntity } from '../model/targeting';
+import { knownCardCost } from '../model/cardCost';
+import { canPlayWithoutTarget, canSelectAttacker, canTargetCore, canTargetEntity, selectionPrompt } from '../model/targeting';
 import type { MatchSelection } from '../model/types';
 
 interface UseMatchControllerOptions {
@@ -15,6 +16,7 @@ export function useMatchController({ state, pending, onAction }: UseMatchControl
   const [mulligan, setMulligan] = useState<string[]>([]);
   const [overclock, setOverclock] = useState(false);
   const [glossaryOpen, setGlossaryOpen] = useState(false);
+  const [interactionNotice, setInteractionNotice] = useState<string | null>(null);
   const [showCardTip, setShowCardTip] = useState(() => localStorage.getItem('runtime.cardHelpSeen') !== '1');
   const [now, setNow] = useState(Date.now());
 
@@ -27,6 +29,7 @@ export function useMatchController({ state, pending, onAction }: UseMatchControl
     : null;
   const latestEvents = useMemo(() => state.events.slice(-4).reverse(), [state.events]);
   const optionalTarget = canPlayWithoutTarget(selection, player, opponent);
+  const selectionMessage = selectionPrompt(selection);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -39,6 +42,12 @@ export function useMatchController({ state, pending, onAction }: UseMatchControl
   }, [state.turn, state.status]);
 
   useEffect(() => {
+    if (!interactionNotice) return;
+    const timer = window.setTimeout(() => setInteractionNotice(null), 2200);
+    return () => window.clearTimeout(timer);
+  }, [interactionNotice]);
+
+  useEffect(() => {
     if (state.status === 'active' && showCardTip) localStorage.setItem('runtime.cardHelpSeen', '1');
   }, [showCardTip, state.status]);
 
@@ -49,14 +58,41 @@ export function useMatchController({ state, pending, onAction }: UseMatchControl
   }
 
   function selectHandCard(instanceId: string) {
-    if (!myTurn || pending) return;
+    if (!myTurn) {
+      setInteractionNotice('Warte auf deinen Zug.');
+      return;
+    }
+    if (pending) {
+      setInteractionNotice('Die vorherige Aktion wird noch verarbeitet.');
+      return;
+    }
     const card = player.hand.find((item) => item.instanceId === instanceId);
     const definition = card ? cardById.get(card.definitionId) : undefined;
-    if (definition) setSelection({ kind: 'card', id: instanceId, definition });
+    if (card && definition) {
+      const availableCompute = (player.compute ?? 0) + (player.temporaryCompute ?? 0);
+      const effectiveCost = knownCardCost(state, card, definition);
+      if (effectiveCost > availableCompute) {
+        setInteractionNotice(`${definition.name} braucht ${effectiveCost} Compute. Du hast ${availableCompute}.`);
+        return;
+      }
+      setSelection({ kind: 'card', id: instanceId, definition });
+      setInteractionNotice(`${definition.name} ausgewählt.`);
+    }
   }
 
   function selectAttacker(entity: BoardEntity) {
-    if (myTurn && canSelectAttacker(entity)) setSelection({ kind: 'attacker', id: entity.instanceId });
+    if (!myTurn) {
+      setInteractionNotice('Angreifen kannst du nur in deinem Zug.');
+      return;
+    }
+    const definition = cardById.get(entity.definitionId);
+    if (entity.exhausted) setInteractionNotice('Dieser Service ist noch erschöpft.');
+    else if (entity.sandboxed) setInteractionNotice('Dieser Service befindet sich in der Sandbox.');
+    else if (definition?.cannotAttack) setInteractionNotice('Dieser Service kann nicht angreifen.');
+    else if (canSelectAttacker(entity)) {
+      setSelection({ kind: 'attacker', id: entity.instanceId });
+      setInteractionNotice(`${definition?.name ?? 'Service'} ist angriffsbereit.`);
+    }
   }
 
   async function target(id: string) {
@@ -87,6 +123,8 @@ export function useMatchController({ state, pending, onAction }: UseMatchControl
     glossaryOpen,
     showCardTip,
     optionalTarget,
+    interactionNotice,
+    selectionMessage,
     setOverclock,
     setGlossaryOpen,
     setShowCardTip,

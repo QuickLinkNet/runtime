@@ -1,0 +1,22 @@
+{
+  "id": "./",
+  "name": "RUNTIME – Multiplayer Tech Card Game",
+  "short_name": "RUNTIME",
+  "description": "Ein taktisches Tech-Kartenspiel: Deploy. Defend. Debug.",
+  "lang": "de-DE",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#07100b",
+  "theme_color": "#17211d",
+  "categories": ["games", "entertainment", "strategy"],
+  "icons": [
+    { "src": "runtime-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "runtime-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "runtime-icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "runtime-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

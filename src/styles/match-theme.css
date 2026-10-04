@@ -11,7 +11,7 @@
  */
 :root {
   /* Karten */
-  --match-hand-card-height: clamp(166px, 21.1vh, 198px);
+  --match-hand-card-height: clamp(178px, 23.5vh, 214px);
   --match-board-card-min-height: 72px;
   --match-board-card-max-height: 160px;
   --match-board-card-sizing-overhead: 236px;
@@ -22,14 +22,14 @@
   );
   --match-card-gap: clamp(8px, 1vw, 15px);
   --match-row-gap: clamp(2px, .45vh, 5px);
-  --match-hand-card-overlap: -20px;
+  --match-hand-card-overlap: -18px;
 
   /* Hoehenaufteilung */
   --match-board-max-width: 1500px;
   --match-screen-side-padding: 22px;
-  --match-board-height-reserve: 100px;
+  --match-board-height-reserve: 114px;
   --match-middle-height: 46px;
-  --match-hand-dock-extra-height: 18px;
+  --match-hand-dock-extra-height: 32px;
   --match-service-middle-gap: 3px;
   --match-player-bar-height: clamp(42px, 5.8vh, 56px);
 

@@ -124,16 +124,17 @@ const escapedLabels = keywordLabelsByLength.map((label) => label.replace(/[.*+?^
 export const keywordPattern = new RegExp(`(${escapedLabels.join('|')})`, 'gi');
 
 export function definitionsForCard(card: CardDefinition): KeywordDefinition[] {
-  const haystack = [card.name, card.text, card.type, ...(card.keywords ?? [])].join(' ').toLocaleUpperCase('de');
+  const haystack = [card.name, card.text].join(' ').toLocaleUpperCase('de');
   const ids = new Set<string>();
+  const structuralTerms = new Set(['compute', 'power', 'integrity', 'service', 'command', 'infrastructure']);
 
-  ids.add('compute');
-  ids.add(card.type);
-  if (card.power !== undefined) ids.add('power');
-  if (card.integrity !== undefined) ids.add('integrity');
+  for (const keyword of card.keywords ?? []) {
+    const definition = keywordDefinitionByLabel.get(keyword.toLocaleUpperCase('de'));
+    if (definition) ids.add(definition.id);
+  }
 
   for (const definition of keywordDefinitions) {
-    if (haystack.includes(definition.label)) ids.add(definition.id);
+    if (!structuralTerms.has(definition.id) && haystack.includes(definition.label)) ids.add(definition.id);
   }
 
   return keywordDefinitions.filter((definition) => ids.has(definition.id));

@@ -1,0 +1,196 @@
+.combat-effect-layer {
+  position: fixed;
+  z-index: 118;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.combat-attacker-ghost,
+.combat-destroy-ghost {
+  position: absolute;
+  transform-origin: center;
+  pointer-events: none;
+}
+
+.combat-attacker-ghost {
+  z-index: 2;
+  opacity: 0;
+  filter: drop-shadow(0 0 14px rgba(185,244,74,.68));
+  animation: combatLunge 820ms cubic-bezier(.2,.8,.25,1) var(--combat-delay) both;
+}
+
+.combat-effect-layer .game-card {
+  width: 100%;
+  height: 100%;
+  animation: none;
+  box-shadow: 0 18px 48px rgba(0,0,0,.62);
+}
+
+.combat-trace {
+  position: absolute;
+  z-index: 1;
+  height: 3px;
+  transform-origin: 0 50%;
+  border-radius: 999px;
+  opacity: 0;
+  background: linear-gradient(90deg, transparent, rgba(185,244,74,.34) 15%, #efffc5 74%, var(--accent));
+  box-shadow: 0 0 7px rgba(185,244,74,.62), 0 0 20px rgba(185,244,74,.25);
+  animation: combatTrace 660ms ease-out var(--combat-delay) both;
+}
+
+.combat-trace::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 13px;
+  height: 13px;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background: #f7ffe8;
+  box-shadow: 0 0 8px var(--accent), 0 0 22px var(--accent);
+  animation: combatBolt 560ms cubic-bezier(.22,.78,.3,1) var(--combat-delay) both;
+}
+
+.combat-impact {
+  position: absolute;
+  z-index: 5;
+  width: 94px;
+  height: 94px;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  animation: combatImpact 760ms ease-out var(--combat-delay) both;
+}
+
+.combat-impact i,
+.combat-impact i::before,
+.combat-impact i::after {
+  position: absolute;
+  inset: 0;
+  border: 3px solid #ff765f;
+  border-radius: 50%;
+  box-shadow: 0 0 20px rgba(255,82,64,.72), inset 0 0 20px rgba(255,82,64,.32);
+}
+
+.combat-impact i::before,
+.combat-impact i::after {
+  content: '';
+  inset: 17px;
+  border-width: 2px;
+  transform: rotate(45deg);
+  border-radius: 4px;
+}
+
+.combat-impact i::after { transform: rotate(-45deg); }
+
+.combat-impact b {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #fff2ef;
+  font-size: 25px;
+  font-weight: 950;
+  letter-spacing: -.04em;
+  text-shadow: 0 2px 2px #4b0902, 0 0 15px #ff513d;
+}
+
+.combat-impact.is-blocked i,
+.combat-impact.is-blocked i::before,
+.combat-impact.is-blocked i::after {
+  border-color: #71cfff;
+  box-shadow: 0 0 20px rgba(87,191,255,.72), inset 0 0 20px rgba(87,191,255,.3);
+}
+
+.combat-impact.is-blocked b {
+  color: #e8f8ff;
+  font-size: 15px;
+  text-shadow: 0 2px 2px #052840, 0 0 15px #46bfff;
+}
+
+.combat-destroy-ghost {
+  z-index: 4;
+  opacity: 0;
+  animation: combatTrash 980ms cubic-bezier(.35,.05,.7,.2) var(--combat-delay) both;
+}
+
+.combat-destroy-ghost::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border: 2px solid #ff6f58;
+  border-radius: 10px;
+  box-shadow: 0 0 26px rgba(255,75,53,.72), inset 0 0 28px rgba(255,75,53,.2);
+  animation: destroyFrame 650ms ease-out var(--combat-delay) both;
+}
+
+.combat-destroy-ghost > i {
+  position: absolute;
+  z-index: 2;
+  inset: 20%;
+  background: radial-gradient(circle, #fff 0 4%, #ff765f 5% 18%, transparent 20%);
+  filter: drop-shadow(0 0 12px #ff5a43);
+  animation: destroyBurst 720ms ease-out var(--combat-delay) both;
+}
+
+.combat-destroy-ghost.is-token {
+  filter: saturate(.55) hue-rotate(18deg);
+}
+
+@keyframes combatLunge {
+  0% { opacity: 0; transform: translate(0, 0) scale(.96); }
+  10% { opacity: .92; }
+  56% { opacity: 1; transform: translate(var(--combat-x), var(--combat-y)) scale(.82) rotate(2deg); }
+  68% { opacity: .96; transform: translate(var(--combat-x), var(--combat-y)) scale(.88) rotate(-2deg); }
+  100% { opacity: 0; transform: translate(0, 0) scale(.94); }
+}
+
+@keyframes combatTrace {
+  0%, 100% { opacity: 0; filter: blur(4px); }
+  12%, 68% { opacity: .94; filter: blur(0); }
+}
+
+@keyframes combatBolt {
+  0% { opacity: 0; transform: translate(0, -50%) scale(.4); }
+  12% { opacity: 1; }
+  78% { opacity: 1; transform: translateX(calc(var(--combat-length) - 13px)) translateY(-50%) scale(1); }
+  100% { opacity: 0; transform: translateX(calc(var(--combat-length) - 13px)) translateY(-50%) scale(1.8); }
+}
+
+@keyframes combatImpact {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.25) rotate(-12deg); }
+  18% { opacity: 1; transform: translate(-50%, -50%) scale(1.05) rotate(3deg); }
+  58% { opacity: 1; transform: translate(-50%, -58%) scale(.94) rotate(0); }
+  100% { opacity: 0; transform: translate(-50%, -100%) scale(.78); }
+}
+
+@keyframes combatTrash {
+  0%, 18% { opacity: .96; transform: translate(0, 0) rotate(0) scale(1); filter: brightness(1.25) saturate(.7); }
+  42% { opacity: .88; transform: translate(0, -16px) rotate(-4deg) scale(.97); filter: brightness(.9) saturate(.5); }
+  100% { opacity: 0; transform: translate(var(--combat-x), var(--combat-y)) rotate(18deg) scale(.18); filter: blur(5px) brightness(.35); }
+}
+
+@keyframes destroyFrame {
+  0% { opacity: 0; transform: scale(.88); }
+  18% { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 0; transform: scale(1.22); }
+}
+
+@keyframes destroyBurst {
+  0% { opacity: 0; transform: scale(.2); }
+  20% { opacity: 1; transform: scale(1.25); }
+  100% { opacity: 0; transform: scale(2.8); }
+}
+
+@media (max-width: 680px) {
+  .combat-impact { width: 68px; height: 68px; }
+  .combat-impact b { font-size: 19px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .combat-attacker-ghost,
+  .combat-trace,
+  .combat-destroy-ghost { display: none; }
+  .combat-impact { animation-duration: 1ms; }
+}

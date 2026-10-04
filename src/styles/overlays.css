@@ -33,3 +33,10 @@
 .glossary-grid b { color: var(--accent); font-size: 10px; letter-spacing: .09em; }
 .glossary-grid p { margin: 6px 0 0; font-size: 10px; line-height: 1.5; }
 .glossary-shell > .modal-actions { margin: 20px -26px 0; }
+
+.card-visual-backdrop { position: fixed; z-index: 240; inset: 0; display: grid; place-items: center; padding: 18px; background: rgba(3,7,5,.9); backdrop-filter: blur(9px); }
+.card-visual-dialog { position: relative; display: grid; max-width: 100%; place-items: center; }
+.card-visual-stage { display: grid; max-width: 100%; max-height: calc(100dvh - 36px); place-items: center; }
+.card-visual-stage .game-card { width: min(82vw, 350px); height: auto; max-height: calc(100dvh - 54px); aspect-ratio: 1086 / 1448; }
+.card-visual-stage .game-card:hover { transform: none; }
+.card-visual-close { position: absolute; z-index: 5; top: -12px; right: -12px; display: grid; width: 44px; height: 44px; place-content: center; border: 1px solid rgba(255,255,255,.28); border-radius: 50%; color: white; background: rgba(7,12,9,.94); box-shadow: 0 8px 24px rgba(0,0,0,.42); cursor: pointer; font-size: 26px; line-height: 1; }

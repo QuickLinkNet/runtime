@@ -30,17 +30,19 @@ export function CardDetailPanel({ definition, entity, compact = false }: PanelPr
         </div>
       )}
       <div className="card-detail-text"><KeywordText text={definition.text} /></div>
-      <section className="card-explanations">
-        <h3>Erklärungen</h3>
-        <div>
-          {explanations.map((explanation) => (
-            <article key={explanation.id}>
-              <b>{explanation.label}</b>
-              <p>{explanation.fullDescription}</p>
-            </article>
-          ))}
-        </div>
-      </section>
+      {explanations.length > 0 && (
+        <section className="card-explanations">
+          <h3>Effekte dieser Karte</h3>
+          <div>
+            {explanations.map((explanation) => (
+              <article key={explanation.id}>
+                <b>{explanation.label}</b>
+                <p>{explanation.fullDescription}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
     </article>
   );
 }

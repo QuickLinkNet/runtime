@@ -10,6 +10,7 @@ export class ApiError extends Error {
 }
 
 let playerToken = localStorage.getItem('runtime.playerToken') ?? '';
+const apiEndpoint = `${import.meta.env.BASE_URL}api/index.php`;
 
 export function setToken(token: string): void {
   playerToken = token;
@@ -21,7 +22,7 @@ export function hasToken(): boolean {
 }
 
 async function request<T>(action: string, init?: RequestInit, query = ''): Promise<T> {
-  const response = await fetch(`/api/index.php?action=${encodeURIComponent(action)}${query}`, {
+  const response = await fetch(`${apiEndpoint}?action=${encodeURIComponent(action)}${query}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
