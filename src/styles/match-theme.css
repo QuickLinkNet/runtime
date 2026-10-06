@@ -6,26 +6,28 @@
  *
  * Faustregel:
  * - groessere Karten: --match-board-card-max-height erhoehen
- * - insgesamt mehr/weniger Board: --match-board-height-reserve verkleinern/vergroessern
+ * - automatische Desktop-Skalierung: 26dvh und 19vw in --match-board-card-height anpassen
  * - mehr Platz an der Mittellinie: --match-middle-height erhoehen
  */
 :root {
   /* Karten */
-  --match-hand-card-height: clamp(178px, 23.5vh, 214px);
-  --match-board-card-min-height: 72px;
-  --match-board-card-max-height: 160px;
-  --match-board-card-sizing-overhead: 236px;
+  --match-hand-card-height: clamp(178px, 23.5vh, 260px);
+  --match-board-card-min-height: 118px;
+  --match-board-card-max-height: 290px;
   --match-board-card-height: clamp(
     var(--match-board-card-min-height),
-    calc((100dvh - var(--match-hand-card-height) - var(--match-board-card-sizing-overhead)) / 4),
+    min(26dvh, calc(19vw - 49px)),
     var(--match-board-card-max-height)
   );
+  --match-mulligan-card-height: clamp(230px, min(42vh, 23vw), 400px);
+  --match-battlefield-lane-gap: clamp(18px, 2.4vw, 44px);
+  --match-infrastructure-lane-width: calc((var(--match-board-card-height) * 1.5) + var(--match-card-gap) + var(--match-battlefield-lane-gap));
   --match-card-gap: clamp(8px, 1vw, 15px);
   --match-row-gap: clamp(2px, .45vh, 5px);
   --match-hand-card-overlap: -18px;
 
   /* Hoehenaufteilung */
-  --match-board-max-width: 1500px;
+  --match-board-max-width: 1920px;
   --match-screen-side-padding: 22px;
   --match-board-height-reserve: 114px;
   --match-middle-height: 46px;

@@ -55,23 +55,9 @@ final class CardCatalog
 
     public function starterDeck(string $key): array
     {
-        $pairs = [
-            'frontend-backend' => ['frontend', 'backend'],
-            'infrastructure-security' => ['infrastructure', 'security'],
-            'data-ai' => ['data', 'ai'],
-        ];
-        $domains = $pairs[$key] ?? $pairs['frontend-backend'];
-        $domainCards = array_values(array_filter($this->all(), static fn(array $c): bool => in_array($c['domain'], $domains, true)));
-        $neutral = array_values(array_filter($this->all(), static fn(array $c): bool => $c['domain'] === 'neutral'));
-        $deck = [];
-        foreach ($domainCards as $card) {
-            $deck[] = $card['id'];
-            $deck[] = $card['id'];
-        }
-        foreach (array_slice($neutral, 0, 3) as $card) {
-            $deck[] = $card['id'];
-            $deck[] = $card['id'];
-        }
+        $path = dirname(__DIR__, 2) . '/shared/starter-decks.json';
+        $decks = json_decode((string)file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+        $deck = $decks[$key] ?? $decks['frontend-backend'];
         $this->validateDeck($deck);
         return $deck;
     }

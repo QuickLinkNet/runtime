@@ -4,15 +4,18 @@ declare(strict_types=1);
 require_once __DIR__ . '/GameEngineResolution.php';
 require_once __DIR__ . '/GameEngineQueries.php';
 require_once __DIR__ . '/GameEngineActions.php';
+require_once __DIR__ . '/ProductionIncidentEffects.php';
 
 final class GameEngine
 {
     use GameEngineResolution;
     use GameEngineQueries;
     use GameEngineActions;
+    use ProductionIncidentEffects;
 
     private int $resolutionBudget = 100;
     private int $sequence = 0;
+    private const OPENING_HAND_SIZE = 5;
 
     public function __construct(private CardCatalog $catalog)
     {
@@ -76,7 +79,7 @@ final class GameEngine
         }
         $state['status'] = 'mulligan';
         foreach ($state['order'] as $playerId) {
-            $this->drawCards($state, $playerId, 3);
+            $this->drawCards($state, $playerId, self::OPENING_HAND_SIZE);
         }
         $this->event($state, 'MULLIGAN_STARTED');
     }
@@ -84,7 +87,10 @@ final class GameEngine
     public function applyAction(array &$state, string $playerId, array $action): void
     {
         $this->resolutionBudget = 100;
-        $this->sequence = count($state['events']);
+        $this->sequence = 0;
+        foreach ($state['events'] as $event) {
+            $this->sequence = max($this->sequence, (int)($event['sequence'] ?? 0));
+        }
         if (!isset($state['players'][$playerId])) {
             throw new ApiException('NOT_MATCH_PLAYER', 'Du nimmst nicht an diesem Match teil.', 403);
         }

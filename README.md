@@ -1,6 +1,6 @@
 # RUNTIME
 
-RUNTIME ist ein serverautoritatives, rundenbasiertes Tech-Kartenspiel für zwei Spieler. Der MVP enthält 48 Karten, drei Starter-Decks, einen Deck Builder, einen regelbasierten Server-Bot und private Multiplayer-Räume mit Polling und Reconnect.
+RUNTIME ist ein serverautoritatives, rundenbasiertes Tech-Kartenspiel für zwei Spieler. Der aktuelle Pool enthält 72 Karten, drei Starter-Decks, einen Deck Builder, einen regelbasierten Server-Bot und private Multiplayer-Räume mit Polling und Reconnect.
 
 ## Voraussetzungen
 

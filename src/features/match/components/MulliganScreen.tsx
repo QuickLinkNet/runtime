@@ -15,7 +15,7 @@ export function MulliganScreen({ player, pending, selectedIds, onToggle, onSubmi
     <main className="screen mulligan-screen">
       <span className="eyebrow">STARTSEQUENZ</span>
       <h1>Initialisierung</h1>
-      <p>Wähle beliebig viele Karten, die du ersetzen möchtest.</p>
+      <p>Das sind deine 5 Startkarten. Wähle beliebig viele Karten, die du ersetzen möchtest.</p>
       <div className="mulligan-cards">
         {player.hand.map((card) => (
           <GameCard
@@ -27,6 +27,7 @@ export function MulliganScreen({ player, pending, selectedIds, onToggle, onSubmi
           />
         ))}
       </div>
+      <small className="mulligan-note">Der zweite Spieler erhält anschließend zusätzlich BOOTSTRAP als Startausgleich.</small>
       <Button variant="primary" disabled={pending || player.mulliganDone === true} onClick={onSubmit}>
         {player.mulliganDone ? 'Warte auf Gegenspieler …' : `${selectedIds.length || 'Keine'} ersetzen`}
       </Button>

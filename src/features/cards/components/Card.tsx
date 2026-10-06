@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { cardById, domainLabels } from '../../../game/catalog';
 import { cardArtworkById } from '../../../game/cardArtwork';
+import { rarityForCard } from '../../../game/cardRarity';
 import type { BoardEntity, CardInstance } from '../../../game/types';
 import { useValuePulse } from '../../../ui/hooks/useValuePulse';
 import { CardDetailModal, CardDetailPanel } from './CardDetails';
@@ -55,10 +56,12 @@ export function GameCard({ card, selected, playable, targetable, compact, detail
   if (!definition) return null;
 
   const visualType = definition.token ? 'token' : definition.type;
+  const rarity = rarityForCard(definition.id);
   const artwork = cardArtworkById[definition.id];
 
   const classes = [
     'game-card', `domain-${definition.domain}`,
+    rarity ? `card-rarity-${rarity}` : '',
     `type-${visualType}`,
     selected ? 'is-selected' : '', playable ? 'is-playable' : '',
     targetable ? 'is-targetable' : '', compact ? 'is-compact' : '',
@@ -127,7 +130,7 @@ export function GameCard({ card, selected, playable, targetable, compact, detail
         onBlur={detailsOnHover ? scheduleHidePreview : undefined}
         type="button"
         aria-pressed={selected}
-        aria-label={`${definition.name}. ${isCoarsePointer && detailsOnTap ? 'Antippen für Details.' : `${actionLabel ? `${actionLabel}. ` : ''}${detailsOnHover && !isCoarsePointer ? 'Details beim Darüberfahren.' : 'Karte anzeigen.'}`}`}
+        aria-label={`${definition.name}${rarity ? `, ${rarity}` : ''}. ${isCoarsePointer && detailsOnTap ? 'Antippen für Details.' : `${actionLabel ? `${actionLabel}. ` : ''}${detailsOnHover && !isCoarsePointer ? 'Details beim Darüberfahren.' : 'Karte anzeigen.'}`}`}
       >
         {artwork && <span className="card-artwork" style={{ backgroundImage: `url(${artwork})` }} aria-hidden="true" />}
         <span className="card-cost" aria-label={`${definition.cost} Compute`}>{definition.cost}</span>

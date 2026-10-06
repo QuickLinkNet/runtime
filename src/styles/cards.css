@@ -14,12 +14,15 @@
 
 .game-card { position: relative; display: flex; width: auto; height: var(--card-h); aspect-ratio: 1086 / 1448; container-type: inline-size; flex: 0 0 auto; flex-direction: column; overflow: visible; isolation: isolate; border: 0; border-radius: 15px; padding: 0; color: var(--text); background: linear-gradient(155deg, #263029, #101512 68%); box-shadow: 0 10px 24px rgba(0,0,0,.3); cursor: pointer; text-align: left; transition: transform .16s, box-shadow .16s, filter .16s; }
 .game-card::before { content: ''; position: absolute; z-index: 1; inset: 0; pointer-events: none; background: url('/card-assets/card_service_background.png') center / 100% 100% no-repeat; filter: drop-shadow(0 8px 12px rgba(0,0,0,.34)); }
+.game-card.card-rarity-uncommon::before { background-image: url('/card-assets/card_service_background_uncommon.png'); }
+.game-card.card-rarity-rare::before { background-image: url('/card-assets/card_service_background_rare.png'); }
+.game-card.card-rarity-legendary::before { background-image: url('/card-assets/card_service_background_legendary.png'); filter: drop-shadow(0 7px 11px rgba(0,0,0,.42)) drop-shadow(0 0 7px rgba(255,177,59,.22)); }
 .game-card > * { position: relative; z-index: 2; }
 .game-card .card-artwork { position: absolute; z-index: 0; top: 13%; right: 10.8%; bottom: 50.2%; left: 10.8%; overflow: hidden; border-radius: 3%; background-color: #0b120f; background-position: center; background-repeat: no-repeat; background-size: cover; filter: saturate(.9) brightness(.78) contrast(1.05); }
 .game-card .card-artwork::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(3,9,7,.05), rgba(3,9,7,.12) 65%, rgba(3,9,7,.55)); }
 .game-card:hover { z-index: 3; transform: translateY(-10px) scale(1.045); box-shadow: 0 20px 40px rgba(0,0,0,.5); }
 .game-card.is-compact { width: auto; min-width: 0; height: var(--board-card-h); aspect-ratio: 1086 / 1448; padding: 0; }
-.board-row .game-card.is-compact { animation: cardDeploy .42s cubic-bezier(.2,.85,.28,1.16); }
+.board-row .game-card.is-compact { animation: cardDeploy calc(.42s * var(--motion-scale, 1)) cubic-bezier(.2,.85,.28,1.16) both; }
 .game-card.is-playable { box-shadow: 0 0 20px rgba(185,244,74,.22), 0 10px 24px rgba(0,0,0,.3); }
 .game-card.is-selected { z-index: 4; transform: translateY(-12px); box-shadow: 0 0 0 3px var(--accent), 0 0 28px rgba(185,244,74,.4), 0 18px 36px rgba(0,0,0,.48); }
 .game-card.is-targetable { border-color: #ffcf57; animation: targetPulse .7s infinite alternate; cursor: crosshair; }

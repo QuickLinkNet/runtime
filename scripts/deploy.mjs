@@ -83,6 +83,7 @@ await preparePackage();
 const config = await deploymentConfig();
 const remoteBase = config.REMOTE_BASE_DIR || '/html/apps/runtime';
 const publicUrl = config.PUBLIC_APP_URL || 'https://www.red-it.org/apps/runtime/';
+const expectedCatalogSize = JSON.parse(await readFile(join(root, 'shared', 'cards.json'), 'utf8')).length;
 
 if (!remoteBase.endsWith('/runtime')) fail(`Unsicherer Zielpfad: ${remoteBase}`);
 if (['', '/', '/html', '/html/apps'].includes(remoteBase)) fail(`Unsicherer Zielpfad: ${remoteBase}`);
@@ -120,8 +121,9 @@ try {
   }
   const catalogResponse = await fetch(new URL('api/index.php?action=catalog', publicUrl), { cache: 'no-store' });
   const catalog = await catalogResponse.json().catch(() => null);
-  if (!catalogResponse.ok || catalog?.success !== true || catalog?.data?.cards?.length !== 52) {
-    fail(`Kartenkatalog-Check fehlgeschlagen (${catalogResponse.status}).`);
+  const deployedCatalogSize = catalog?.data?.cards?.length;
+  if (!catalogResponse.ok || catalog?.success !== true || deployedCatalogSize !== expectedCatalogSize) {
+    fail(`Kartenkatalog-Check fehlgeschlagen (${catalogResponse.status}): erwartet ${expectedCatalogSize}, erhalten ${deployedCatalogSize ?? 'keine Daten'}.`);
   }
   const pageResponse = await fetch(publicUrl, { cache: 'no-store' });
   const page = await pageResponse.text();

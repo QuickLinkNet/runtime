@@ -10,8 +10,8 @@ trait GameEngineActions
             throw new ApiException('MULLIGAN_ALREADY_DONE', 'Mulligan bereits abgeschlossen.', 409);
         }
         $instanceIds = array_values(array_unique(array_map('strval', $instanceIds)));
-        if (count($instanceIds) > 3) {
-            throw new ApiException('INVALID_MULLIGAN', 'Maximal drei Karten können getauscht werden.');
+        if (count($instanceIds) > count($player['hand'])) {
+            throw new ApiException('INVALID_MULLIGAN', 'Es können nur Karten aus deiner Starthand getauscht werden.');
         }
         $removed = [];
         foreach ($instanceIds as $instanceId) {
@@ -64,8 +64,14 @@ trait GameEngineActions
         if ($definition['type'] === 'service' && count($player['services']) >= 5) {
             throw new ApiException('SERVICE_SLOTS_FULL', 'Alle Service-Slots sind belegt.');
         }
+        $infrastructureReplacement = null;
         if ($definition['type'] === 'infrastructure' && count($player['infrastructure']) >= 2) {
-            throw new ApiException('INFRASTRUCTURE_SLOTS_FULL', 'Alle Infrastructure-Slots sind belegt.');
+            $infrastructureReplacement = $targetId !== null ? $this->locateTarget($state, $targetId) : null;
+            if ($infrastructureReplacement === null
+                || $infrastructureReplacement['ownerId'] !== $playerId
+                || $infrastructureReplacement['zone'] !== 'infrastructure') {
+                throw new ApiException('INFRASTRUCTURE_REPLACEMENT_REQUIRED', 'Wähle eine eigene Infrastructure, die ersetzt werden soll.');
+            }
         }
         $cost = $this->effectiveCost($state, $playerId, $cardInstance, $definition, $targetId);
         if ($overclock && isset($definition['overclockCost'])) {
@@ -112,6 +118,21 @@ trait GameEngineActions
             $this->resolveEffect($state, $playerId, $definition, $entity['instanceId'], $targetId, $overclock);
             $this->event($state, 'SERVICE_DEPLOYED', ['playerId' => $playerId, 'entityId' => $entity['instanceId']]);
         } else {
+            if ($infrastructureReplacement !== null) {
+                $replaced = $player['infrastructure'][$infrastructureReplacement['index']];
+                array_splice($player['infrastructure'], $infrastructureReplacement['index'], 1);
+                if (!($this->catalog->get($replaced['definitionId'])['token'] ?? false)) {
+                    $player['trash'][] = [
+                        'instanceId' => $replaced['instanceId'],
+                        'definitionId' => $replaced['definitionId'],
+                    ];
+                }
+                $this->event($state, 'INFRASTRUCTURE_REPLACED', [
+                    'playerId' => $playerId,
+                    'entityId' => $replaced['instanceId'],
+                    'definitionId' => $replaced['definitionId'],
+                ]);
+            }
             $player['infrastructure'][] = $entity;
             $this->resolveEffect($state, $playerId, $definition, $entity['instanceId'], $targetId, $overclock);
         }
@@ -135,6 +156,10 @@ trait GameEngineActions
             'web_worker_deploy' => $this->countDomainServices($state['players'][$playerId], 'frontend') === 0 || ($service && $own),
             'security_engineer_deploy' => $targetId === null || ($service && $own),
             'sandbox_container_deploy' => $state['players'][$opponentId]['services'] === [] || ($service && !$own),
+            'feature_flag', 'retry_storm', 'rotate_secrets' => $service && $own,
+            'terraform_apply' => $target !== null && $target['zone'] === 'infrastructure' && $own,
+            'penetration_tester_deploy' => $state['players'][$opponentId]['services'] === [] || ($service && !$own),
+            'model_drift' => $service && !$own,
             default => true,
         };
         if (!$valid) {
@@ -246,9 +271,10 @@ trait GameEngineActions
         $state['turnStartedAt'] = gmdate('c');
         $state['turnDeadlineAt'] = $state['mode'] === 'multi' ? gmdate('c', time() + 75) : null;
         $this->event($state, 'TURN_STARTED', ['playerId' => $playerId, 'turn' => $state['turn']]);
-        $this->drawCards($state, $playerId, 1);
+        if ($player['turnsTaken'] > 1) {
+            $this->drawCards($state, $playerId, 1);
+        }
         $this->resolveDeaths($state);
         $this->checkGameOver($state);
     }
 }
-

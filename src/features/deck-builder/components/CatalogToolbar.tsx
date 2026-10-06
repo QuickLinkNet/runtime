@@ -13,9 +13,12 @@ interface CatalogToolbarProps {
   onSortChange: (sort: SortMode) => void;
   columns: 4 | 5;
   onColumnsChange: (columns: 4 | 5) => void;
+  ownership: 'all' | 'owned';
+  onOwnershipChange: (mode: 'all' | 'owned') => void;
+  collectionAvailable: boolean;
 }
 
-export function CatalogToolbar({ cardCount, domains, filter, query, sort, onFilterChange, onQueryChange, onSortChange, columns, onColumnsChange }: CatalogToolbarProps) {
+export function CatalogToolbar({ cardCount, domains, filter, query, sort, onFilterChange, onQueryChange, onSortChange, columns, onColumnsChange, ownership, onOwnershipChange, collectionAvailable }: CatalogToolbarProps) {
   return (
     <section className="catalog-controls" aria-labelledby="catalog-heading">
       <div className="deck-section-heading compact">
@@ -31,6 +34,10 @@ export function CatalogToolbar({ cardCount, domains, filter, query, sort, onFilt
           <button type="button" className={filter === 'neutral' ? 'active' : ''} onClick={() => onFilterChange('neutral')}>Neutral</button>
         </div>
         <div className="catalog-tools">
+          {collectionAvailable && <div className="ownership-switch" aria-label="Sammlungsfilter">
+            <button type="button" className={ownership === 'all' ? 'active' : ''} onClick={() => onOwnershipChange('all')}>Alle Karten</button>
+            <button type="button" className={ownership === 'owned' ? 'active' : ''} onClick={() => onOwnershipChange('owned')}>Nur Sammlung</button>
+          </div>}
           <label className="catalog-search">
             <span>Suche</span>
             <input value={query} onChange={(event) => onQueryChange(event.target.value)} placeholder="Name, Text oder Typ …" />

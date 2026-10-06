@@ -6,11 +6,13 @@ RUNTIME trennt die React-Oberfläche von der autoritativen PHP-Rules-Engine. Der
 
 - `src/`: React/TypeScript UI, globaler Match-State via Context und Reducer, API-Client und lokaler Deck Builder.
 - `shared/cards.json`: einzige Quelle für Kartennamen, Werte und Effekt-IDs; Frontend und PHP verwenden dieselbe Datei.
+- `shared/booster-config.json`: gemeinsame Seltenheiten, Booster-Slots und Duplicate-Protection-Regeln.
 - `api/game/`: Rules Engine, private Player Views und Bot.
 - `api/services/MatchService.php`: Transaktionen, Versionsprüfung, Timer, Reconnect und Bot-Orchestrierung.
+- `api/services/CollectionService.php`: transaktionale Booster-Openings, Sammlung und Opening-Historie.
 - `api/repositories/`: kleine PDO-Persistenzschicht.
 - `api/database/migrations/`: geordnete, idempotente Schema-Migrationen; ausgeführte Versionen werden in `schema_migrations` gespeichert.
-- `database/schema.sql`: drei Tabellen für Spieler, Matches und Teilnehmer.
+- `database/schema.sql`: Snapshot für Spieler, Matches, Teilnehmer, Fortschritt, Sammlung und Booster-Historie.
 
 Der komplette autoritative Match-State liegt als JSON im Match-Datensatz. Aktionen sperren den Datensatz mit `SELECT … FOR UPDATE`, vergleichen die erwartete Version und speichern genau eine neue Version.
 

@@ -7,6 +7,8 @@ Alle Endpunkte verwenden `api/index.php?action=…` und antworten mit `{ "succes
 | `createPlayer` | POST | Namen registrieren und einmalig den Roh-Token erhalten |
 | `me` | GET | Aktuelle Identität prüfen |
 | `catalog` | GET | Karten und Starter-Decks laden |
+| `collection` | GET | Persistente Kartensammlung und Booster-Fortschritt laden |
+| `openBooster` | POST | Booster serverseitig erzeugen und Karten atomar gutschreiben |
 | `createMatch` | POST | Singleplayer- oder Multiplayer-Match anlegen |
 | `joinMatch` | POST | Privatem Raum beitreten |
 | `startMatch` | POST | Volles Multiplayer-Match starten |
@@ -18,3 +20,5 @@ Alle Endpunkte verwenden `api/index.php?action=…` und antworten mit `{ "succes
 `submitGameAction` erwartet `roomCode`, `expectedVersion` und eine `action`. Veraltete Versionen erhalten HTTP 409. Die möglichen Action-Typen sind `MULLIGAN`, `PLAY_CARD`, `ATTACK`, `DEBUG` und `END_TURN`.
 
 Fehler enthalten stabile Codes wie `NOT_YOUR_TURN`, `INVALID_TARGET`, `INSUFFICIENT_COMPUTE`, `VERSION_CONFLICT` oder `FIREWALL_ACTIVE`. Interne Stack Traces werden nicht ausgeliefert.
+
+`openBooster` würfelt ausschließlich auf dem Server. Die Slots und Seltenheiten stehen in `shared/booster-config.json`; das Ergebnis und alle Sammlungsänderungen werden in einer Datenbanktransaktion gespeichert. In der aktuellen Testphase sind Booster unbegrenzt, ohne dass der Deck Builder den Kartenbesitz erzwingt.

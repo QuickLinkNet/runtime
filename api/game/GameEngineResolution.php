@@ -55,7 +55,7 @@ trait GameEngineResolution
             'spaghetti_code' => $this->spawnToken($state, $opponentId, 'token-bug') + $this->spawnToken($state, $opponentId, 'token-bug'),
             'friday_deploy' => $this->resolveFridayDeploy($state, $playerId),
             'bootstrap' => $player['temporaryCompute']++,
-            default => null,
+            default => $this->resolveProductionIncidentEffect($state, $playerId, $effect, $sourceId, $targetId),
         };
     }
 
@@ -430,4 +430,3 @@ trait GameEngineResolution
         }
     }
 }
-

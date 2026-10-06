@@ -1,6 +1,6 @@
 # Projektstand RUNTIME
 
-Stand: 4. Oktober 2026
+Stand: 5. Oktober 2026
 
 Diese Datei ist der kurze, verbindliche Übergabepunkt für die weitere Entwicklung. Detailregeln stehen in den jeweils verlinkten Fachdokumenten.
 
@@ -10,8 +10,8 @@ Diese Datei ist der kurze, verbindliche Übergabepunkt für die weitere Entwickl
 - serverautoritative PHP-Rules-Engine mit MySQL-Persistenz
 - Singleplayer gegen Server-Bot und private Multiplayer-Räume
 - drei gültige Starter-Decks und frei konfigurierbarer Deck Builder
-- 48 spielbare Karten plus 4 erzeugte Token-Karten
-- vollständige Artwork-Zuordnung für alle 52 Karten und Tokens
+- 72 spielbare Karten plus 4 erzeugte Token-Karten
+- vollständige Artwork-Zuordnung für die 48 Basiskarten und 4 Tokens; 24 Set-2-Artworks stehen in der Produktionswarteschlange
 - responsiver Deck Builder mit kompaktem 5er- und großem 4er-Raster
 - große Kartenansicht, Artwork-Lightbox und mobile Vollkartenansicht
 - responsive Match-Ansicht für Desktop, Tablet und Smartphone
@@ -26,29 +26,37 @@ Diese Datei ist der kurze, verbindliche Übergabepunkt für die weitere Entwickl
 - versionierter Offline-App-Shell, kontrollierter Update-Hinweis und Installations-UI
 - API- und Matchdaten sind bewusst vom Service-Worker-Cache ausgeschlossen
 - Android-PWA live repariert: konfliktfreie Root-Icons statt des vom Hosting reservierten `/icons/`-Pfads
+- serverautoritative Booster mit Common-, Uncommon-, Rare- und Legendary-Slots
+- persistente Sammlung pro Spieler inklusive Duplicate Protection und Opening-Historie
+- responsives Booster-Opening mit einzelnem Aufdecken und kompletter Sammlungsansicht
+- optionaler Sammlungsfilter und Besitzanzeige im Deck Builder; Karten bleiben in der Testphase frei spielbar
+- neue Seltenheitsrahmen auf allen Kartenansichten: Common grün, Uncommon blau, Rare violett, Legendary gold
+
+- Set 2 „Production Incident“ mit 24 neuen, spielbaren Karten und gekapselten Servereffekten
+- explizite, erweiterungssichere 30-Karten-Starterdecks in gemeinsamer Konfiguration
 
 ## Qualitätssicherung
 
 - `npm run build` kompiliert TypeScript und erstellt den Production-Build.
-- `npm run test:php` prüft aktuell 30 Regeln und Sicherheitsgrenzen der Engine.
+- `npm run test:php` prüft aktuell 39 Regeln, Booster-Garantien und Sicherheitsgrenzen der Engine.
 - Sichtbare Änderungen werden zusätzlich in Desktop- und Mobile-Viewports geprüft.
 - TS-, TSX- und CSS-Dateien sollen nach Möglichkeit unter 500 Zeilen bleiben.
-- Letzte vollständige Prüfung am 4. Oktober 2026: Production-Build, 30 PHP-Tests und PWA-Prüfung erfolgreich.
+- Letzte vollständige Prüfung am 5. Oktober 2026: Production-Build, 39 PHP-Tests, Booster-API, Desktop-/Mobile-UI und PWA-Prüfung erfolgreich.
 - Live geprüft: Manifest, Service Worker und Android-Icons liefern auf `runtime.red-it.org` HTTP 200.
 
 ## Nächste sinnvolle Ausbaustufe
 
-1. **Audio:** leise Hintergrundmusik, UI-Sounds, Deploy, Angriff, Treffer und Zugwechsel mit Lautstärkereglern.
-2. **Onboarding:** kurzes interaktives Tutorial statt ausschließlich Glossar und Hilfetexten.
-3. **Balancing:** Match-Telemetrie, Karten-Siegquoten und systematische Kosten-/Werteanpassung.
-4. **Härtung:** zusätzliche API-Integrationstests, Wiederverbindungsfälle und parallele Aktionen testen.
+1. **Set-2-Artworks:** die 24 Motive aus der Artwork-Queue einzeln erstellen und abnehmen.
+2. **Audio:** Pack-Riss, Reveal-Stufen und Legendary-Stinger sowie Match-Sounds mit Lautstärkereglern.
+3. **Onboarding:** kurzes interaktives Tutorial statt ausschließlich Glossar und Hilfetexten.
+4. **Balancing & Härtung:** Telemetrie, API-Integrationstests, Wiederverbindung und parallele Aktionen.
 
 ## Danach
 
 - Replays und Zuschaueransicht
 - weitere Bot-Profile und Schwierigkeitsstufen
 - Matchmaking und Ranked
-- Accounts, Sammlungen und rein kosmetische Freischaltungen
+- Accounts, kosmetische Freischaltungen und Booster-Belohnungen
 - optionale WebSocket-Transportschicht
 - Kampagne und globale Incident-Ereignisse
 

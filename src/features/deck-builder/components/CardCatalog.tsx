@@ -9,12 +9,13 @@ interface CardCatalogProps {
   showingNeutral: boolean;
   deckSize: number;
   counts: Map<string, number>;
+  owned: Record<string, number> | null;
   columns: 4 | 5;
   onAdd: (id: string) => void;
   onRemove: (id: string) => void;
 }
 
-export function CardCatalog({ cards, selectedDomainCount, showingNeutral, deckSize, counts, columns, onAdd, onRemove }: CardCatalogProps) {
+export function CardCatalog({ cards, selectedDomainCount, showingNeutral, deckSize, counts, owned, columns, onAdd, onRemove }: CardCatalogProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const spotlightCard = useMemo(() => {
@@ -67,7 +68,7 @@ export function CardCatalog({ cards, selectedDomainCount, showingNeutral, deckSi
                 onClick={() => setPinnedId(card.id)}
               />
               <footer className="catalog-card-actions">
-                <span>Im Deck <b>{copies}/2</b></span>
+                <span>Im Deck <b>{copies}/2</b>{owned && <> · Besitz <b>{owned[card.id] ?? 0}</b></>}</span>
                 <span className="copy-stepper">
                   <button type="button" disabled={copies === 0} onClick={() => onRemove(card.id)} aria-label={`${card.name} entfernen`}>−</button>
                   <button type="button" disabled={!canAdd} onClick={() => onAdd(card.id)} aria-label={`${card.name} hinzufügen`}>+</button>

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError, hasToken } from '../api/client';
 import { DeckBuilder } from '../features/deck-builder/DeckBuilder';
+import { BoosterLab } from '../features/boosters/BoosterLab';
 import { MatchBoard } from '../features/match/MatchBoard';
 import { makeStarterDeck, validateDeck } from '../game/catalog';
 import { useGame } from '../game/GameContext';
-import type { GameAction, MatchPayload, PlayerIdentity } from '../game/types';
+import type { CollectionSnapshot, GameAction, MatchPayload, PlayerIdentity } from '../game/types';
 import { BootPage } from '../pages/BootPage';
 import { IdentityPage } from '../pages/IdentityPage';
 import { MainMenuPage } from '../pages/MainMenuPage';
@@ -13,13 +14,14 @@ import { cacheIdentity, cachedIdentity, clearCachedIdentity } from '../pwa/ident
 import { RoomLobbyPage } from '../pages/RoomLobbyPage';
 import { ErrorToast } from '../ui/molecules';
 
-type Screen = 'boot' | 'name' | 'menu' | 'deck' | 'multiplayer';
+type Screen = 'boot' | 'name' | 'menu' | 'deck' | 'multiplayer' | 'boosters';
 
 export function App() {
   const { store, dispatch } = useGame();
   const [screen, setScreen] = useState<Screen>('boot');
   const [identity, setIdentity] = useState<PlayerIdentity | null>(null);
   const [resume, setResume] = useState<MatchPayload | null>(null);
+  const [collection, setCollection] = useState<CollectionSnapshot | null>(null);
   const [deck, setDeck] = useState<string[]>(() => {
     const saved = localStorage.getItem('runtime.deck');
     if (saved) {
@@ -38,10 +40,13 @@ export function App() {
     async function initialize() {
       if (!hasToken()) { setScreen('name'); return; }
       try {
-        const [{ player }, resumeResult] = await Promise.all([api.me(), api.resume()]);
+        const [{ player }, resumeResult, collectionResult] = await Promise.all([
+          api.me(), api.resume(), api.collection().catch(() => null),
+        ]);
         setIdentity(player);
         cacheIdentity(player);
         setResume(resumeResult.match);
+        setCollection(collectionResult);
         setScreen('menu');
       } catch {
         const offlineIdentity = cachedIdentity();
@@ -121,7 +126,8 @@ export function App() {
     </>;
   }
 
-  if (screen === 'deck') return <DeckBuilder initialDeck={deck} onCancel={() => setScreen('menu')} onSave={(next) => { localStorage.setItem('runtime.deck', JSON.stringify(next)); setDeck(next); setScreen('menu'); }} />;
+  if (screen === 'deck') return <DeckBuilder initialDeck={deck} collection={collection} onCancel={() => setScreen('menu')} onSave={(next) => { localStorage.setItem('runtime.deck', JSON.stringify(next)); setDeck(next); setScreen('menu'); }} />;
+  if (screen === 'boosters') return <BoosterLab initialCollection={collection} onCollectionChange={setCollection} onBack={() => setScreen('menu')} />;
   if (screen === 'multiplayer') return <MultiplayerPage pending={store.pending} error={store.error} onBack={() => setScreen('menu')} onCreate={() => run(() => api.createMatch('multi', deck))} onJoin={(code) => run(() => api.joinMatch(code, deck))} />;
 
   return <MainMenuPage
@@ -132,6 +138,7 @@ export function App() {
     onSingle={() => run(() => api.createMatch('single', deck))}
     onMultiplayer={() => setScreen('multiplayer')}
     onDeck={() => setScreen('deck')}
+    onBoosters={() => setScreen('boosters')}
     onStarter={(key) => { const next = makeStarterDeck(key); setDeck(next); localStorage.setItem('runtime.deck', JSON.stringify(next)); }}
     onResume={() => { if (resume) { dispatch({ type: 'MATCH', payload: resume }); setResume(null); } }}
   />;

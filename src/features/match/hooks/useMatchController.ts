@@ -4,6 +4,7 @@ import type { BoardEntity, GameAction, GameState } from '../../../game/types';
 import { knownCardCost } from '../model/cardCost';
 import { canPlayWithoutTarget, canSelectAttacker, canTargetCore, canTargetEntity, selectionPrompt } from '../model/targeting';
 import type { MatchSelection } from '../model/types';
+import { animationSpeedScale, storedAnimationSpeed, type AnimationSpeed } from '../model/animationSpeed';
 
 interface UseMatchControllerOptions {
   state: GameState;
@@ -17,6 +18,7 @@ export function useMatchController({ state, pending, onAction }: UseMatchControl
   const [overclock, setOverclock] = useState(false);
   const [glossaryOpen, setGlossaryOpen] = useState(false);
   const [interactionNotice, setInteractionNotice] = useState<string | null>(null);
+  const [animationSpeed, setAnimationSpeedState] = useState<AnimationSpeed>(storedAnimationSpeed);
   const [showCardTip, setShowCardTip] = useState(() => localStorage.getItem('runtime.cardHelpSeen') !== '1');
   const [now, setNow] = useState(Date.now());
 
@@ -29,7 +31,7 @@ export function useMatchController({ state, pending, onAction }: UseMatchControl
     : null;
   const latestEvents = useMemo(() => state.events.slice(-4).reverse(), [state.events]);
   const optionalTarget = canPlayWithoutTarget(selection, player, opponent);
-  const selectionMessage = selectionPrompt(selection);
+  const selectionMessage = selectionPrompt(selection, player);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -55,6 +57,11 @@ export function useMatchController({ state, pending, onAction }: UseMatchControl
     setMulligan((items) => items.includes(instanceId)
       ? items.filter((id) => id !== instanceId)
       : [...items, instanceId]);
+  }
+
+  function setAnimationSpeed(value: AnimationSpeed) {
+    localStorage.setItem('runtime.animationSpeed', value);
+    setAnimationSpeedState(value);
   }
 
   function selectHandCard(instanceId: string) {
@@ -125,10 +132,13 @@ export function useMatchController({ state, pending, onAction }: UseMatchControl
     optionalTarget,
     interactionNotice,
     selectionMessage,
+    animationSpeed,
+    animationScale: animationSpeedScale[animationSpeed],
     setOverclock,
     setGlossaryOpen,
     setShowCardTip,
     setSelection,
+    setAnimationSpeed,
     toggleMulligan,
     selectHandCard,
     selectAttacker,

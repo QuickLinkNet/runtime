@@ -17,7 +17,7 @@
   z-index: 2;
   opacity: 0;
   filter: drop-shadow(0 0 14px rgba(185,244,74,.68));
-  animation: combatLunge 820ms cubic-bezier(.2,.8,.25,1) var(--combat-delay) both;
+  animation: combatLunge calc(820ms * var(--motion-scale, 1)) cubic-bezier(.2,.8,.25,1) var(--combat-delay) both;
 }
 
 .combat-effect-layer .game-card {
@@ -36,7 +36,7 @@
   opacity: 0;
   background: linear-gradient(90deg, transparent, rgba(185,244,74,.34) 15%, #efffc5 74%, var(--accent));
   box-shadow: 0 0 7px rgba(185,244,74,.62), 0 0 20px rgba(185,244,74,.25);
-  animation: combatTrace 660ms ease-out var(--combat-delay) both;
+  animation: combatTrace calc(660ms * var(--motion-scale, 1)) ease-out var(--combat-delay) both;
 }
 
 .combat-trace::after {
@@ -50,7 +50,7 @@
   border-radius: 50%;
   background: #f7ffe8;
   box-shadow: 0 0 8px var(--accent), 0 0 22px var(--accent);
-  animation: combatBolt 560ms cubic-bezier(.22,.78,.3,1) var(--combat-delay) both;
+  animation: combatBolt calc(560ms * var(--motion-scale, 1)) cubic-bezier(.22,.78,.3,1) var(--combat-delay) both;
 }
 
 .combat-impact {
@@ -60,7 +60,7 @@
   height: 94px;
   transform: translate(-50%, -50%);
   opacity: 0;
-  animation: combatImpact 760ms ease-out var(--combat-delay) both;
+  animation: combatImpact calc(760ms * var(--motion-scale, 1)) ease-out var(--combat-delay) both;
 }
 
 .combat-impact i,
@@ -112,7 +112,7 @@
 .combat-destroy-ghost {
   z-index: 4;
   opacity: 0;
-  animation: combatTrash 980ms cubic-bezier(.35,.05,.7,.2) var(--combat-delay) both;
+  animation: combatTrash calc(980ms * var(--motion-scale, 1)) cubic-bezier(.35,.05,.7,.2) var(--combat-delay) both;
 }
 
 .combat-destroy-ghost::after {
@@ -122,7 +122,7 @@
   border: 2px solid #ff6f58;
   border-radius: 10px;
   box-shadow: 0 0 26px rgba(255,75,53,.72), inset 0 0 28px rgba(255,75,53,.2);
-  animation: destroyFrame 650ms ease-out var(--combat-delay) both;
+  animation: destroyFrame calc(650ms * var(--motion-scale, 1)) ease-out var(--combat-delay) both;
 }
 
 .combat-destroy-ghost > i {
@@ -131,7 +131,7 @@
   inset: 20%;
   background: radial-gradient(circle, #fff 0 4%, #ff765f 5% 18%, transparent 20%);
   filter: drop-shadow(0 0 12px #ff5a43);
-  animation: destroyBurst 720ms ease-out var(--combat-delay) both;
+  animation: destroyBurst calc(720ms * var(--motion-scale, 1)) ease-out var(--combat-delay) both;
 }
 
 .combat-destroy-ghost.is-token {

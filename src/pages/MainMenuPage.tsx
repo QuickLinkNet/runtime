@@ -11,11 +11,12 @@ interface MainMenuPageProps {
   onSingle: () => void;
   onMultiplayer: () => void;
   onDeck: () => void;
+  onBoosters: () => void;
   onStarter: (key: string) => void;
   onResume: () => void;
 }
 
-export function MainMenuPage({ identity, deck, resume, pending, onSingle, onMultiplayer, onDeck, onStarter, onResume }: MainMenuPageProps) {
+export function MainMenuPage({ identity, deck, resume, pending, onSingle, onMultiplayer, onDeck, onBoosters, onStarter, onResume }: MainMenuPageProps) {
   const [starter, setStarter] = useState('custom');
 
   return (
@@ -57,6 +58,11 @@ export function MainMenuPage({ identity, deck, resume, pending, onSingle, onMult
             {Object.entries(starterNames).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
           </select>
           <Button variant="ghost" onClick={onDeck}>Deck Builder</Button>
+        </article>
+        <article className="mode-card booster-mode">
+          <div className="mode-number">04</div>
+          <div><span className="eyebrow">COLLECTION PROTOCOL</span><h2>Booster Lab</h2><p>Öffne Packs, entdecke Seltenheiten und baue deine Sammlung auf.</p></div>
+          <Button variant="secondary" onClick={onBoosters}>Booster öffnen</Button>
         </article>
       </section>
       <footer className="menu-footer"><span>CORE INTEGRITY 30</span><span>BUILD 1.0 · MVP</span></footer>

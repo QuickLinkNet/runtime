@@ -11,11 +11,13 @@ require_once __DIR__ . '/utils/Http.php';
 require_once __DIR__ . '/database/Database.php';
 require_once __DIR__ . '/database/SchemaMigrator.php';
 require_once __DIR__ . '/game/CardCatalog.php';
+require_once __DIR__ . '/game/BoosterGenerator.php';
 require_once __DIR__ . '/game/GameEngine.php';
 require_once __DIR__ . '/game/PlayerView.php';
 require_once __DIR__ . '/game/BotPlayer.php';
 require_once __DIR__ . '/repositories/MatchRepository.php';
 require_once __DIR__ . '/services/MatchService.php';
+require_once __DIR__ . '/services/CollectionService.php';
 
 try {
     require_once __DIR__ . '/config/load_env.php';
@@ -43,6 +45,7 @@ try {
     $engine = new GameEngine($catalog);
     $bot = new BotPlayer($engine, $catalog);
     $matches = new MatchService($db, $engine, $bot, $catalog);
+    $collection = new CollectionService($db, new BoosterGenerator($catalog));
     $action = (string)($_GET['action'] ?? '');
 
     if ($action === 'health') {
@@ -83,6 +86,8 @@ try {
 
     match ($action) {
         'me' => Http::success(['player' => ['id' => $playerId, 'name' => $player['name']]]),
+        'collection' => Http::success($collection->snapshot($playerId)),
+        'openBooster' => Http::success($collection->openBooster($playerId), 201),
         'createMatch' => Http::success($matches->create(
             $playerId,
             $player['name'],

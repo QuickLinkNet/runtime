@@ -8,6 +8,16 @@
 | `frontend-web-worker` | Web Worker | Frontend | Service | GENERATED | 3 | `card_background_frontend_web_worker.jpg` |
 | `frontend-infinite-rerender` | Infinite Re-Render | Frontend | Command | GENERATED | 3 | `frontend-infinite-rerender.webp` |
 | `frontend-state-store` | State Store | Frontend | Infrastructure | GENERATED | 3 | `frontend-state-store.webp` |
+| `frontend-microfrontend` | Microfrontend | Frontend | Service | GENERATED | 3 | `frontend-microfrontend.webp` |
+| `frontend-feature-flag` | Feature Flag | Frontend | Command | GENERATED | 1 | `frontend-feature-flag.webp` |
+| `frontend-design-system` | Design System | Frontend | Infrastructure | GENERATED | 1 | `frontend-design-system.webp` |
+| `backend-graphql-gateway` | GraphQL Gateway | Backend | Service | GENERATED | 1 | `backend-graphql-gateway.webp` |
+| `backend-retry-storm` | Retry Storm | Backend | Command | GENERATED | 1 | `backend-retry-storm.webp` |
+| `backend-circuit-breaker` | Circuit Breaker | Backend | Infrastructure | GENERATED | 1 | `backend-circuit-breaker.webp` |
+| `infrastructure-chaos-monkey` | Chaos Monkey | Infrastructure | Service | GENERATED | 1 | `infrastructure-chaos-monkey.webp` |
+| `infrastructure-terraform-apply` | Terraform Apply | Infrastructure | Command | GENERATED | 1 | `infrastructure-terraform-apply.webp` |
+| `infrastructure-service-mesh` | Service Mesh | Infrastructure | Infrastructure | GENERATED | 1 | `infrastructure-service-mesh.webp` |
+| `data-data-scientist` | Data Scientist | Data | Service | GENERATED | 1 | `data-data-scientist.webp` |
 | `backend-legacy-php` | Legacy PHP Server | Backend | Service | GENERATED | 3 | `backend-legacy-php.webp` |
 | `backend-api-gateway` | API Gateway | Backend | Service | GENERATED | 4 | `backend-api-gateway.webp` |
 | `backend-queue-worker` | Queue Worker | Backend | Service | GENERATED | 3 | `backend-queue-worker.webp` |

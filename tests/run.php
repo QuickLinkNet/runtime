@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../api/utils/ApiException.php';
 require_once __DIR__ . '/../api/game/CardCatalog.php';
+require_once __DIR__ . '/../api/game/BoosterGenerator.php';
 require_once __DIR__ . '/../api/game/GameEngine.php';
 require_once __DIR__ . '/../api/game/PlayerView.php';
 require_once __DIR__ . '/../api/game/BotPlayer.php';
@@ -95,8 +96,115 @@ function prepareTurn(array &$state, string $playerId, int $compute = 20): void
     ];
 }
 
-check('Card catalog has exactly 48 playable cards', function () use ($catalog): void {
-    expect(count($catalog->all()) === 48);
+check('Card catalog has exactly 72 playable cards', function () use ($catalog): void {
+    expect(count($catalog->all()) === 72);
+});
+
+check('Event sequences remain monotonic after the event window is full', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['events'] = [];
+    for ($sequence = 100; $sequence < 180; $sequence++) {
+        $state['events'][] = ['id' => "old-{$sequence}", 'type' => 'TEST', 'sequence' => $sequence];
+    }
+    $engine->applyAction($state, 'p1', ['type' => 'END_TURN']);
+    $latest = array_values(array_filter(
+        array_column($state['events'], 'sequence'),
+        static fn(int $sequence): bool => $sequence >= 180
+    ));
+    expect(count($latest) >= 2 && min($latest) >= 180, 'New events must continue after the highest retained sequence.');
+});
+
+check('QA Engineer deploy removes a BUG without combat events', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['services'] = [entity($catalog, 'token-bug', 'qa-bug')];
+    $state['players']['p1']['hand'] = [card('neutral-qa-engineer', 'qa-engineer')];
+    $state['players']['p1']['deck'] = [card('frontend-vue-widget', 'qa-draw')];
+    $before = count($state['events']);
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'qa-engineer']);
+    $newTypes = array_column(array_slice($state['events'], $before), 'type');
+    expect(!in_array('ATTACK_STARTED', $newTypes, true));
+    expect(!in_array('DAMAGE_DEALT', $newTypes, true));
+    expect(!in_array('token-bug', array_column($state['players']['p1']['services'], 'definitionId'), true));
+});
+
+check('Production Incident typed draw finds a Command', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['hand'] = [card('backend-graphql-gateway', 'graphql')];
+    $state['players']['p1']['deck'] = [
+        card('frontend-vue-widget', 'typed-service'),
+        card('backend-hotfix', 'typed-command'),
+    ];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'graphql']);
+    expect(in_array('backend-hotfix', array_column($state['players']['p1']['hand'], 'definitionId'), true));
+    expect(in_array('frontend-vue-widget', array_column($state['players']['p1']['deck'], 'definitionId'), true));
+});
+
+check('Production Incident target rules reject enemy Feature Flag', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['hand'] = [card('frontend-feature-flag', 'flag')];
+    $state['players']['p2']['services'] = [entity($catalog, 'frontend-vue-widget', 'enemy-service')];
+    expectCode('INVALID_TARGET', fn() => $engine->applyAction($state, 'p1', [
+        'type' => 'PLAY_CARD',
+        'cardInstanceId' => 'flag',
+        'targetId' => 'enemy-service',
+    ]));
+});
+
+check('Design System reinforces only Frontend services', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['services'] = [
+        entity($catalog, 'frontend-vue-widget', 'frontend-service'),
+        entity($catalog, 'backend-queue-worker', 'backend-service'),
+    ];
+    $state['players']['p1']['hand'] = [card('frontend-design-system', 'design-system')];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'design-system']);
+    expect($state['players']['p1']['services'][0]['maxIntegrity'] === 4);
+    expect($state['players']['p1']['services'][1]['maxIntegrity'] === 3);
+});
+
+check('Technical Debt fills only available enemy service slots', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['hand'] = [card('neutral-technical-debt', 'debt')];
+    $state['players']['p2']['services'] = [
+        entity($catalog, 'frontend-vue-widget', 'occupied-1'),
+        entity($catalog, 'frontend-vue-widget', 'occupied-2'),
+        entity($catalog, 'frontend-vue-widget', 'occupied-3'),
+        entity($catalog, 'frontend-vue-widget', 'occupied-4'),
+    ];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'debt']);
+    expect(count($state['players']['p2']['services']) === 5);
+    expect(count(array_filter($state['players']['p2']['services'], static fn(array $service): bool => $service['definitionId'] === 'token-bug')) === 1);
+});
+
+check('Every playable card has a booster rarity', function () use ($catalog): void {
+    $generator = new BoosterGenerator($catalog);
+    foreach ($catalog->all() as $card) {
+        expect(in_array($generator->rarityFor($card['id']), ['common', 'uncommon', 'rare', 'legendary'], true));
+    }
+});
+
+check('Booster contains five unique cards with a guaranteed rare', function () use ($catalog): void {
+    $generator = new BoosterGenerator($catalog, null, static fn(int $min, int $max): int => $min);
+    $cards = $generator->generate([]);
+    expect(count($cards) === 5);
+    expect(count(array_unique(array_column($cards, 'definitionId'))) === 5);
+    expect(count(array_filter($cards, static fn(array $card): bool => in_array($card['rarity'], ['rare', 'legendary'], true))) >= 1);
+});
+
+check('Booster marks owned cards and prefers missing copies', function () use ($catalog): void {
+    $generator = new BoosterGenerator($catalog, null, static fn(int $min, int $max): int => $min);
+    $owned = array_fill_keys(array_column($catalog->all(), 'id'), 2);
+    unset($owned['frontend-react-component']);
+    $cards = $generator->generate($owned);
+    $common = array_values(array_filter($cards, static fn(array $card): bool => $card['rarity'] === 'common'));
+    expect($common[0]['definitionId'] === 'frontend-react-component');
+    expect($common[0]['isNew'] === true);
 });
 
 check('Starter decks are valid and contain 30 cards', function () use ($catalog): void {
@@ -107,18 +215,18 @@ check('Starter decks are valid and contain 30 cards', function () use ($catalog)
     }
 });
 
-check('Match start draws three cards', function () use ($catalog): void {
+check('Match start draws five cards', function () use ($catalog): void {
     [, $state] = fresh($catalog, false);
     expect($state['status'] === 'mulligan');
-    expect(count($state['players']['p1']['hand']) === 3);
-    expect(count($state['players']['p2']['hand']) === 3);
+    expect(count($state['players']['p1']['hand']) === 5);
+    expect(count($state['players']['p2']['hand']) === 5);
 });
 
 check('Mulligan replaces selected cards before reshuffling', function () use ($catalog): void {
     [$engine, $state] = fresh($catalog, false);
     $old = $state['players']['p1']['hand'][0]['instanceId'];
     $engine->applyAction($state, 'p1', ['type' => 'MULLIGAN', 'cardInstanceIds' => [$old]]);
-    expect(count($state['players']['p1']['hand']) === 3);
+    expect(count($state['players']['p1']['hand']) === 5);
     expect(!in_array($old, array_column($state['players']['p1']['hand'], 'instanceId'), true));
 });
 
@@ -126,7 +234,18 @@ check('Second player receives BOOTSTRAP and first starts at one Compute', functi
     [, $state] = fresh($catalog);
     $second = $state['order'][0] === $state['startingPlayerId'] ? $state['order'][1] : $state['order'][0];
     expect(in_array('token-bootstrap', array_column($state['players'][$second]['hand'], 'definitionId'), true));
+    expect(count($state['players'][$state['startingPlayerId']]['hand']) === 5);
+    expect(count($state['players'][$second]['hand']) === 6);
     expect($state['players'][$state['startingPlayerId']]['maxCompute'] === 1);
+});
+
+check('Each player skips the draw on their first own turn', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    $first = $state['startingPlayerId'];
+    $second = $state['order'][0] === $first ? $state['order'][1] : $state['order'][0];
+    $before = count($state['players'][$second]['hand']);
+    $engine->applyAction($state, $first, ['type' => 'END_TURN']);
+    expect(count($state['players'][$second]['hand']) === $before);
 });
 
 check('Compute progresses and is capped at ten', function () use ($catalog): void {
@@ -158,12 +277,23 @@ check('Service board limit is enforced', function () use ($catalog): void {
     expectCode('SERVICE_SLOTS_FULL', fn() => $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'sixth']));
 });
 
-check('Infrastructure slot limit is enforced', function () use ($catalog): void {
+check('Full Infrastructure board requires a replacement target', function () use ($catalog): void {
     [$engine, $state] = fresh($catalog);
     prepareTurn($state, 'p1');
     $state['players']['p1']['infrastructure'] = [entity($catalog, 'frontend-state-store', 'i1'), entity($catalog, 'backend-message-queue', 'i2')];
     $state['players']['p1']['hand'] = [card('neutral-ci-pipeline', 'i3')];
-    expectCode('INFRASTRUCTURE_SLOTS_FULL', fn() => $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'i3']));
+    expectCode('INFRASTRUCTURE_REPLACEMENT_REQUIRED', fn() => $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'i3']));
+});
+
+check('Infrastructure can replace an occupied own slot', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['infrastructure'] = [entity($catalog, 'frontend-state-store', 'old-infra'), entity($catalog, 'backend-message-queue', 'kept-infra')];
+    $state['players']['p1']['hand'] = [card('neutral-ci-pipeline', 'new-infra')];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'new-infra', 'targetId' => 'old-infra']);
+    expect(count($state['players']['p1']['infrastructure']) === 2);
+    expect(in_array('new-infra', array_column($state['players']['p1']['infrastructure'], 'instanceId'), true));
+    expect(in_array('old-infra', array_column($state['players']['p1']['trash'], 'instanceId'), true));
 });
 
 check('Hand limit sends overflow to trash', function () use ($catalog): void {
@@ -282,6 +412,7 @@ check('Empty deck causes increasing MEMORY LEAK damage', function () use ($catal
     [$engine, $state] = fresh($catalog);
     prepareTurn($state, 'p1');
     $state['players']['p2']['deck'] = [];
+    $state['players']['p2']['turnsTaken'] = 1;
     $core = $state['players']['p2']['core'];
     $engine->applyAction($state, 'p1', ['type' => 'END_TURN']);
     expect($state['players']['p2']['core'] === $core - 1);

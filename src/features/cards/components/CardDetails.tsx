@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { domainLabels } from '../../../game/catalog';
 import { definitionsForCard } from '../../../game/keywordDefinitions';
+import { rarityForCard, rarityLabels } from '../../../game/cardRarity';
 import type { BoardEntity, CardDefinition } from '../../../game/types';
 import { Button } from '../../../ui/atoms';
 import { KeywordText } from './KeywordText';
@@ -14,11 +15,12 @@ interface PanelProps {
 
 export function CardDetailPanel({ definition, entity, compact = false }: PanelProps) {
   const explanations = definitionsForCard(definition);
+  const rarity = rarityForCard(definition.id);
   return (
     <article className={`card-detail-panel domain-${definition.domain} ${compact ? 'compact' : ''}`}>
       <header>
         <div>
-          <span className="card-detail-domain">{domainLabels[definition.domain]} · {definition.type}</span>
+          <span className="card-detail-domain">{domainLabels[definition.domain]} · {definition.type}{rarity ? ` · ${rarityLabels[rarity]}` : ''}</span>
           <h2>{definition.name}</h2>
         </div>
         <span className="card-detail-cost"><b>{definition.cost}</b> Compute</span>

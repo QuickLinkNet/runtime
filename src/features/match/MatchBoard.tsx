@@ -1,6 +1,7 @@
+import { type CSSProperties } from 'react';
 import { GlossaryModal } from '../cards';
 import type { GameAction, GameState } from '../../game/types';
-import { BoardRow } from './components/BoardRow';
+import { BattlefieldSide } from './components/BattlefieldSide';
 import { CardHelpTip } from './components/CardHelpTip';
 import { CombatFeedbackLayer } from './components/CombatFeedbackLayer';
 import { HandDock } from './components/HandDock';
@@ -56,20 +57,22 @@ export function MatchBoard({ state, pending, onAction, onExit }: MatchBoardProps
 
   return (
     <>
-      <main className="match-screen">
+      <main className="match-screen" style={{ '--motion-scale': match.animationScale } as CSSProperties}>
         <MatchTopbar
           roomCode={state.roomCode}
           turn={state.turn}
           myTurn={match.myTurn}
           opponentName={opponent.name}
           seconds={match.seconds}
+          animationSpeed={match.animationSpeed}
+          onAnimationSpeedChange={match.setAnimationSpeed}
           onOpenGlossary={() => match.setGlossaryOpen(true)}
           onExit={onExit}
         />
 
-        <TurnBanner turn={state.turn} myTurn={match.myTurn} opponentName={opponent.name} />
+        <TurnBanner turn={state.turn} myTurn={match.myTurn} opponentName={opponent.name} animationScale={match.animationScale} />
         <InteractionNotice message={match.interactionNotice} />
-        <CombatFeedbackLayer state={state} />
+        <CombatFeedbackLayer state={state} animationScale={match.animationScale} />
 
         {match.showCardTip && <CardHelpTip onClose={() => match.setShowCardTip(false)} />}
 
@@ -82,20 +85,12 @@ export function MatchBoard({ state, pending, onAction, onExit }: MatchBoardProps
               targetable={match.canTargetCore(opponent.id)}
               onCore={() => match.target(`core:${opponent.id}`)}
             />
-            <div className="battlefield-side">
-              <BoardRow
-                kind="infrastructure"
-                entities={opponent.infrastructure}
-                targetable={(entity) => match.canTargetEntity(entity, opponent.id, 'infrastructure')}
-                onTarget={match.target}
-              />
-              <BoardRow
-                kind="service"
-                entities={opponent.services}
-                targetable={(entity) => match.canTargetEntity(entity, opponent.id, 'services')}
-                onTarget={match.target}
-              />
-            </div>
+            <BattlefieldSide
+              player={opponent}
+              infrastructureTargetable={(entity) => match.canTargetEntity(entity, opponent.id, 'infrastructure')}
+              serviceTargetable={(entity) => match.canTargetEntity(entity, opponent.id, 'services')}
+              onTarget={match.target}
+            />
           </div>
 
           <MatchCenter
@@ -111,22 +106,14 @@ export function MatchBoard({ state, pending, onAction, onExit }: MatchBoardProps
           />
 
           <div className="player-zone own-zone">
-            <div className="battlefield-side">
-              <BoardRow
-                kind="service"
-                entities={player.services}
-                targetable={(entity) => match.canTargetEntity(entity, player.id, 'services')}
-                onTarget={match.target}
-                onSelect={match.selectAttacker}
-                selectedId={match.selection?.kind === 'attacker' ? match.selection.id : undefined}
-              />
-              <BoardRow
-                kind="infrastructure"
-                entities={player.infrastructure}
-                targetable={(entity) => match.canTargetEntity(entity, player.id, 'infrastructure')}
-                onTarget={match.target}
-              />
-            </div>
+            <BattlefieldSide
+              player={player}
+              infrastructureTargetable={(entity) => match.canTargetEntity(entity, player.id, 'infrastructure')}
+              serviceTargetable={(entity) => match.canTargetEntity(entity, player.id, 'services')}
+              onTarget={match.target}
+              onServiceSelect={match.selectAttacker}
+              selectedServiceId={match.selection?.kind === 'attacker' ? match.selection.id : undefined}
+            />
             <PlayerStrip
               player={player}
               active={match.myTurn}

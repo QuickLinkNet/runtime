@@ -116,6 +116,9 @@ final class BotPlayer
     {
         $own = $state['players'][$botId];
         $opponent = $state['players'][$this->opponentId($state, $botId)];
+        if ($definition['type'] === 'infrastructure' && count($own['infrastructure']) >= 2) {
+            return $own['infrastructure'][0]['instanceId'];
+        }
         return match ($definition['effectId'] ?? '') {
             'infinite_rerender', 'force_push' => ($opponent['services'][0]['instanceId'] ?? $own['services'][0]['instanceId'] ?? false),
             'hotfix', 'coffee' => ($own['services'][0]['instanceId'] ?? false),
@@ -123,6 +126,10 @@ final class BotPlayer
             'horizontal_scaling' => $this->cheapServiceTarget($own),
             'emergency_patch' => $own['services'][0]['instanceId'] ?? $own['infrastructure'][0]['instanceId'] ?? 'core:' . $botId,
             'sandbox_container_deploy' => $opponent['services'][0]['instanceId'] ?? null,
+            'feature_flag', 'retry_storm', 'rotate_secrets' => $own['services'][0]['instanceId'] ?? false,
+            'terraform_apply' => $own['infrastructure'][0]['instanceId'] ?? false,
+            'penetration_tester_deploy' => $opponent['services'][0]['instanceId'] ?? null,
+            'model_drift' => $opponent['services'][0]['instanceId'] ?? false,
             default => null,
         };
     }

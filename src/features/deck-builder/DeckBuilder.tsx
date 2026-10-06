@@ -5,15 +5,17 @@ import { DeckHeader } from './components/DeckHeader';
 import { DeckSidebar } from './components/DeckSidebar';
 import { DomainSelector } from './components/DomainSelector';
 import { useDeckBuilder } from './hooks/useDeckBuilder';
+import type { CollectionSnapshot } from '../../game/types';
 
 interface DeckBuilderProps {
   initialDeck: string[];
   onSave: (deck: string[]) => void;
   onCancel: () => void;
+  collection?: CollectionSnapshot | null;
 }
 
-export function DeckBuilder({ initialDeck, onSave, onCancel }: DeckBuilderProps) {
-  const builder = useDeckBuilder(initialDeck);
+export function DeckBuilder({ initialDeck, onSave, onCancel, collection }: DeckBuilderProps) {
+  const builder = useDeckBuilder(initialDeck, collection?.cards ?? null);
   const [catalogColumns, setCatalogColumns] = useState<4 | 5>(5);
 
   return (
@@ -36,6 +38,9 @@ export function DeckBuilder({ initialDeck, onSave, onCancel }: DeckBuilderProps)
         onSortChange={builder.setSort}
         columns={catalogColumns}
         onColumnsChange={setCatalogColumns}
+        ownership={builder.ownership}
+        onOwnershipChange={builder.setOwnership}
+        collectionAvailable={collection !== null && collection !== undefined}
       />
       <div className="deck-layout">
         <CardCatalog
@@ -44,6 +49,7 @@ export function DeckBuilder({ initialDeck, onSave, onCancel }: DeckBuilderProps)
           showingNeutral={builder.filter === 'neutral'}
           deckSize={builder.deck.length}
           counts={builder.counts}
+          owned={collection?.cards ?? null}
           columns={catalogColumns}
           onAdd={builder.addCard}
           onRemove={builder.removeCard}

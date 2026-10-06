@@ -1,5 +1,6 @@
 export type Domain = 'frontend' | 'backend' | 'infrastructure' | 'data' | 'security' | 'ai' | 'neutral' | 'token';
 export type CardType = 'service' | 'command' | 'infrastructure';
+export type CardRarity = 'common' | 'uncommon' | 'rare' | 'legendary';
 
 export interface CardDefinition {
   id: string;
@@ -113,4 +114,26 @@ export type GameAction =
 export interface PlayerIdentity {
   id: string;
   name: string;
+}
+
+export interface CollectionSnapshot {
+  cards: Record<string, number>;
+  uniqueCards: number;
+  totalCards: number;
+  boosterBalance: number;
+  unlimitedBoosters: boolean;
+  totalBoostersOpened: number;
+}
+
+export interface BoosterCard {
+  definitionId: string;
+  rarity: CardRarity;
+  previousQuantity: number;
+  isNew: boolean;
+}
+
+export interface BoosterOpening {
+  openingId: string;
+  cards: BoosterCard[];
+  collection: CollectionSnapshot;
 }

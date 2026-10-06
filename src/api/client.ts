@@ -1,4 +1,4 @@
-import type { GameAction, GameState, MatchPayload, PlayerIdentity } from '../game/types';
+import type { BoosterOpening, CollectionSnapshot, GameAction, GameState, MatchPayload, PlayerIdentity } from '../game/types';
 
 interface ApiSuccess<T> { success: true; data: T }
 interface ApiFailure { success: false; error: { code: string; message: string } }
@@ -48,6 +48,8 @@ export const api = {
     method: 'POST', body: JSON.stringify({ name }),
   }),
   me: () => request<{ player: PlayerIdentity }>('me'),
+  collection: () => request<CollectionSnapshot>('collection'),
+  openBooster: () => request<BoosterOpening>('openBooster', { method: 'POST', body: '{}' }),
   createMatch: (mode: 'single' | 'multi', deck: string[]) => request<MatchPayload>('createMatch', {
     method: 'POST', body: JSON.stringify({ mode, deck }),
   }),

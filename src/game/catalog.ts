@@ -1,4 +1,5 @@
 import rawCards from '../../shared/cards.json';
+import rawStarterDecks from '../../shared/starter-decks.json';
 import type { CardDefinition, Domain } from './types';
 
 export const cards = rawCards as CardDefinition[];
@@ -16,12 +17,6 @@ export const domainLabels: Record<Domain, string> = {
   token: 'Token',
 };
 
-const pairs: Record<string, [Domain, Domain]> = {
-  'frontend-backend': ['frontend', 'backend'],
-  'infrastructure-security': ['infrastructure', 'security'],
-  'data-ai': ['data', 'ai'],
-};
-
 export const starterNames: Record<string, string> = {
   'frontend-backend': 'Interface & API',
   'infrastructure-security': 'Fortress Stack',
@@ -29,16 +24,8 @@ export const starterNames: Record<string, string> = {
 };
 
 export function makeStarterDeck(key: string): string[] {
-  const pair = pairs[key] ?? pairs['frontend-backend'];
-  const deck: string[] = [];
-  playableCards
-    .filter((card) => pair.includes(card.domain))
-    .forEach((card) => deck.push(card.id, card.id));
-  playableCards
-    .filter((card) => card.domain === 'neutral')
-    .slice(0, 3)
-    .forEach((card) => deck.push(card.id, card.id));
-  return deck;
+  const decks = rawStarterDecks as Record<string, string[]>;
+  return [...(decks[key] ?? decks['frontend-backend'])];
 }
 
 export function validateDeck(deck: string[]): string | null {

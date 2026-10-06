@@ -3,7 +3,7 @@ import { cardById, domainLabels, makeStarterDeck, playableCards, starterNames, v
 import type { Domain } from '../../../game/types';
 import { compareCards, domainOrder, domainsInDeck, techDomains, type CatalogFilter, type DeckEntry, type SortMode } from '../model/deckBuilder';
 
-export function useDeckBuilder(initialDeck: string[]) {
+export function useDeckBuilder(initialDeck: string[], collection: Record<string, number> | null) {
   const [deck, setDeck] = useState([...initialDeck]);
   const [domains, setDomains] = useState<Domain[]>(() => domainsInDeck(initialDeck));
   const [filter, setFilter] = useState<CatalogFilter>('selected');
@@ -11,6 +11,7 @@ export function useDeckBuilder(initialDeck: string[]) {
   const [sort, setSort] = useState<SortMode>('cost-asc');
   const [starterKey, setStarterKey] = useState('frontend-backend');
   const [notice, setNotice] = useState<string | null>(null);
+  const [ownership, setOwnership] = useState<'all' | 'owned'>('all');
 
   const counts = useMemo(() => {
     const next = new Map<string, number>();
@@ -21,6 +22,7 @@ export function useDeckBuilder(initialDeck: string[]) {
   const visibleCards = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase('de');
     return playableCards
+      .filter((card) => ownership === 'all' || (collection?.[card.id] ?? 0) > 0)
       .filter((card) => {
         if (filter === 'neutral') return card.domain === 'neutral';
         if (filter === 'selected') return domains.includes(card.domain);
@@ -29,7 +31,7 @@ export function useDeckBuilder(initialDeck: string[]) {
       .filter((card) => normalizedQuery === '' || [card.name, card.text, card.type, domainLabels[card.domain]]
         .some((value) => value.toLocaleLowerCase('de').includes(normalizedQuery)))
       .sort(compareCards(sort));
-  }, [domains, filter, query, sort]);
+  }, [collection, domains, filter, ownership, query, sort]);
 
   const deckEntries = useMemo<DeckEntry[]>(() => [...counts.entries()]
     .map(([id, count]) => ({ card: cardById.get(id), count }))
@@ -106,6 +108,7 @@ export function useDeckBuilder(initialDeck: string[]) {
     sort,
     starterKey,
     notice,
+    ownership,
     counts,
     visibleCards,
     deckEntries,
@@ -116,6 +119,7 @@ export function useDeckBuilder(initialDeck: string[]) {
     setQuery,
     setSort,
     setStarterKey,
+    setOwnership,
     toggleDomain,
     addCard,
     removeCard,

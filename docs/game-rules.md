@@ -10,7 +10,9 @@ Die sechs wählbaren Tech-Domains sind **Frontend**, **Backend**, **DevOps**, **
 
 **Neutral** ist eine frei verwendbare Sonderkategorie und zählt nicht als gewählte Tech-Domain. **Token** ist ebenfalls kein Kartentyp, sondern kennzeichnet erzeugte Karten, die nicht in ein Deck aufgenommen werden können. Ein Token ist weiterhin entweder ein Service oder ein Command.
 
-Nach drei Startkarten wählen beide Spieler ihren Mulligan. Der zweite Spieler erhält zusätzlich `BOOTSTRAP`. Compute wächst zu Beginn des eigenen Zuges um eins bis maximal zehn, wird aufgefüllt und anschließend wird eine Karte gezogen.
+Beide Spieler sehen beim Mulligan ihre fünf normalen Startkarten und dürfen beliebig viele davon einmal ersetzen. Beim ersten eigenen Zug wird keine weitere Karte gezogen, damit Mulligan und tatsächliche Starthand übereinstimmen. Der zweite Spieler erhält zusätzlich `BOOTSTRAP`. Compute wächst in jedem eigenen Zug um eins bis maximal zehn; ab dem zweiten eigenen Zug wird außerdem eine Karte gezogen.
+
+Jede Seite besitzt zwei Infrastructure-Slots. Sind beide belegt, kann eine neue Infrastructure ausgespielt werden, indem eine eigene bestehende Infrastructure als Ersatz gewählt wird. Die ersetzte Karte wandert in den Trash.
 
 Pro Seite gibt es fünf Service- und zwei Infrastructure-Slots sowie maximal zehn Handkarten. Services können ab dem nächsten eigenen Zug einmal angreifen. Im Service-Kampf wird Schaden gleichzeitig ausgetauscht. FIREWALL schützt den Core, REDUNDANCY verhindert eine Schadensinstanz, SANDBOX deaktiviert Angriff und Effekte bis zum nächsten eigenen Zug.
 

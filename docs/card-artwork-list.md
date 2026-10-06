@@ -1,6 +1,8 @@
 # RUNTIME – Artwork-Liste
 
-Stand: 52 Karten und Tokens. Alle Dateien liegen unter `public/card-assets/art` und entsprechen direkt der jeweiligen Karten-ID. Neue Artworks werden bevorzugt als WebP abgelegt; vier frühe Frontend-Artworks liegen weiterhin verlustfrei zu ihrer bisherigen Qualität als JPG vor.
+Stand: 76 Karten und Tokens. Für die 48 Basiskarten und 4 Tokens liegen fertige Dateien unter `public/card-assets/art`; die 24 Karten aus Set 2 stehen in [Set 2 – Production Incident](set-2-production-incident.md) als Artwork-Queue. Neue Artworks werden bevorzugt als WebP abgelegt; vier frühe Frontend-Artworks liegen weiterhin als JPG vor.
+
+Die Kartenrahmen liegen direkt unter `public/card-assets/`: `card_service_background.png` für Common sowie die Varianten `_uncommon`, `_rare` und `_legendary`. Die Auswahl erfolgt zentral über `src/game/cardRarity.ts` und gilt dadurch für Match, Deck Builder, Booster, Sammlung und Detailansichten.
 
 ## Frontend
 

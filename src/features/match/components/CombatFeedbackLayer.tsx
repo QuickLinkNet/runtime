@@ -38,9 +38,8 @@ function animationStyle(delay: number): CSSProperties {
   return { '--combat-delay': `${delay}ms` } as CSSProperties;
 }
 
-export function CombatFeedbackLayer({ state }: { state: GameState }) {
-  const latestSequence = state.events.length > 0 ? state.events[state.events.length - 1].sequence : 0;
-  const lastSequenceRef = useRef(latestSequence);
+export function CombatFeedbackLayer({ state, animationScale }: { state: GameState; animationScale: number }) {
+  const seenEventIdsRef = useRef(new Set(state.events.map((event) => event.id)));
   const positionsRef = useRef(new Map<string, CombatRect>());
   const entitiesRef = useRef(new Map<string, EntityMeta>());
   const trashRef = useRef(new Map<string, CombatRect>());
@@ -48,7 +47,7 @@ export function CombatFeedbackLayer({ state }: { state: GameState }) {
   const [effects, setEffects] = useState<CombatEffect[]>([]);
 
   useLayoutEffect(() => {
-    const newEvents = state.events.filter((event) => event.sequence > lastSequenceRef.current);
+    const newEvents = state.events.filter((event) => !seenEventIdsRef.current.has(event.id));
     const created: CombatEffect[] = [];
     let attackDelay = 0;
 
@@ -60,19 +59,19 @@ export function CombatFeedbackLayer({ state }: { state: GameState }) {
         if (source && target) {
           created.push({ id: `attack-${event.id}`, kind: 'attack', source, target, definitionId: meta?.definitionId, delay: attackDelay });
         }
-        attackDelay += 820;
+        attackDelay += 820 * animationScale;
         continue;
       }
 
       if (event.type === 'DAMAGE_DEALT' && event.targetId) {
         const target = positionsRef.current.get(event.targetId);
-        if (target) created.push({ id: `impact-${event.id}`, kind: 'impact', target, label: `-${event.amount ?? 0}`, delay: Math.max(0, attackDelay - 560) });
+        if (target) created.push({ id: `impact-${event.id}`, kind: 'impact', target, label: `-${event.amount ?? 0}`, delay: Math.max(0, attackDelay - (560 * animationScale)) });
         continue;
       }
 
       if (event.type === 'REDUNDANCY_TRIGGERED' && event.targetId) {
         const target = positionsRef.current.get(event.targetId);
-        if (target) created.push({ id: `block-${event.id}`, kind: 'impact', target, label: 'BLOCK', blocked: true, delay: Math.max(0, attackDelay - 560) });
+        if (target) created.push({ id: `block-${event.id}`, kind: 'impact', target, label: 'BLOCK', blocked: true, delay: Math.max(0, attackDelay - (560 * animationScale)) });
         continue;
       }
 
@@ -90,19 +89,19 @@ export function CombatFeedbackLayer({ state }: { state: GameState }) {
             destination: definition?.token || !trash ? fallback : trash,
             definitionId: meta?.definitionId,
             token: Boolean(definition?.token),
-            delay: Math.max(420, attackDelay - 260),
+            delay: Math.max(420 * animationScale, attackDelay - (260 * animationScale)),
           });
         }
       }
     }
 
-    lastSequenceRef.current = latestSequence;
+    seenEventIdsRef.current = new Set(state.events.map((event) => event.id));
     if (created.length > 0) {
       setEffects((current) => [...current.slice(-12), ...created]);
       for (const effect of created) {
         const timer = window.setTimeout(() => {
           setEffects((current) => current.filter((item) => item.id !== effect.id));
-        }, 1900 + effect.delay);
+        }, (1900 * animationScale) + effect.delay);
         timersRef.current.push(timer);
       }
     }
@@ -120,7 +119,7 @@ export function CombatFeedbackLayer({ state }: { state: GameState }) {
         entitiesRef.current.set(entity.instanceId, { definitionId: entity.definitionId });
       }
     }
-  }, [latestSequence, state]);
+  }, [animationScale, state]);
 
   useLayoutEffect(() => () => {
     for (const timer of timersRef.current) window.clearTimeout(timer);
@@ -129,7 +128,7 @@ export function CombatFeedbackLayer({ state }: { state: GameState }) {
   if (effects.length === 0) return null;
 
   return createPortal(
-    <div className="combat-effect-layer" aria-hidden="true">
+    <div className="combat-effect-layer" aria-hidden="true" style={{ '--motion-scale': animationScale } as CSSProperties}>
       {effects.map((effect) => {
         if (effect.kind === 'impact') {
           return (

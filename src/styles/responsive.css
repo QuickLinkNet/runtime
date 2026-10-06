@@ -100,6 +100,8 @@
   .match-screen { height: auto; min-height: 100dvh; overflow-x: hidden; overflow-y: auto; padding-bottom: 190px; }
   .board { display: block; height: auto; }
   .battlefield-side { display: block; width: 100%; }
+  .battlefield-lane, .infrastructure-lane, .service-lane { display: block; width: 100%; border: 0; padding: 0; }
+  .battlefield-lane-label { display: none; }
   .board-row, .board-row.infra-row { display: flex; width: 100%; min-width: 0; justify-content: flex-start; gap: 5px; overflow-x: auto; padding: 5px 3px; scroll-snap-type: x proximity; scrollbar-width: none; touch-action: pan-x; }
   .empty-slot, .game-card.is-compact, .infra-row .empty-slot, .infra-row .game-card.is-compact { width: var(--match-mobile-board-card-width); height: auto; aspect-ratio: 1086 / 1448; flex: 0 0 var(--match-mobile-board-card-width); scroll-snap-align: start; }
   .game-card.is-compact .card-name { font-size: 7px; }
@@ -127,7 +129,8 @@
   .card-help-tip { top: 62px; right: 8px; width: calc(100vw - 16px); }
 
   .mulligan-screen, .game-over, .lobby-wait { justify-content: flex-start; overflow-y: auto; }
-  .mulligan-cards { gap: 9px; margin: 20px 0 26px; }
+  .mulligan-cards { width: 100%; justify-content: flex-start; gap: 9px; margin: 20px 0 26px; overflow-x: auto; padding: 5px 3px 14px; scroll-snap-type: x mandatory; }
+  .mulligan-cards .game-card { width: auto; height: min(54vh, 330px); flex: 0 0 auto; scroll-snap-align: center; }
   .result-score { width: 100%; gap: 8px; }
   .result-score span { min-width: 0; flex: 1; padding: 13px 8px; }
   .player-slots { width: 100%; }
