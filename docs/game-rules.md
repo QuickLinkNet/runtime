@@ -21,3 +21,9 @@ Weitere Keywords: DEPLOY beim normalen Ausspielen, CRASH beim Zerstören, PATCH 
 DEBUG kostet ein Compute und entfernt einen eigenen BUG. Bei voller Hand landet eine gezogene Karte im Trash. Ein fehlgeschlagener Draw verursacht ansteigenden MEMORY-LEAK-Schaden. Core-Integrität von null beendet das Match sofort.
 
 Multiplayer-Züge dauern 75 Sekunden. Drei aufeinanderfolgende eigene Timeouts führen zur Niederlage. Es ist kein Hintergrundprozess nötig; jeder relevante Request prüft die Deadline.
+
+## Geführtes Tutorial
+
+Das Tutorial besteht aus acht deterministischen Spielsituationen und nutzt dieselbe serverautoritativ validierte Rules Engine wie normale Matches. Es erklärt Compute und DEPLOY, Infrastructure, Core-Angriffe, BUG und DEBUG, PATCH, CRASH, das Ersetzen voller Infrastructure-Slots und einen abschließenden Production Deploy. Außerhalb des jeweils aktuellen Lernziels liegende Aktionen werden abgewiesen. Nach jeder Lektion bestätigt der Spieler den Übergang in die nächste vorbereitete Situation.
+
+Der erste vollständige Abschluss vergibt einmalig einen Booster. Das Tutorial kann anschließend ohne weitere Belohnung beliebig oft über das Hauptmenü wiederholt werden.

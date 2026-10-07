@@ -2,11 +2,25 @@
   .board-row { gap: 5px; }
 }
 
+/* Short desktop windows need a vertical constraint in addition to width-based breakpoints. */
+@media (min-width: 681px) and (max-height: 800px) {
+  :root {
+    --match-middle-height: 60px;
+    --match-center-edge-gap: 8px;
+    --match-service-middle-gap: 7px;
+    --match-lane-label-gap: 5px;
+  }
+}
+
 @media (max-width: 980px) {
-  .identity-screen { grid-template-columns: 1fr; }
-  .identity-aside { display: none; }
+  .identity-screen { grid-template-columns: 1fr; grid-template-rows: auto auto auto auto; overflow-y: auto; }
+  .identity-header > span { display: none; }
+  .identity-hero { padding-bottom: 0; }
+  .identity-access-card { width: min(600px, 100%); }
   .menu-grid { grid-template-columns: 1fr 1fr; }
-  .mode-card.deck-mode { grid-column: 1 / -1; }
+  .starter-grid { grid-template-columns: 1fr; max-width: 680px; }
+  .starter-option { min-height: 500px; }
+  .mode-card.deck-mode { grid-column: auto; }
   .deck-screen { display: block; height: auto; min-height: 100dvh; overflow: visible; }
   .deck-layout { grid-template-columns: 1fr; }
   .catalog-grid, .deck-spotlight, .deck-sidebar { grid-column: 1; grid-row: auto; }
@@ -26,19 +40,50 @@
 
 @media (max-width: 680px) {
   .screen { padding: 70px 16px 30px; }
-  .identity-screen { padding: 0; }
-  .identity-panel { min-height: 100dvh; padding: 72px 20px 30px; }
-  .identity-panel form { margin-top: 24px; }
-  .brand-large { font-size: clamp(52px, 17vw, 68px); }
+  .identity-screen { gap: 22px; padding: 20px 16px 18px; }
+  .identity-hero { padding: 62px 0 0; }
+  .identity-hero h1 { margin-block: 12px 19px; font-size: clamp(64px, 20vw, 84px); }
+  .identity-hero > p { font-size: 15px; }
+  .identity-specs { margin-top: 22px; }
+  .identity-access-card { padding: 22px 18px 20px; }
+  .identity-access-topline { margin-bottom: 48px; }
+  .identity-footer { flex-wrap: wrap; gap: 8px 18px; }
   .menu-screen { padding: 20px; }
+  .starter-screen { padding: 20px 14px 26px; }
+  .starter-header > span { display: none; }
+  .starter-intro { margin: 54px auto 26px; text-align: left; }
+  .starter-intro h1 { font-size: clamp(44px, 14vw, 60px); }
+  .starter-intro p { font-size: 13px; }
+  .starter-grid { gap: 12px; }
+  .starter-option { min-height: 520px; padding: 18px; }
+  .starter-card-fan { height: 210px; }
+  .starter-feature-card { transform: translateX(calc(-50% + ((var(--card-index) - 1) * 69px))) rotate(calc((var(--card-index) - 1) * 7deg)); }
+  .starter-feature-card .game-card { height: 188px; }
+  .starter-description { min-height: 0; }
+  .starter-selection-mark { width: calc(100% + 36px); margin: 13px -18px -18px; padding-inline: 18px; }
+  .starter-confirmation { position: sticky; z-index: 8; bottom: 8px; align-items: stretch; flex-direction: column; gap: 11px; margin-top: 16px; padding: 13px; backdrop-filter: blur(14px); }
+  .starter-confirmation-actions { display: grid; grid-template-columns: auto 1fr; }
+  .starter-confirmation-actions .button { min-width: 0; padding-inline: 12px; }
+  .launch-stack-dialog { max-height: calc(100dvh - 16px); padding: 25px 15px 15px; overflow-y: auto; }
+  .launch-stack-dialog > p { margin-bottom: 12px; }
+  .launch-stack-summary { align-items: flex-start; flex-direction: column; gap: 8px; }
+  .launch-card-fan { height: 205px; gap: 0; overflow: hidden; }
+  .launch-card-fan .game-card { height: 190px; margin-left: -20px; }
+  .launch-card-fan .game-card:first-child { margin-left: 0; }
+  .launch-stack-actions { display: grid; grid-template-columns: auto 1fr; }
+  .launch-stack-actions .button.primary { min-width: 0; }
   .menu-header { gap: 10px; }
   .profile-chip { min-width: 0; max-width: 58vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .menu-hero { padding: 56px 0 32px; }
   .menu-hero h1 { font-size: clamp(46px, 14.5vw, 62px); }
   .menu-hero p { font-size: 15px; }
-  .menu-grid, .connection-grid { grid-template-columns: 1fr; }
+  .menu-grid, .connection-grid, .account-layout { grid-template-columns: 1fr; }
   .mode-card.deck-mode { grid-column: auto; }
-  .mode-card { min-height: 0; gap: 20px; padding: 21px; }
+  .mode-card { min-height: 335px; gap: 12px; padding: 21px; }
+  .mode-card.deck-mode { min-height: 390px; }
+  .mode-card-art { right: -5px; width: 56%; height: 152px; }
+  .mode-card-copy { margin-top: 62px; }
+  .mode-card p { min-height: 0; }
   .resume-banner { align-items: stretch; flex-direction: column; }
   .resume-banner .button { width: 100%; }
   .menu-footer { flex-wrap: wrap; gap: 8px 18px; }
@@ -133,6 +178,16 @@
   .mulligan-cards .game-card { width: auto; height: min(54vh, 330px); flex: 0 0 auto; scroll-snap-align: center; }
   .result-score { width: 100%; gap: 8px; }
   .result-score span { min-width: 0; flex: 1; padding: 13px 8px; }
+  .match-result { gap: 16px; padding-top: 30px; }
+  .result-hero h1 { font-size: clamp(39px, 12vw, 58px); }
+  .result-stats { grid-template-columns: repeat(2, 1fr); }
+  .result-stats div { min-height: 64px; padding: 11px; }
+  .result-stats dd { font-size: 18px; }
+  .result-mvp { grid-template-columns: 1fr 112px; gap: 12px; padding: 14px; }
+  .result-mvp h2 { font-size: 21px; }
+  .result-mvp .game-card { width: 112px; }
+  .result-actions { width: 100%; }
+  .result-actions .button { width: 100%; min-height: 46px; }
   .player-slots { width: 100%; }
 
   .modal-backdrop { align-items: end; padding: 8px; }

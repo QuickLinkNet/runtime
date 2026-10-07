@@ -31,6 +31,18 @@ final class PlayerView
                 'fatigue' => $player['fatigue'],
                 'mulliganDone' => $isViewer ? $player['mulliganDone'] : null,
                 'consecutiveTimeouts' => $player['consecutiveTimeouts'],
+                'matchStats' => [
+                    'cardsPlayed' => (int)($player['matchStats']['cardsPlayed'] ?? 0),
+                    'servicesDeployed' => (int)($player['matchStats']['servicesDeployed'] ?? 0),
+                    'infrastructureDeployed' => (int)($player['matchStats']['infrastructureDeployed'] ?? 0),
+                    'commandsPlayed' => (int)($player['matchStats']['commandsPlayed'] ?? 0),
+                    'attacks' => (int)($player['matchStats']['attacks'] ?? 0),
+                    'coreDamageDealt' => (int)($player['matchStats']['coreDamageDealt'] ?? 0),
+                    'bugsCreated' => (int)($player['matchStats']['bugsCreated'] ?? 0),
+                    'replicasCreated' => (int)($player['matchStats']['replicasCreated'] ?? 0),
+                    'servicesCrashed' => (int)($player['matchStats']['servicesCrashed'] ?? 0),
+                    'mvpDefinitionId' => $player['matchStats']['mvpDefinitionId'] ?? null,
+                ],
             ];
         }
         $events = array_map(static function (array $event) use ($viewerId): array {
@@ -39,7 +51,7 @@ final class PlayerView
             }
             return $event;
         }, $state['events']);
-        return [
+        $view = [
             'roomCode' => $state['roomCode'],
             'mode' => $state['mode'],
             'status' => $state['status'],
@@ -53,7 +65,14 @@ final class PlayerView
             'turnDeadlineAt' => $state['turnDeadlineAt'],
             'winnerId' => $state['winnerId'],
             'finishReason' => $state['finishReason'],
+            'startedAt' => $state['startedAt'] ?? null,
+            'finishedAt' => $state['finishedAt'] ?? null,
+            'reward' => $state['matchRewards'][$viewerId] ?? ['firstWinBooster' => false],
             'events' => $events,
         ];
+        if (isset($state['tutorial'])) {
+            $view['tutorial'] = $state['tutorial'];
+        }
+        return $view;
     }
 }

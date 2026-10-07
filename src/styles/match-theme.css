@@ -7,16 +7,23 @@
  * Faustregel:
  * - groessere Karten: --match-board-card-max-height erhoehen
  * - automatische Desktop-Skalierung: 26dvh und 19vw in --match-board-card-height anpassen
- * - mehr Platz an der Mittellinie: --match-middle-height erhoehen
+ * - mehr Platz an der Mittellinie: --match-middle-height oder --match-center-edge-gap erhoehen
  */
 :root {
   /* Karten */
   --match-hand-card-height: clamp(178px, 23.5vh, 260px);
-  --match-board-card-min-height: 118px;
+  --match-board-card-min-height: 82px;
   --match-board-card-max-height: 290px;
   --match-board-card-height: clamp(
     var(--match-board-card-min-height),
-    min(26dvh, calc(19vw - 49px)),
+    min(
+      calc(19vw - 49px),
+      calc(
+        (100dvh - var(--card-h) - var(--match-board-height-reserve) - var(--match-middle-height)) / 2
+        - var(--match-player-bar-block-size)
+        - var(--match-battlefield-label-reserve)
+      )
+    ),
     var(--match-board-card-max-height)
   );
   --match-mulligan-card-height: clamp(230px, min(42vh, 23vw), 400px);
@@ -30,10 +37,14 @@
   --match-board-max-width: 1920px;
   --match-screen-side-padding: 22px;
   --match-board-height-reserve: 114px;
-  --match-middle-height: 46px;
+  --match-middle-height: clamp(62px, 7.2vh, 76px);
+  --match-center-edge-gap: clamp(8px, 1.2vh, 14px);
   --match-hand-dock-extra-height: 32px;
-  --match-service-middle-gap: 3px;
+  --match-service-middle-gap: clamp(8px, 1.1vh, 13px);
+  --match-lane-label-gap: 8px;
   --match-player-bar-height: clamp(42px, 5.8vh, 56px);
+  --match-player-bar-block-size: calc(max(var(--match-player-bar-height), 52px) + 10px);
+  --match-battlefield-label-reserve: calc(18px + var(--match-lane-label-gap) + var(--match-service-middle-gap) + var(--match-row-gap));
 
   /* Text im Spielfeld */
   --match-turn-font-size: 12px;

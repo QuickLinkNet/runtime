@@ -19,6 +19,7 @@ interface Props {
   style?: CSSProperties;
   actionLabel?: string;
   combatId?: string;
+  displayCost?: number;
   onClick?: () => void;
 }
 
@@ -34,7 +35,7 @@ function useCoarsePointer() {
   return coarse;
 }
 
-export function GameCard({ card, selected, playable, targetable, compact, detailsOnHover = true, detailsOnTap = false, style, actionLabel, combatId, onClick }: Props) {
+export function GameCard({ card, selected, playable, targetable, compact, detailsOnHover = true, detailsOnTap = false, style, actionLabel, combatId, displayCost, onClick }: Props) {
   const definition = cardById.get(card.definitionId);
   const entity = 'integrity' in card ? card : null;
   const integrityPulse = useValuePulse(entity?.integrity);
@@ -58,6 +59,7 @@ export function GameCard({ card, selected, playable, targetable, compact, detail
   const visualType = definition.token ? 'token' : definition.type;
   const rarity = rarityForCard(definition.id);
   const artwork = cardArtworkById[definition.id];
+  const shownCost = displayCost ?? definition.cost;
 
   const classes = [
     'game-card', `domain-${definition.domain}`,
@@ -110,6 +112,7 @@ export function GameCard({ card, selected, playable, targetable, compact, detail
       return;
     }
     if (onClick) {
+      setHoverStyle(null);
       onClick();
       return;
     }
@@ -126,14 +129,14 @@ export function GameCard({ card, selected, playable, targetable, compact, detail
         onClick={handleCardClick}
         onMouseEnter={detailsOnHover ? showHoverPreview : undefined}
         onMouseLeave={detailsOnHover ? scheduleHidePreview : undefined}
-        onFocus={detailsOnHover ? showHoverPreview : undefined}
+        onFocus={detailsOnHover && !onClick ? showHoverPreview : undefined}
         onBlur={detailsOnHover ? scheduleHidePreview : undefined}
         type="button"
         aria-pressed={selected}
         aria-label={`${definition.name}${rarity ? `, ${rarity}` : ''}. ${isCoarsePointer && detailsOnTap ? 'Antippen für Details.' : `${actionLabel ? `${actionLabel}. ` : ''}${detailsOnHover && !isCoarsePointer ? 'Details beim Darüberfahren.' : 'Karte anzeigen.'}`}`}
       >
         {artwork && <span className="card-artwork" style={{ backgroundImage: `url(${artwork})` }} aria-hidden="true" />}
-        <span className="card-cost" aria-label={`${definition.cost} Compute`}>{definition.cost}</span>
+        <span className={`card-cost ${shownCost < definition.cost ? 'is-discounted' : ''} ${shownCost > definition.cost ? 'is-increased' : ''}`} aria-label={`${shownCost} Compute`}>{shownCost}</span>
         <strong className="card-name">{definition.name}</strong>
         <span className="card-classification">
           <span className={`card-type-badge type-${visualType}`} aria-hidden="true" />

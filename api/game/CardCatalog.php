@@ -61,4 +61,17 @@ final class CardCatalog
         $this->validateDeck($deck);
         return $deck;
     }
+
+    public function isStarterDeck(array $deck): bool
+    {
+        sort($deck, SORT_STRING);
+        foreach (['frontend-backend', 'infrastructure-security', 'data-ai'] as $key) {
+            $candidate = $this->starterDeck($key);
+            sort($candidate, SORT_STRING);
+            if ($candidate === $deck) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

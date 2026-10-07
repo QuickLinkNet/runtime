@@ -5,6 +5,8 @@ import { knownCardCost } from '../model/cardCost';
 import { canPlayWithoutTarget, canSelectAttacker, canTargetCore, canTargetEntity, selectionPrompt } from '../model/targeting';
 import type { MatchSelection } from '../model/types';
 import { animationSpeedScale, storedAnimationSpeed, type AnimationSpeed } from '../model/animationSpeed';
+import { cardPlaySfx, playSfx } from '../../../audio/sfx';
+import { tutorialAllowsAction, tutorialAllowsCard, tutorialSteps } from '../../tutorial/tutorialSteps';
 
 interface UseMatchControllerOptions {
   state: GameState;
@@ -54,6 +56,7 @@ export function useMatchController({ state, pending, onAction }: UseMatchControl
   }, [showCardTip, state.status]);
 
   function toggleMulligan(instanceId: string) {
+    playSfx('card-select');
     setMulligan((items) => items.includes(instanceId)
       ? items.filter((id) => id !== instanceId)
       : [...items, instanceId]);
@@ -66,37 +69,61 @@ export function useMatchController({ state, pending, onAction }: UseMatchControl
 
   function selectHandCard(instanceId: string) {
     if (!myTurn) {
+      playSfx('ui-error');
       setInteractionNotice('Warte auf deinen Zug.');
       return;
     }
     if (pending) {
+      playSfx('ui-error');
       setInteractionNotice('Die vorherige Aktion wird noch verarbeitet.');
       return;
     }
     const card = player.hand.find((item) => item.instanceId === instanceId);
     const definition = card ? cardById.get(card.definitionId) : undefined;
     if (card && definition) {
+      if (state.tutorial && !tutorialAllowsCard(state, definition.id)) {
+        playSfx('ui-error');
+        setInteractionNotice(tutorialSteps[state.tutorial.key].objective);
+        return;
+      }
       const availableCompute = (player.compute ?? 0) + (player.temporaryCompute ?? 0);
       const effectiveCost = knownCardCost(state, card, definition);
       if (effectiveCost > availableCompute) {
+        playSfx('ui-error');
         setInteractionNotice(`${definition.name} braucht ${effectiveCost} Compute. Du hast ${availableCompute}.`);
         return;
       }
+      playSfx('card-select');
       setSelection({ kind: 'card', id: instanceId, definition });
-      setInteractionNotice(`${definition.name} ausgewählt.`);
+      if (definition.type === 'infrastructure' && player.infrastructure.length >= 2) {
+        setInteractionNotice('2/2 Infrastructure-Slots belegt: Wähle auf deinem Board die Karte, die in den Trash wandert.');
+      } else {
+        setInteractionNotice(`${definition.name} ausgewählt.`);
+      }
     }
   }
 
   function selectAttacker(entity: BoardEntity) {
     if (!myTurn) {
+      playSfx('ui-error');
       setInteractionNotice('Angreifen kannst du nur in deinem Zug.');
       return;
     }
     const definition = cardById.get(entity.definitionId);
-    if (entity.exhausted) setInteractionNotice('Dieser Service ist noch erschöpft.');
-    else if (entity.sandboxed) setInteractionNotice('Dieser Service befindet sich in der Sandbox.');
-    else if (definition?.cannotAttack) setInteractionNotice('Dieser Service kann nicht angreifen.');
+    if (state.tutorial) {
+      const expectedDefinition = state.tutorial.key === 'crash-service' ? 'infrastructure-chaos-monkey' : undefined;
+      if (!['attack-core', 'crash-service', 'final-deploy'].includes(state.tutorial.key)
+        || (expectedDefinition && definition?.id !== expectedDefinition)) {
+        playSfx('ui-error');
+        setInteractionNotice(tutorialSteps[state.tutorial.key].objective);
+        return;
+      }
+    }
+    if (entity.exhausted) { playSfx('ui-error'); setInteractionNotice('Dieser Service ist noch erschöpft.'); }
+    else if (entity.sandboxed) { playSfx('ui-error'); setInteractionNotice('Dieser Service befindet sich in der Sandbox.'); }
+    else if (definition?.cannotAttack) { playSfx('ui-error'); setInteractionNotice('Dieser Service kann nicht angreifen.'); }
     else if (canSelectAttacker(entity)) {
+      playSfx('card-select');
       setSelection({ kind: 'attacker', id: entity.instanceId });
       setInteractionNotice(`${definition?.name ?? 'Service'} ist angriffsbereit.`);
     }
@@ -105,16 +132,30 @@ export function useMatchController({ state, pending, onAction }: UseMatchControl
   async function target(id: string) {
     if (!selection || pending || !myTurn) return;
     if (selection.kind === 'attacker') {
-      await onAction({ type: 'ATTACK', attackerId: selection.id, targetId: id });
+      const action: GameAction = { type: 'ATTACK', attackerId: selection.id, targetId: id };
+      if (state.tutorial && !tutorialAllowsAction(state, action)) {
+        playSfx('ui-error'); setInteractionNotice(tutorialSteps[state.tutorial.key].objective); return;
+      }
+      await onAction(action);
     } else {
-      await onAction({ type: 'PLAY_CARD', cardInstanceId: selection.id, targetId: id, overclock });
+      const action: GameAction = { type: 'PLAY_CARD', cardInstanceId: selection.id, targetId: id, overclock };
+      if (state.tutorial && !tutorialAllowsAction(state, action)) {
+        playSfx('ui-error'); setInteractionNotice(tutorialSteps[state.tutorial.key].objective); return;
+      }
+      await onAction(action);
+      cardPlaySfx(selection.definition.type);
     }
     setSelection(null);
   }
 
   async function playWithoutTarget() {
     if (selection?.kind !== 'card') return;
-    await onAction({ type: 'PLAY_CARD', cardInstanceId: selection.id, overclock });
+    const action: GameAction = { type: 'PLAY_CARD', cardInstanceId: selection.id, overclock };
+    if (state.tutorial && !tutorialAllowsAction(state, action)) {
+      playSfx('ui-error'); setInteractionNotice(tutorialSteps[state.tutorial.key].objective); return;
+    }
+    await onAction(action);
+    cardPlaySfx(selection.definition.type);
     setSelection(null);
   }
 
@@ -144,9 +185,18 @@ export function useMatchController({ state, pending, onAction }: UseMatchControl
     selectAttacker,
     target,
     playWithoutTarget,
-    canTargetEntity: (entity: BoardEntity, ownerId: string, zone: 'services' | 'infrastructure') => (
-      canTargetEntity(selection, state.viewerId, entity, ownerId, zone)
-    ),
-    canTargetCore: (ownerId: string) => canTargetCore(selection, state, ownerId),
+    canTargetEntity: (entity: BoardEntity, ownerId: string, zone: 'services' | 'infrastructure') => {
+      if (!canTargetEntity(selection, state.viewerId, entity, ownerId, zone)) return false;
+      if (!state.tutorial || !selection) return true;
+      const action: GameAction = selection.kind === 'attacker'
+        ? { type: 'ATTACK', attackerId: selection.id, targetId: entity.instanceId }
+        : { type: 'PLAY_CARD', cardInstanceId: selection.id, targetId: entity.instanceId, overclock };
+      return tutorialAllowsAction(state, action);
+    },
+    canTargetCore: (ownerId: string) => {
+      if (!canTargetCore(selection, state, ownerId)) return false;
+      if (!state.tutorial || selection?.kind !== 'attacker') return true;
+      return tutorialAllowsAction(state, { type: 'ATTACK', attackerId: selection.id, targetId: `core:${ownerId}` });
+    },
   };
 }

@@ -6,6 +6,7 @@ import { DeckSidebar } from './components/DeckSidebar';
 import { DomainSelector } from './components/DomainSelector';
 import { useDeckBuilder } from './hooks/useDeckBuilder';
 import type { CollectionSnapshot } from '../../game/types';
+import { playSfx } from '../../audio/sfx';
 
 interface DeckBuilderProps {
   initialDeck: string[];
@@ -17,6 +18,8 @@ interface DeckBuilderProps {
 export function DeckBuilder({ initialDeck, onSave, onCancel, collection }: DeckBuilderProps) {
   const builder = useDeckBuilder(initialDeck, collection?.cards ?? null);
   const [catalogColumns, setCatalogColumns] = useState<4 | 5>(5);
+  const addCard = (id: string) => { playSfx('card-select'); builder.addCard(id); };
+  const removeCard = (id: string) => { playSfx('card-select'); builder.removeCard(id); };
 
   return (
     <main className="screen deck-screen">
@@ -51,8 +54,8 @@ export function DeckBuilder({ initialDeck, onSave, onCancel, collection }: DeckB
           counts={builder.counts}
           owned={collection?.cards ?? null}
           columns={catalogColumns}
-          onAdd={builder.addCard}
-          onRemove={builder.removeCard}
+          onAdd={addCard}
+          onRemove={removeCard}
         />
         <DeckSidebar
           deck={builder.deck}
@@ -64,7 +67,7 @@ export function DeckBuilder({ initialDeck, onSave, onCancel, collection }: DeckB
           starterKey={builder.starterKey}
           onStarterChange={builder.setStarterKey}
           onLoadStarter={builder.loadStarter}
-          onRemove={builder.removeCard}
+          onRemove={removeCard}
           onClear={builder.clearDeck}
           onCancel={onCancel}
           onSave={() => onSave(builder.deck)}

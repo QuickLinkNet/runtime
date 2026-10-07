@@ -36,6 +36,10 @@ final class GameEngine
             'turnDeadlineAt' => null,
             'winnerId' => null,
             'finishReason' => null,
+            'startedAt' => null,
+            'finishedAt' => null,
+            'resultsRecorded' => false,
+            'matchRewards' => [],
             'events' => [],
         ];
     }
@@ -68,6 +72,7 @@ final class GameEngine
             'consecutiveTimeouts' => 0,
             'turnsTaken' => 0,
             'turnFlags' => $this->emptyTurnFlags(),
+            'matchStats' => $this->emptyMatchStats(),
         ];
         $state['order'][] = $playerId;
     }
@@ -152,6 +157,14 @@ final class GameEngine
         $state['winnerId'] = $winnerId;
         $state['finishReason'] = $reason;
         $state['turnDeadlineAt'] = null;
+        $state['finishedAt'] = gmdate('c');
+        foreach ($state['players'] as &$player) {
+            $this->ensureMatchStats($player);
+            $impact = $player['matchStats']['cardImpact'];
+            arsort($impact, SORT_NUMERIC);
+            $player['matchStats']['mvpDefinitionId'] = $impact !== [] ? (string)array_key_first($impact) : null;
+        }
+        unset($player);
         $this->event($state, 'GAME_OVER', ['winnerId' => $winnerId, 'reason' => $reason]);
     }
 
@@ -193,6 +206,36 @@ final class GameEngine
             'serviceCrashed' => false,
             'projectManagerDiscount' => false,
         ];
+    }
+
+    private function emptyMatchStats(): array
+    {
+        return [
+            'cardsPlayed' => 0,
+            'servicesDeployed' => 0,
+            'infrastructureDeployed' => 0,
+            'commandsPlayed' => 0,
+            'attacks' => 0,
+            'coreDamageDealt' => 0,
+            'bugsCreated' => 0,
+            'replicasCreated' => 0,
+            'servicesCrashed' => 0,
+            'cardImpact' => [],
+            'mvpDefinitionId' => null,
+        ];
+    }
+
+    private function ensureMatchStats(array &$player): void
+    {
+        $defaults = $this->emptyMatchStats();
+        $player['matchStats'] = array_merge($defaults, (array)($player['matchStats'] ?? []));
+        $player['matchStats']['cardImpact'] = (array)($player['matchStats']['cardImpact'] ?? []);
+    }
+
+    private function recordCardImpact(array &$player, string $definitionId, int $impact): void
+    {
+        $this->ensureMatchStats($player);
+        $player['matchStats']['cardImpact'][$definitionId] = (int)($player['matchStats']['cardImpact'][$definitionId] ?? 0) + $impact;
     }
 
     private function event(array &$state, string $type, array $data = []): void

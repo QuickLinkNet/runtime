@@ -47,12 +47,24 @@ export const api = {
   createPlayer: (name: string) => request<{ player: PlayerIdentity; token: string }>('createPlayer', {
     method: 'POST', body: JSON.stringify({ name }),
   }),
+  login: (email: string, password: string) => request<{ player: PlayerIdentity; token: string }>('login', {
+    method: 'POST', body: JSON.stringify({ email, password }),
+  }),
+  registerAccount: (name: string, email: string, password: string) => request<{ player: PlayerIdentity; token: string }>('registerAccount', {
+    method: 'POST', body: JSON.stringify({ name, email, password }),
+  }),
+  linkAccount: (email: string, password: string) => request<{ player: PlayerIdentity; token: string }>('linkAccount', {
+    method: 'POST', body: JSON.stringify({ email, password }),
+  }),
   me: () => request<{ player: PlayerIdentity }>('me'),
   collection: () => request<CollectionSnapshot>('collection'),
+  loadout: () => request<{ deck: string[] | null }>('loadout'),
+  saveLoadout: (deck: string[]) => request<void>('saveLoadout', { method: 'POST', body: JSON.stringify({ deck }) }),
   openBooster: () => request<BoosterOpening>('openBooster', { method: 'POST', body: '{}' }),
   createMatch: (mode: 'single' | 'multi', deck: string[]) => request<MatchPayload>('createMatch', {
     method: 'POST', body: JSON.stringify({ mode, deck }),
   }),
+  createTutorial: () => request<MatchPayload>('createTutorial', { method: 'POST', body: '{}' }),
   joinMatch: (roomCode: string, deck: string[]) => request<MatchPayload>('joinMatch', {
     method: 'POST', body: JSON.stringify({ roomCode, deck }),
   }),

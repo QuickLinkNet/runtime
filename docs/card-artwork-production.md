@@ -18,6 +18,20 @@
 | `infrastructure-terraform-apply` | Terraform Apply | Infrastructure | Command | GENERATED | 1 | `infrastructure-terraform-apply.webp` |
 | `infrastructure-service-mesh` | Service Mesh | Infrastructure | Infrastructure | GENERATED | 1 | `infrastructure-service-mesh.webp` |
 | `data-data-scientist` | Data Scientist | Data | Service | GENERATED | 1 | `data-data-scientist.webp` |
+| `data-schema-migration` | Schema Migration | Data | Command | GENERATED | 1 | `data-schema-migration.webp` |
+| `data-event-stream` | Event Stream | Data | Infrastructure | GENERATED | 1 | `data-event-stream.webp` |
+| `security-penetration-tester` | Penetration Tester | Security | Service | GENERATED | 1 | `security-penetration-tester.webp` |
+| `security-rotate-secrets` | Rotate Secrets | Security | Command | GENERATED | 1 | `security-rotate-secrets.webp` |
+| `security-siem` | SIEM | Security | Infrastructure | GENERATED | 1 | `security-siem.webp` |
+| `ai-prompt-engineer` | Prompt Engineer | AI | Service | GENERATED | 1 | `ai-prompt-engineer.webp` |
+| `ai-model-drift` | Model Drift | AI | Command | GENERATED | 1 | `ai-model-drift.webp` |
+| `ai-rag-pipeline` | RAG Pipeline | AI | Infrastructure | GENERATED | 1 | `ai-rag-pipeline.webp` |
+| `neutral-werkstudent` | Werkstudent | Neutral | Service | GENERATED | 1 | `neutral-werkstudent.webp` |
+| `neutral-product-owner` | Product Owner | Neutral | Service | GENERATED | 1 | `neutral-product-owner.webp` |
+| `neutral-scrum-master` | Scrum Master | Neutral | Service | GENERATED | 2 | `neutral-scrum-master.webp` |
+| `neutral-monitoring-dashboard` | Monitoring Dashboard | Neutral | Infrastructure | GENERATED | 1 | `neutral-monitoring-dashboard.webp` |
+| `neutral-maintenance-window` | Maintenance Window | Neutral | Command | GENERATED | 1 | `neutral-maintenance-window.webp` |
+| `neutral-technical-debt` | Technical Debt | Neutral | Command | GENERATED | 1 | `neutral-technical-debt.webp` |
 | `backend-legacy-php` | Legacy PHP Server | Backend | Service | GENERATED | 3 | `backend-legacy-php.webp` |
 | `backend-api-gateway` | API Gateway | Backend | Service | GENERATED | 4 | `backend-api-gateway.webp` |
 | `backend-queue-worker` | Queue Worker | Backend | Service | GENERATED | 3 | `backend-queue-worker.webp` |
@@ -65,4 +79,4 @@
 | `token-bug` | BUG | Token | Service | GENERATED | 1 | `token-bug.webp` |
 | `token-bootstrap` | BOOTSTRAP | Token | Command | GENERATED | 1 | `token-bootstrap.webp` |
 
-The remaining cards are intentionally not listed yet because production is proceeding in reviewed batches.
+Artwork production is complete for all cards in the current catalog.

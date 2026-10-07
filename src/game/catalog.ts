@@ -5,6 +5,7 @@ import type { CardDefinition, Domain } from './types';
 export const cards = rawCards as CardDefinition[];
 export const playableCards = cards.filter((card) => !card.token);
 export const cardById = new Map(cards.map((card) => [card.id, card]));
+export type StarterDeckKey = keyof typeof rawStarterDecks;
 
 export const domainLabels: Record<Domain, string> = {
   frontend: 'Frontend',
@@ -26,6 +27,14 @@ export const starterNames: Record<string, string> = {
 export function makeStarterDeck(key: string): string[] {
   const decks = rawStarterDecks as Record<string, string[]>;
   return [...(decks[key] ?? decks['frontend-backend'])];
+}
+
+export function starterKeyForDeck(deck: string[]): StarterDeckKey | null {
+  const signature = [...deck].sort().join('|');
+  for (const key of Object.keys(starterNames) as StarterDeckKey[]) {
+    if ([...rawStarterDecks[key]].sort().join('|') === signature) return key;
+  }
+  return null;
 }
 
 export function validateDeck(deck: string[]): string | null {

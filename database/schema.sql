@@ -1,6 +1,9 @@
 CREATE TABLE IF NOT EXISTS players (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(24) NOT NULL,
+  account_email VARCHAR(190) NULL UNIQUE,
+  password_hash VARCHAR(255) NULL,
+  account_created_at DATETIME NULL,
   token_hash CHAR(64) NOT NULL UNIQUE,
   is_bot TINYINT(1) NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -46,6 +49,13 @@ CREATE TABLE IF NOT EXISTS player_progression (
   test_mode TINYINT(1) NOT NULL DEFAULT 1,
   total_boosters_opened INT UNSIGNED NOT NULL DEFAULT 0,
   last_booster_at DATETIME NULL,
+  tutorial_completed_at DATETIME NULL,
+  tutorial_reward_claimed_at DATETIME NULL,
+  first_win_at DATETIME NULL,
+  first_win_reward_claimed_at DATETIME NULL,
+  matches_played INT UNSIGNED NOT NULL DEFAULT 0,
+  wins INT UNSIGNED NOT NULL DEFAULT 0,
+  losses INT UNSIGNED NOT NULL DEFAULT 0,
   CONSTRAINT fk_progression_player FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -57,6 +67,13 @@ CREATE TABLE IF NOT EXISTS player_collections (
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (player_id, card_definition_id),
   CONSTRAINT fk_collection_player FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS player_loadouts (
+  player_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+  deck_json TEXT NOT NULL,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_loadout_player FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS booster_openings (

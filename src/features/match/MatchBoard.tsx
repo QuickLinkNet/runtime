@@ -14,15 +14,23 @@ import { PlayerStrip } from './components/PlayerStrip';
 import { TurnBanner } from './components/TurnBanner';
 import { WaitingLobby } from './components/WaitingLobby';
 import { useMatchController } from './hooks/useMatchController';
+import { useMatchSounds } from './hooks/useMatchSounds';
+import { playSfx } from '../../audio/sfx';
+import { TutorialCoach } from '../tutorial/TutorialCoach';
+import { TutorialResult } from '../tutorial/TutorialResult';
+import { tutorialSteps } from '../tutorial/tutorialSteps';
 
 interface MatchBoardProps {
   state: GameState;
   pending: boolean;
   onAction: (action: GameAction) => Promise<void>;
+  onRematch: () => void;
+  onDeck: () => void;
   onExit: () => void;
 }
 
-export function MatchBoard({ state, pending, onAction, onExit }: MatchBoardProps) {
+export function MatchBoard({ state, pending, onAction, onRematch, onDeck, onExit }: MatchBoardProps) {
+  useMatchSounds(state);
   const match = useMatchController({ state, pending, onAction });
 
   if (!match.opponent) {
@@ -36,17 +44,23 @@ export function MatchBoard({ state, pending, onAction, onExit }: MatchBoardProps
         pending={pending}
         selectedIds={match.mulligan}
         onToggle={match.toggleMulligan}
-        onSubmit={() => onAction({ type: 'MULLIGAN', cardInstanceIds: match.mulligan })}
+        onSubmit={() => { playSfx('command-execute'); void onAction({ type: 'MULLIGAN', cardInstanceIds: match.mulligan }); }}
       />
     );
   }
 
   if (state.status === 'finished') {
+    if (state.mode === 'tutorial' && state.tutorial) {
+      return <TutorialResult tutorial={state.tutorial} onExit={onExit} />;
+    }
     return (
       <MatchResult
         player={match.player}
         opponent={match.opponent}
         won={state.winnerId === state.viewerId}
+        state={state}
+        onRematch={onRematch}
+        onDeck={onDeck}
         onExit={onExit}
       />
     );
@@ -57,7 +71,11 @@ export function MatchBoard({ state, pending, onAction, onExit }: MatchBoardProps
 
   return (
     <>
-      <main className="match-screen" style={{ '--motion-scale': match.animationScale } as CSSProperties}>
+      <main
+        className={`match-screen${state.mode === 'tutorial' ? ' tutorial-mode' : ''}`}
+        data-tutorial-focus={state.tutorial ? tutorialSteps[state.tutorial.key].focus : undefined}
+        style={{ '--motion-scale': match.animationScale } as CSSProperties}
+      >
         <MatchTopbar
           roomCode={state.roomCode}
           turn={state.turn}
@@ -71,10 +89,18 @@ export function MatchBoard({ state, pending, onAction, onExit }: MatchBoardProps
         />
 
         <TurnBanner turn={state.turn} myTurn={match.myTurn} opponentName={opponent.name} animationScale={match.animationScale} />
+        {state.tutorial && (
+          <TutorialCoach
+            tutorial={state.tutorial}
+            pending={pending}
+            onContinue={() => { playSfx('command-execute'); void onAction({ type: 'CONTINUE_TUTORIAL' }); }}
+            onExit={onExit}
+          />
+        )}
         <InteractionNotice message={match.interactionNotice} />
         <CombatFeedbackLayer state={state} animationScale={match.animationScale} />
 
-        {match.showCardTip && <CardHelpTip onClose={() => match.setShowCardTip(false)} />}
+        {match.showCardTip && state.mode !== 'tutorial' && <CardHelpTip onClose={() => match.setShowCardTip(false)} />}
 
         <section className="board" aria-label="Spielfeld">
           <div className="player-zone enemy-zone">
@@ -113,6 +139,9 @@ export function MatchBoard({ state, pending, onAction, onExit }: MatchBoardProps
               onTarget={match.target}
               onServiceSelect={match.selectAttacker}
               selectedServiceId={match.selection?.kind === 'attacker' ? match.selection.id : undefined}
+              infrastructureReplacementActive={match.selection?.kind === 'card'
+                && match.selection.definition.type === 'infrastructure'
+                && player.infrastructure.length >= 2}
             />
             <PlayerStrip
               player={player}
@@ -131,7 +160,7 @@ export function MatchBoard({ state, pending, onAction, onExit }: MatchBoardProps
           pending={pending}
           onSelectCard={match.selectHandCard}
           onDebug={(targetId) => onAction({ type: 'DEBUG', targetId })}
-          onEndTurn={() => onAction({ type: 'END_TURN' })}
+          onEndTurn={() => { playSfx('command-execute'); void onAction({ type: 'END_TURN' }); }}
         />
       </main>
       <GlossaryModal open={match.glossaryOpen} onClose={() => match.setGlossaryOpen(false)} />

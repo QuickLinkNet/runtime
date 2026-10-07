@@ -1,4 +1,4 @@
-.booster-screen { min-height: 100vh; padding: clamp(22px, 4vw, 58px); background: radial-gradient(circle at 50% 24%, rgba(185,244,74,.08), transparent 32%), var(--bg); }
+.booster-screen { min-height: 100vh; padding: clamp(22px, 4vw, 58px); background: radial-gradient(circle at 50% 24%, rgba(185,244,74,.1), transparent 32%), linear-gradient(rgba(8,14,10,.9), rgba(8,14,10,.96)), var(--runtime-scene) center / cover fixed; }
 .booster-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
 .booster-header h1 { margin: 5px 0 2px; font-size: clamp(48px, 7vw, 92px); line-height: .95; }
 .booster-header p { margin: 8px 0 0; }

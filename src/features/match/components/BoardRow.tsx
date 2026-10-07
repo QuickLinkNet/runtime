@@ -9,9 +9,10 @@ interface BoardRowProps {
   onTarget: (id: string) => void;
   onSelect?: (entity: BoardEntity) => void;
   selectedId?: string;
+  targetActionLabel?: string;
 }
 
-export function BoardRow({ entities, kind, targetable, onTarget, onSelect, selectedId }: BoardRowProps) {
+export function BoardRow({ entities, kind, targetable, onTarget, onSelect, selectedId, targetActionLabel }: BoardRowProps) {
   const slots = kind === 'service' ? 5 : 2;
   const label = kind === 'service' ? 'Services' : 'Infrastructure';
 
@@ -37,7 +38,7 @@ export function BoardRow({ entities, kind, targetable, onTarget, onSelect, selec
             selected={selectedId === entity.instanceId}
             targetable={validTarget}
             combatId={entity.instanceId}
-            actionLabel={validTarget ? 'Als Ziel wählen' : 'Service auswählen'}
+            actionLabel={validTarget ? (targetActionLabel ?? 'Als Ziel wählen') : 'Service auswählen'}
             onClick={cardAction}
           />
         );

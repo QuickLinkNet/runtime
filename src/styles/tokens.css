@@ -12,6 +12,8 @@
   --accent-dark: #7fad29;
   --danger: #ff7769;
   --info: #65b9ff;
+  --runtime-scene: url('/backgrounds/runtime-wide.png');
+  --runtime-match-scene: url('/backgrounds/runtime-match-wide.png');
 
   /* Shared shape and elevation */
   --radius: 14px;
@@ -21,6 +23,14 @@
   /* Compatibility aliases for card components */
   --card-h: var(--match-hand-card-height);
   --board-card-h: var(--match-board-card-height);
+}
+
+@media (max-aspect-ratio: 3 / 2) {
+  :root { --runtime-scene: url('/backgrounds/runtime-tablet.png'); }
+}
+
+@media (orientation: portrait) {
+  :root { --runtime-scene: url('/backgrounds/runtime-portrait.png'); }
 }
 
 .domain-frontend { --domain: #61b7ff; }

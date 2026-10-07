@@ -77,7 +77,7 @@ export function selectionPrompt(selection: MatchSelection, player?: PlayerView):
   if (selection?.kind === 'attacker') return 'Wähle einen gegnerischen Service oder den Core.';
   if (selection?.kind !== 'card') return '';
   if (selection.definition.type === 'infrastructure' && (player?.infrastructure.length ?? 0) >= 2) {
-    return 'Infrastructure voll: Wähle eine eigene Karte, die ersetzt wird.';
+    return '2/2 Slots belegt. Wähle die eigene Infrastructure, die in den Trash wandert.';
   }
 
   const prompts: Record<string, string> = {

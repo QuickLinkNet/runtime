@@ -31,6 +31,7 @@ Diese Datei ist der kurze, verbindliche Übergabepunkt für die weitere Entwickl
 - responsives Booster-Opening mit einzelnem Aufdecken und kompletter Sammlungsansicht
 - optionaler Sammlungsfilter und Besitzanzeige im Deck Builder; Karten bleiben in der Testphase frei spielbar
 - neue Seltenheitsrahmen auf allen Kartenansichten: Common grün, Uncommon blau, Rare violett, Legendary gold
+- achtteiliges, serverautoritatives Tutorial mit geführten Aktionen, responsivem Coach, Wiederholungsmodus und einmaliger Booster-Belohnung
 
 - Set 2 „Production Incident“ mit 24 neuen, spielbaren Karten und gekapselten Servereffekten
 - explizite, erweiterungssichere 30-Karten-Starterdecks in gemeinsamer Konfiguration
@@ -38,7 +39,7 @@ Diese Datei ist der kurze, verbindliche Übergabepunkt für die weitere Entwickl
 ## Qualitätssicherung
 
 - `npm run build` kompiliert TypeScript und erstellt den Production-Build.
-- `npm run test:php` prüft aktuell 39 Regeln, Booster-Garantien und Sicherheitsgrenzen der Engine.
+- `npm run test:php` prüft aktuell 45 Regeln, Tutorialabläufe, Booster-Garantien und Sicherheitsgrenzen der Engine.
 - Sichtbare Änderungen werden zusätzlich in Desktop- und Mobile-Viewports geprüft.
 - TS-, TSX- und CSS-Dateien sollen nach Möglichkeit unter 500 Zeilen bleiben.
 - Letzte vollständige Prüfung am 5. Oktober 2026: Production-Build, 39 PHP-Tests, Booster-API, Desktop-/Mobile-UI und PWA-Prüfung erfolgreich.
@@ -48,7 +49,7 @@ Diese Datei ist der kurze, verbindliche Übergabepunkt für die weitere Entwickl
 
 1. **Set-2-Artworks:** die 24 Motive aus der Artwork-Queue einzeln erstellen und abnehmen.
 2. **Audio:** Pack-Riss, Reveal-Stufen und Legendary-Stinger sowie Match-Sounds mit Lautstärkereglern.
-3. **Onboarding:** kurzes interaktives Tutorial statt ausschließlich Glossar und Hilfetexten.
+3. **Onboarding:** abgeschlossen; als Nächstes den Match-Abschluss und Statistiken ausbauen.
 4. **Balancing & Härtung:** Telemetrie, API-Integrationstests, Wiederverbindung und parallele Aktionen.
 
 ## Danach

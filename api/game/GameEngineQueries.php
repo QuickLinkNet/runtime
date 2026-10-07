@@ -72,6 +72,17 @@ trait GameEngineQueries
         return false;
     }
 
+    private function countInfrastructure(array $player, string $definitionId): int
+    {
+        $count = 0;
+        foreach ($player['infrastructure'] as $entity) {
+            if ($entity['definitionId'] === $definitionId) {
+                $count++;
+            }
+        }
+        return $count;
+    }
+
     private function hasDomainInfrastructure(array $player, string $domain): bool
     {
         foreach ($player['infrastructure'] as $entity) {
@@ -113,4 +124,3 @@ trait GameEngineQueries
         return false;
     }
 }
-

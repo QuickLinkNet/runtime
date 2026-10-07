@@ -4,6 +4,7 @@ declare(strict_types=1);
 final class MatchService
 {
     private MatchRepository $matches;
+    private TutorialScenario $tutorial;
 
     public function __construct(
         private PDO $db,
@@ -12,14 +13,40 @@ final class MatchService
         private CardCatalog $catalog
     ) {
         $this->matches = new MatchRepository($db);
+        $this->tutorial = new TutorialScenario($catalog);
     }
 
-    public function create(string $playerId, string $playerName, string $mode, array $deck): array
+    public function createTutorial(string $playerId, string $playerName): array
+    {
+        $this->db->beginTransaction();
+        try {
+            $code = $this->newRoomCode();
+            $state = $this->engine->createState($code, 'tutorial');
+            $this->engine->addPlayer($state, $playerId, $playerName, $this->catalog->starterDeck('frontend-backend'));
+            [$coachId, $coachName] = $this->createBotIdentity('Runtime Coach');
+            $this->engine->addPlayer($state, $coachId, $coachName, $this->catalog->starterDeck('infrastructure-security'), true);
+            $this->tutorial->initialize($state, $playerId, $coachId);
+            $matchId = $this->matches->create($code, 'single', $playerId, $state);
+            $this->matches->addPlayer($matchId, $playerId, 0);
+            $this->matches->addPlayer($matchId, $coachId, 1);
+            $this->matches->save($matchId, $state, 2);
+            $this->db->commit();
+            return ['roomCode' => $code, 'version' => 2, 'state' => PlayerView::build($state, $playerId)];
+        } catch (Throwable $error) {
+            $this->db->rollBack();
+            throw $error;
+        }
+    }
+
+    public function create(string $playerId, string $playerName, string $mode, array $deck, bool $isAccount = true): array
     {
         if (!in_array($mode, ['single', 'multi'], true)) {
             throw new ApiException('INVALID_MODE', 'Ungültiger Spielmodus.');
         }
         $this->catalog->validateDeck($deck);
+        if (!$isAccount && !$this->catalog->isStarterDeck($deck)) {
+            throw new ApiException('ACCOUNT_REQUIRED_FOR_CUSTOM_DECK', 'Als Gast kannst du einen der drei freien Starter-Stacks spielen.');
+        }
         $this->db->beginTransaction();
         try {
             $code = $this->newRoomCode();
@@ -46,9 +73,12 @@ final class MatchService
         }
     }
 
-    public function join(string $playerId, string $playerName, string $roomCode, array $deck): array
+    public function join(string $playerId, string $playerName, string $roomCode, array $deck, bool $isAccount = true): array
     {
         $this->catalog->validateDeck($deck);
+        if (!$isAccount && !$this->catalog->isStarterDeck($deck)) {
+            throw new ApiException('ACCOUNT_REQUIRED_FOR_CUSTOM_DECK', 'Als Gast kannst du einen der drei freien Starter-Stacks spielen.');
+        }
         $this->db->beginTransaction();
         try {
             $row = $this->requireMatch($roomCode, true);
@@ -100,6 +130,7 @@ final class MatchService
             $version = (int)$row['version'];
             if ($state['status'] === 'active' && $state['mode'] === 'multi' && $state['turnDeadlineAt'] !== null && strtotime($state['turnDeadlineAt']) <= time()) {
                 $this->engine->endTurn($state, $state['activePlayerId'], true);
+                $this->recordFinishedMatch($state);
                 $version++;
                 $this->matches->save((int)$row['id'], $state, $version);
             }
@@ -125,18 +156,33 @@ final class MatchService
             $state = $row['state'];
             if ($state['status'] === 'active' && $state['mode'] === 'multi' && $state['turnDeadlineAt'] !== null && strtotime($state['turnDeadlineAt']) <= time()) {
                 $this->engine->endTurn($state, $state['activePlayerId'], true);
+                $this->recordFinishedMatch($state);
                 $version = (int)$row['version'] + 1;
                 $this->matches->save((int)$row['id'], $state, $version);
                 $this->db->commit();
                 return ['version' => $version, 'timedOut' => true, 'state' => PlayerView::build($state, $playerId)];
             }
-            $this->engine->applyAction($state, $playerId, $action);
+            if ($state['mode'] === 'tutorial') {
+                if (strtoupper((string)($action['type'] ?? '')) === 'CONTINUE_TUTORIAL') {
+                    $this->tutorial->continue($state, $playerId);
+                } else {
+                    $this->tutorial->assertActionAllowed($state, $playerId, $action);
+                    $this->engine->applyAction($state, $playerId, $action);
+                    $this->tutorial->afterAction($state, $playerId);
+                    if (($state['tutorial']['completed'] ?? false) === true) {
+                        $state['tutorial']['rewardGranted'] = $this->completeTutorial($playerId);
+                    }
+                }
+            } else {
+                $this->engine->applyAction($state, $playerId, $action);
+            }
             if ($state['mode'] === 'single' && $state['status'] === 'active') {
                 $active = $state['activePlayerId'];
                 if ($state['players'][$active]['isBot']) {
                     $this->bot->playTurn($state, $active);
                 }
             }
+            $this->recordFinishedMatch($state);
             $version = (int)$row['version'] + 1;
             $this->matches->save((int)$row['id'], $state, $version);
             $this->db->commit();
@@ -203,13 +249,62 @@ final class MatchService
         throw new RuntimeException('Room code generation failed.');
     }
 
-    private function createBotIdentity(): array
+    private function createBotIdentity(?string $fixedName = null): array
     {
         $names = ['Ada.bot', 'Patchwerk', 'Null Pointer', 'Deploy Droid'];
-        $name = $names[random_int(0, count($names) - 1)];
+        $name = $fixedName ?? $names[random_int(0, count($names) - 1)];
         $tokenHash = hash('sha256', bin2hex(random_bytes(32)));
         $stmt = $this->db->prepare('INSERT INTO players (name, token_hash, is_bot) VALUES (?, ?, 1)');
         $stmt->execute([$name, $tokenHash]);
         return [(string)$this->db->lastInsertId(), $name];
+    }
+
+    private function completeTutorial(string $playerId): bool
+    {
+        $this->db->prepare('INSERT IGNORE INTO player_progression (player_id) VALUES (?)')->execute([$playerId]);
+        $statement = $this->db->prepare(
+            'UPDATE player_progression
+             SET tutorial_completed_at = COALESCE(tutorial_completed_at, CURRENT_TIMESTAMP),
+                 tutorial_reward_claimed_at = CURRENT_TIMESTAMP,
+                 booster_balance = booster_balance + 1
+             WHERE player_id = ? AND tutorial_reward_claimed_at IS NULL'
+        );
+        $statement->execute([$playerId]);
+        return $statement->rowCount() === 1;
+    }
+
+    private function recordFinishedMatch(array &$state): void
+    {
+        if ($state['status'] !== 'finished' || $state['mode'] === 'tutorial' || ($state['resultsRecorded'] ?? false)) {
+            return;
+        }
+        foreach ($state['order'] as $playerId) {
+            $player = $state['players'][$playerId];
+            if ($player['isBot']) {
+                continue;
+            }
+            $this->db->prepare('INSERT IGNORE INTO player_progression (player_id) VALUES (?)')->execute([$playerId]);
+            $won = $state['winnerId'] === $playerId;
+            $rewarded = false;
+            if ($won) {
+                $reward = $this->db->prepare(
+                    'UPDATE player_progression
+                     SET matches_played = matches_played + 1, wins = wins + 1,
+                         first_win_at = COALESCE(first_win_at, CURRENT_TIMESTAMP),
+                         first_win_reward_claimed_at = CURRENT_TIMESTAMP,
+                         booster_balance = booster_balance + 1
+                     WHERE player_id = ? AND first_win_reward_claimed_at IS NULL'
+                );
+                $reward->execute([$playerId]);
+                $rewarded = $reward->rowCount() === 1;
+                if (!$rewarded) {
+                    $this->db->prepare('UPDATE player_progression SET matches_played = matches_played + 1, wins = wins + 1 WHERE player_id = ?')->execute([$playerId]);
+                }
+            } else {
+                $this->db->prepare('UPDATE player_progression SET matches_played = matches_played + 1, losses = losses + 1 WHERE player_id = ?')->execute([$playerId]);
+            }
+            $state['matchRewards'][$playerId] = ['firstWinBooster' => $rewarded];
+        }
+        $state['resultsRecorded'] = true;
     }
 }

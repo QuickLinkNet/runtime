@@ -73,8 +73,8 @@ trait GameEngineResolution
         if ($definition['type'] === 'command' && $targetId !== null && $player['turnFlags']['targetedCommandPlayed'] === 0 && $this->hasInfrastructure($opponent, 'security-zero-trust')) {
             $cost++;
         }
-        if ($definition['type'] === 'service' && $definition['domain'] === 'frontend' && $player['turnFlags']['frontendPlayed'] === 0 && $this->hasInfrastructure($player, 'frontend-state-store')) {
-            $cost = max(1, $cost - 1);
+        if ($definition['type'] === 'service' && $definition['domain'] === 'frontend' && $player['turnFlags']['frontendPlayed'] === 0) {
+            $cost = max(1, $cost - $this->countInfrastructure($player, 'frontend-state-store'));
         }
         if ($definition['type'] === 'service' && $definition['domain'] === 'ai' && $this->hasInfrastructure($player, 'ai-gpu-cluster')) {
             $cost = max(1, $cost - 1);
@@ -144,6 +144,8 @@ trait GameEngineResolution
                     ];
                 }
                 if ($zone === 'services') {
+                    $this->ensureMatchStats($state['players'][$playerId]);
+                    $state['players'][$playerId]['matchStats']['servicesCrashed']++;
                     $state['players'][$playerId]['turnFlags']['serviceCrashed'] = true;
                     $this->event($state, 'SERVICE_CRASHED', ['playerId' => $playerId, 'entityId' => $instanceId]);
                     if (!$entity['sandboxed'] && in_array('CRASH', $definition['keywords'] ?? [], true)) {
@@ -252,6 +254,13 @@ trait GameEngineResolution
         $entity = $this->newEntity($card, $this->catalog->get($definitionId));
         $entity['exhausted'] = true;
         $player['services'][] = $entity;
+        $this->ensureMatchStats($player);
+        if ($definitionId === 'token-bug') {
+            $player['matchStats']['bugsCreated']++;
+        }
+        if ($definitionId === 'token-replica') {
+            $player['matchStats']['replicasCreated']++;
+        }
         $this->event($state, $definitionId === 'token-bug' ? 'BUG_CREATED' : 'TOKEN_CREATED', [
             'playerId' => $playerId,
             'entityId' => $entity['instanceId'],

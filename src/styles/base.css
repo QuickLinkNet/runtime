@@ -7,7 +7,16 @@
 
 * { box-sizing: border-box; }
 html, body, #root { min-width: 320px; min-height: 100%; margin: 0; }
-body { min-height: 100vh; background: radial-gradient(circle at 75% 15%, rgba(124, 156, 80, .09), transparent 34%), var(--bg-deep); }
+body {
+  min-height: 100vh;
+  background-color: var(--bg-deep);
+  background-image:
+    linear-gradient(90deg, rgba(6, 12, 8, .93), rgba(6, 12, 8, .72) 52%, rgba(6, 12, 8, .6)),
+    var(--runtime-scene);
+  background-position: center;
+  background-size: cover;
+  background-attachment: fixed;
+}
 button, input, select { font: inherit; }
 button { color: inherit; touch-action: manipulation; }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }

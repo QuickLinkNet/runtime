@@ -3,18 +3,32 @@ import { api, ApiError, hasToken } from '../api/client';
 import { DeckBuilder } from '../features/deck-builder/DeckBuilder';
 import { BoosterLab } from '../features/boosters/BoosterLab';
 import { MatchBoard } from '../features/match/MatchBoard';
-import { makeStarterDeck, validateDeck } from '../game/catalog';
+import { makeStarterDeck, validateDeck, type StarterDeckKey } from '../game/catalog';
 import { useGame } from '../game/GameContext';
 import type { CollectionSnapshot, GameAction, MatchPayload, PlayerIdentity } from '../game/types';
 import { BootPage } from '../pages/BootPage';
 import { IdentityPage } from '../pages/IdentityPage';
+import { AccountPage } from '../pages/AccountPage';
 import { MainMenuPage } from '../pages/MainMenuPage';
 import { MultiplayerPage } from '../pages/MultiplayerPage';
 import { cacheIdentity, cachedIdentity, clearCachedIdentity } from '../pwa/identityCache';
 import { RoomLobbyPage } from '../pages/RoomLobbyPage';
+import { StarterDeckPage } from '../pages/StarterDeckPage';
+import { TutorialIntroPage } from '../pages/TutorialIntroPage';
 import { ErrorToast } from '../ui/molecules';
 
-type Screen = 'boot' | 'name' | 'menu' | 'deck' | 'multiplayer' | 'boosters';
+type Screen = 'boot' | 'name' | 'starter' | 'tutorial' | 'menu' | 'deck' | 'multiplayer' | 'boosters' | 'account';
+
+function loadStoredDeck(): string[] | null {
+  const saved = localStorage.getItem('runtime.deck');
+  if (!saved) return null;
+  try {
+    const parsed = JSON.parse(saved) as unknown;
+    return Array.isArray(parsed) && parsed.every((id) => typeof id === 'string') && !validateDeck(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
 
 export function App() {
   const { store, dispatch } = useGame();
@@ -22,17 +36,15 @@ export function App() {
   const [identity, setIdentity] = useState<PlayerIdentity | null>(null);
   const [resume, setResume] = useState<MatchPayload | null>(null);
   const [collection, setCollection] = useState<CollectionSnapshot | null>(null);
-  const [deck, setDeck] = useState<string[]>(() => {
-    const saved = localStorage.getItem('runtime.deck');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved) as string[];
-        if (!validateDeck(parsed)) return parsed;
-      } catch { /* use starter */ }
-    }
-    return makeStarterDeck('frontend-backend');
-  });
+  const [deck, setDeck] = useState<string[]>(() => loadStoredDeck() ?? makeStarterDeck('frontend-backend'));
+  const [hasSelectedDeck, setHasSelectedDeck] = useState(() => loadStoredDeck() !== null);
   const initialized = useRef(false);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    const frame = window.requestAnimationFrame(() => window.scrollTo(0, 0));
+    return () => window.cancelAnimationFrame(frame);
+  }, [screen, store.state?.roomCode, store.state?.status]);
 
   useEffect(() => {
     if (initialized.current) return;
@@ -40,14 +52,19 @@ export function App() {
     async function initialize() {
       if (!hasToken()) { setScreen('name'); return; }
       try {
-        const [{ player }, resumeResult, collectionResult] = await Promise.all([
+        const [{ player }, resumeResult, collectionResult, loadoutResult] = await Promise.all([
           api.me(), api.resume(), api.collection().catch(() => null),
+          api.loadout().catch(() => null),
         ]);
         setIdentity(player);
         cacheIdentity(player);
         setResume(resumeResult.match);
         setCollection(collectionResult);
-        setScreen('menu');
+        if (loadoutResult?.deck && !validateDeck(loadoutResult.deck)) {
+          setDeck(loadoutResult.deck);
+          setHasSelectedDeck(true);
+        }
+        setScreen(hasSelectedDeck ? 'menu' : 'starter');
       } catch {
         const offlineIdentity = cachedIdentity();
         if (!navigator.onLine && offlineIdentity) {
@@ -107,14 +124,63 @@ export function App() {
     if (state && state.status !== 'finished') {
       try { await api.leave(state.roomCode); } catch { /* menu remains available */ }
     }
+    if (state?.mode === 'tutorial' && state.tutorial?.completed) {
+      setIdentity((current) => current ? { ...current, tutorialCompleted: true } : current);
+      try { setCollection(await api.collection()); } catch { /* reward is already persisted server-side */ }
+    }
     dispatch({ type: 'CLEAR' });
     setResume(null);
     setScreen('menu');
   }
 
+  function rematch() {
+    const mode = store.state?.mode === 'multi' ? 'multi' : 'single';
+    dispatch({ type: 'CLEAR' });
+    void run(() => api.createMatch(mode, deck));
+  }
+
+  function editDeckAfterMatch() {
+    dispatch({ type: 'CLEAR' });
+    setResume(null);
+    setScreen(identity?.isAccount ? 'deck' : 'starter');
+  }
+
+  function selectStarter(key: StarterDeckKey) {
+    const next = makeStarterDeck(key);
+    localStorage.setItem('runtime.deck', JSON.stringify(next));
+    localStorage.setItem('runtime.deckSelected', '1');
+    setDeck(next);
+    setHasSelectedDeck(true);
+    setScreen(identity?.tutorialCompleted ? 'menu' : 'tutorial');
+  }
+
+  async function accountLinked(next: PlayerIdentity) {
+    setIdentity(next);
+    cacheIdentity(next);
+    try {
+      await api.saveLoadout(deck);
+      setCollection(await api.collection());
+    } catch { /* the account itself remains linked; the next refresh retries optional data */ }
+    setScreen('menu');
+  }
+
   if (screen === 'boot') return <BootPage />;
-  if (screen === 'name') return <IdentityPage onCreated={(player) => { setIdentity(player); setScreen('menu'); }} />;
+  if (screen === 'name') return <IdentityPage onCreated={(player) => { setIdentity(player); setScreen('starter'); }} onLoggedIn={(player) => {
+    setIdentity(player);
+    cacheIdentity(player);
+    void Promise.all([api.collection().catch(() => null), api.loadout().catch(() => null)]).then(([nextCollection, nextLoadout]) => {
+      setCollection(nextCollection);
+      if (nextLoadout?.deck && !validateDeck(nextLoadout.deck)) {
+        setDeck(nextLoadout.deck);
+        setHasSelectedDeck(true);
+      }
+    });
+    setScreen('menu');
+  }} />;
   if (!identity) return <BootPage />;
+
+  if (screen === 'starter') return <StarterDeckPage currentDeck={deck} allowBack={hasSelectedDeck} onConfirm={selectStarter} onBack={() => setScreen('menu')} />;
+  if (screen === 'account') return <AccountPage identity={identity} onLinked={accountLinked} onBack={() => setScreen('menu')} />;
 
   if (store.state) {
     if (store.state.status === 'lobby') {
@@ -122,11 +188,23 @@ export function App() {
     }
     return <>
       {store.error && <ErrorToast message={store.error} onClose={() => dispatch({ type: 'ERROR', message: null })} />}
-      <MatchBoard state={store.state} pending={store.pending} onAction={submit} onExit={leaveMatch} />
+      <MatchBoard state={store.state} pending={store.pending} onAction={submit} onRematch={rematch} onDeck={editDeckAfterMatch} onExit={leaveMatch} />
     </>;
   }
 
-  if (screen === 'deck') return <DeckBuilder initialDeck={deck} collection={collection} onCancel={() => setScreen('menu')} onSave={(next) => { localStorage.setItem('runtime.deck', JSON.stringify(next)); setDeck(next); setScreen('menu'); }} />;
+  if (screen === 'tutorial') return (
+    <>
+      {store.error && <ErrorToast message={store.error} onClose={() => dispatch({ type: 'ERROR', message: null })} />}
+      <TutorialIntroPage
+        completed={identity.tutorialCompleted === true}
+        pending={store.pending}
+        onStart={() => run(() => api.createTutorial())}
+        onBack={() => setScreen('menu')}
+      />
+    </>
+  );
+
+  if (screen === 'deck') return <DeckBuilder initialDeck={deck} collection={collection} onCancel={() => setScreen('menu')} onSave={(next) => { localStorage.setItem('runtime.deck', JSON.stringify(next)); localStorage.setItem('runtime.deckSelected', '1'); setDeck(next); setHasSelectedDeck(true); if (identity.isAccount) void api.saveLoadout(next); setScreen('menu'); }} />;
   if (screen === 'boosters') return <BoosterLab initialCollection={collection} onCollectionChange={setCollection} onBack={() => setScreen('menu')} />;
   if (screen === 'multiplayer') return <MultiplayerPage pending={store.pending} error={store.error} onBack={() => setScreen('menu')} onCreate={() => run(() => api.createMatch('multi', deck))} onJoin={(code) => run(() => api.joinMatch(code, deck))} />;
 
@@ -139,7 +217,9 @@ export function App() {
     onMultiplayer={() => setScreen('multiplayer')}
     onDeck={() => setScreen('deck')}
     onBoosters={() => setScreen('boosters')}
-    onStarter={(key) => { const next = makeStarterDeck(key); setDeck(next); localStorage.setItem('runtime.deck', JSON.stringify(next)); }}
+    onChooseStarter={() => setScreen('starter')}
+    onAccount={() => setScreen('account')}
+    onTutorial={() => setScreen('tutorial')}
     onResume={() => { if (resume) { dispatch({ type: 'MATCH', payload: resume }); setResume(null); } }}
   />;
 }

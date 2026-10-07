@@ -4,6 +4,7 @@ import { cardById } from '../../../game/catalog';
 import type { GameState } from '../../../game/types';
 import type { MatchSelection } from '../model/types';
 import { knownCardCost } from '../model/cardCost';
+import { tutorialAllowsAction, tutorialAllowsCard } from '../../tutorial/tutorialSteps';
 
 interface HandDockProps {
   state: GameState;
@@ -31,6 +32,7 @@ export function HandDock({ state, player, selection, myTurn, pending, onSelectCa
           const definition = cardById.get(card.definitionId);
           const effectiveCost = definition ? knownCardCost(state, card, definition) : 99;
           const affordable = effectiveCost <= availableCompute;
+          const tutorialPlayable = !state.tutorial || tutorialAllowsCard(state, card.definitionId);
           const center = (player.hand.length - 1) / 2;
           const distance = index - center;
           const handStyle = {
@@ -44,7 +46,8 @@ export function HandDock({ state, player, selection, myTurn, pending, onSelectCa
               key={card.instanceId}
               card={card}
               selected={selection?.kind === 'card' && selection.id === card.instanceId}
-              playable={myTurn && affordable}
+              playable={myTurn && affordable && tutorialPlayable}
+              displayCost={effectiveCost}
               style={handStyle}
               actionLabel="Karte auswählen"
               onClick={() => onSelectCard(card.instanceId)}
@@ -56,13 +59,14 @@ export function HandDock({ state, player, selection, myTurn, pending, onSelectCa
         {bug && (
           <button
             type="button"
-            disabled={!myTurn || pending || availableCompute < 1}
+            disabled={!myTurn || pending || availableCompute < 1 || (state.tutorial !== undefined
+              && !tutorialAllowsAction(state, { type: 'DEBUG', targetId: bug.instanceId }))}
             onClick={() => onDebug(bug.instanceId)}
           >
             DEBUG · 1
           </button>
         )}
-        <button className="end-turn" type="button" disabled={!myTurn || pending} onClick={onEndTurn}>Zug beenden</button>
+        <button className="end-turn" type="button" disabled={!myTurn || pending || state.mode === 'tutorial'} onClick={onEndTurn}>Zug beenden</button>
       </div>
     </section>
   );

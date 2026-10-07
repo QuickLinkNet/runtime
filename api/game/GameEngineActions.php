@@ -90,12 +90,16 @@ trait GameEngineActions
             'definitionId' => $definition['id'],
             'cost' => $cost,
         ]);
+        $this->ensureMatchStats($player);
+        $player['matchStats']['cardsPlayed']++;
+        $this->recordCardImpact($player, $definition['id'], 2);
         if ($definition['type'] === 'command') {
             $this->resolveEffect($state, $playerId, $definition, null, $targetId, $overclock);
             if (!($definition['token'] ?? false)) {
                 $player['trash'][] = $cardInstance;
             }
             $player['turnFlags']['commandPlayed']++;
+            $player['matchStats']['commandsPlayed']++;
             $player['turnFlags']['projectManagerDiscount'] = false;
             if ($targetId !== null) {
                 $player['turnFlags']['targetedCommandPlayed']++;
@@ -108,6 +112,7 @@ trait GameEngineActions
             $entity['exhausted'] = true;
             $player['services'][] = $entity;
             $player['turnFlags']['servicePlayed']++;
+            $player['matchStats']['servicesDeployed']++;
             if ($definition['domain'] === 'frontend') {
                 $player['turnFlags']['frontendPlayed']++;
             }
@@ -134,6 +139,7 @@ trait GameEngineActions
                 ]);
             }
             $player['infrastructure'][] = $entity;
+            $player['matchStats']['infrastructureDeployed']++;
             $this->resolveEffect($state, $playerId, $definition, $entity['instanceId'], $targetId, $overclock);
         }
     }
@@ -186,10 +192,15 @@ trait GameEngineActions
             throw new ApiException('FIREWALL_ACTIVE', 'FIREWALL schützt den gegnerischen Core.');
         }
         $attacker['exhausted'] = true;
+        $this->ensureMatchStats($state['players'][$playerId]);
+        $state['players'][$playerId]['matchStats']['attacks']++;
+        $this->recordCardImpact($state['players'][$playerId], $attacker['definitionId'], 1);
         $this->event($state, 'ATTACK_STARTED', ['attackerId' => $attackerId, 'targetId' => $targetId]);
         $attackerPower = $attacker['power'];
         if ($target['zone'] === 'core') {
             $state['players'][$target['ownerId']]['core'] -= $attackerPower;
+            $state['players'][$playerId]['matchStats']['coreDamageDealt'] += $attackerPower;
+            $this->recordCardImpact($state['players'][$playerId], $attacker['definitionId'], $attackerPower);
             $this->event($state, 'DAMAGE_DEALT', ['targetId' => $targetId, 'amount' => $attackerPower]);
         } elseif ($target['zone'] === 'infrastructure') {
             $this->dealEntityDamage($state, $targetId, $attackerPower);
@@ -221,8 +232,15 @@ trait GameEngineActions
             throw new ApiException('NOT_YOUR_TURN', 'Du bist nicht am Zug.', 409);
         }
         $player =& $state['players'][$playerId];
-        if ($this->hasInfrastructure($player, 'infrastructure-kubernetes-cluster') && $player['turnFlags']['serviceCrashed'] && count($player['services']) < 5) {
-            $this->spawnToken($state, $playerId, 'token-replica');
+        foreach ($state['order'] as $ownerId) {
+            $owner =& $state['players'][$ownerId];
+            if ($this->hasInfrastructure($owner, 'infrastructure-kubernetes-cluster')
+                && $owner['turnFlags']['serviceCrashed']
+                && count($owner['services']) < 5) {
+                $this->spawnToken($state, $ownerId, 'token-replica');
+            }
+            $owner['turnFlags']['serviceCrashed'] = false;
+            unset($owner);
         }
         $player['storedCompute'] = $this->hasInfrastructure($player, 'data-redis-cache')
             ? min(1, $player['compute'] + $player['temporaryCompute'])
@@ -252,6 +270,7 @@ trait GameEngineActions
 
     private function startTurn(array &$state, string $playerId): void
     {
+        $state['startedAt'] ??= gmdate('c');
         $state['turn']++;
         $player =& $state['players'][$playerId];
         $player['turnsTaken']++;

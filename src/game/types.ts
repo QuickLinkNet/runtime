@@ -56,6 +56,20 @@ export interface PlayerView {
   fatigue: number;
   mulliganDone: boolean | null;
   consecutiveTimeouts: number;
+  matchStats: MatchStats;
+}
+
+export interface MatchStats {
+  cardsPlayed: number;
+  servicesDeployed: number;
+  infrastructureDeployed: number;
+  commandsPlayed: number;
+  attacks: number;
+  coreDamageDealt: number;
+  bugsCreated: number;
+  replicasCreated: number;
+  servicesCrashed: number;
+  mvpDefinitionId: string | null;
 }
 
 export interface GameEvent {
@@ -82,7 +96,7 @@ export interface GameEvent {
 
 export interface GameState {
   roomCode: string;
-  mode: 'single' | 'multi';
+  mode: 'single' | 'multi' | 'tutorial';
   status: 'lobby' | 'mulligan' | 'active' | 'finished' | 'abandoned';
   viewerId: string;
   order: string[];
@@ -94,8 +108,31 @@ export interface GameState {
   turnDeadlineAt: string | null;
   winnerId: string | null;
   finishReason: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  reward: { firstWinBooster: boolean };
   events: GameEvent[];
+  tutorial?: TutorialProgress;
 }
+
+export interface TutorialProgress {
+  step: number;
+  totalSteps: number;
+  key: TutorialStepKey;
+  objectiveComplete: boolean;
+  completed: boolean;
+  rewardGranted: boolean;
+}
+
+export type TutorialStepKey =
+  | 'deploy-service'
+  | 'deploy-infrastructure'
+  | 'attack-core'
+  | 'debug-bug'
+  | 'patch-service'
+  | 'crash-service'
+  | 'replace-infrastructure'
+  | 'final-deploy';
 
 export interface MatchPayload {
   roomCode?: string;
@@ -109,11 +146,15 @@ export type GameAction =
   | { type: 'PLAY_CARD'; cardInstanceId: string; targetId?: string; overclock?: boolean }
   | { type: 'ATTACK'; attackerId: string; targetId: string }
   | { type: 'DEBUG'; targetId: string }
-  | { type: 'END_TURN' };
+  | { type: 'END_TURN' }
+  | { type: 'CONTINUE_TUTORIAL' };
 
 export interface PlayerIdentity {
   id: string;
   name: string;
+  tutorialCompleted?: boolean;
+  isAccount: boolean;
+  accountEmail: string | null;
 }
 
 export interface CollectionSnapshot {

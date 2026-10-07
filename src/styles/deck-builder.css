@@ -5,7 +5,7 @@
   grid-template-rows: auto auto auto minmax(0, 1fr);
   overflow: hidden;
   padding: clamp(24px, 3vw, 48px);
-  background: var(--bg-deep);
+  background: linear-gradient(rgba(7,12,9,.94), rgba(7,12,9,.97)), var(--runtime-scene) center / cover fixed;
 }
 .screen-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
 .deck-screen .screen-header { margin-bottom: 18px; }
@@ -60,10 +60,15 @@
 .catalog-grid.columns-5 { --catalog-card-width: 235px; grid-template-columns: repeat(5, minmax(130px, 1fr)); }
 .catalog-empty { display: grid; grid-column: 1 / -1; min-height: 260px; place-content: center; justify-items: center; gap: 7px; border: 1px dashed var(--line); border-radius: var(--radius); color: var(--muted); text-align: center; }
 .catalog-empty b { color: var(--text); }
-.catalog-card-shell { display: grid; width: min(100%, calc(var(--catalog-card-width, 235px) + 8px)); min-width: 0; justify-self: center; justify-items: center; align-content: start; gap: 5px; border: 1px solid transparent; border-radius: var(--radius-sm); padding: 4px 3px 3px; background: transparent; transition: border-color .16s, background .16s, box-shadow .16s; }
+.catalog-card-shell { display: grid; width: min(100%, var(--catalog-card-width, 235px)); min-width: 0; justify-self: center; justify-items: center; align-content: start; gap: 5px; padding: 0; }
 .catalog-card-shell:hover, .catalog-card-shell:focus-within { z-index: 2; }
-.catalog-card-shell.is-spotlighted { border-color: color-mix(in srgb, var(--domain) 58%, transparent); background: color-mix(in srgb, var(--domain) 4%, transparent); box-shadow: 0 0 18px color-mix(in srgb, var(--domain) 10%, transparent); }
-.catalog-card-shell .game-card { width: 100%; height: auto; aspect-ratio: 1086 / 1448; }
+.catalog-card-shell.is-spotlighted { z-index: 1; }
+.catalog-card-shell .game-card { width: 100%; height: auto; aspect-ratio: 1086 / 1448; background: transparent; box-shadow: none; }
+.catalog-card-shell .game-card:focus-visible { outline: none; }
+.catalog-card-shell .game-card:hover { transform: translateY(-6px) scale(1.025); box-shadow: none; }
+.catalog-card-shell .game-card::before { transition: filter .16s; }
+.catalog-card-shell .game-card:hover::before,
+.catalog-card-shell .game-card:focus-visible::before { filter: drop-shadow(0 12px 15px rgba(0,0,0,.48)) drop-shadow(0 0 7px color-mix(in srgb, var(--domain) 24%, transparent)) brightness(1.04); }
 .catalog-card-shell.is-maxed .game-card { cursor: default; }
 .catalog-card-actions { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 6px; padding: 2px 3px 0; color: var(--muted); font-size: 8px; letter-spacing: .05em; text-transform: uppercase; }
 .catalog-card-actions b { color: var(--text); }

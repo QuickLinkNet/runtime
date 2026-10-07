@@ -7,6 +7,7 @@ require_once __DIR__ . '/../api/game/BoosterGenerator.php';
 require_once __DIR__ . '/../api/game/GameEngine.php';
 require_once __DIR__ . '/../api/game/PlayerView.php';
 require_once __DIR__ . '/../api/game/BotPlayer.php';
+require_once __DIR__ . '/../api/game/TutorialScenario.php';
 
 $catalog = new CardCatalog(__DIR__ . '/../shared/cards.json');
 $passed = 0;
@@ -215,6 +216,14 @@ check('Starter decks are valid and contain 30 cards', function () use ($catalog)
     }
 });
 
+check('Only the three predefined starter decks qualify as free guest decks', function () use ($catalog): void {
+    $starter = $catalog->starterDeck('frontend-backend');
+    expect($catalog->isStarterDeck($starter));
+    $custom = $starter;
+    $custom[0] = 'security-emergency-patch';
+    expect(!$catalog->isStarterDeck($custom));
+});
+
 check('Match start draws five cards', function () use ($catalog): void {
     [, $state] = fresh($catalog, false);
     expect($state['status'] === 'mulligan');
@@ -266,6 +275,19 @@ check('Card cost is validated server-side', function () use ($catalog): void {
     prepareTurn($state, 'p1', 2);
     $state['players']['p1']['hand'] = [card('frontend-react-component', 'cost-card')];
     expectCode('INSUFFICIENT_COMPUTE', fn() => $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'cost-card']));
+});
+
+check('Two State Stores stack their discount on the first Frontend service', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1', 1);
+    $state['players']['p1']['infrastructure'] = [
+        entity($catalog, 'frontend-state-store', 'state-store-1'),
+        entity($catalog, 'frontend-state-store', 'state-store-2'),
+    ];
+    $state['players']['p1']['hand'] = [card('frontend-web-worker', 'discounted-worker')];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'discounted-worker']);
+    expect($state['players']['p1']['compute'] === 0, 'Web Worker should cost exactly 1 Compute.');
+    expect(in_array('discounted-worker', array_column($state['players']['p1']['services'], 'instanceId'), true));
 });
 
 check('Service board limit is enforced', function () use ($catalog): void {
@@ -408,6 +430,20 @@ check('CRASH trigger creates Auto Scaler Replica', function () use ($catalog): v
     expect(in_array('token-replica', array_column($state['players']['p2']['services'], 'definitionId'), true));
 });
 
+check('Kubernetes Cluster creates a Replica for a defending service that crashed this turn', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['services'] = [entity($catalog, 'backend-java-service', 'attacker')];
+    $state['players']['p2']['services'] = [entity($catalog, 'frontend-react-component', 'defender')];
+    $state['players']['p2']['infrastructure'] = [entity($catalog, 'infrastructure-kubernetes-cluster', 'cluster')];
+
+    $engine->applyAction($state, 'p1', ['type' => 'ATTACK', 'attackerId' => 'attacker', 'targetId' => 'defender']);
+    expect(!in_array('token-replica', array_column($state['players']['p2']['services'], 'definitionId'), true), 'Replica must wait until turn end.');
+
+    $engine->applyAction($state, 'p1', ['type' => 'END_TURN']);
+    expect(in_array('token-replica', array_column($state['players']['p2']['services'], 'definitionId'), true), 'Defending player should receive the Replica.');
+});
+
 check('Empty deck causes increasing MEMORY LEAK damage', function () use ($catalog): void {
     [$engine, $state] = fresh($catalog);
     prepareTurn($state, 'p1');
@@ -427,6 +463,21 @@ check('Core at zero ends the game', function () use ($catalog): void {
     $state['players']['p2']['core'] = 2;
     $engine->applyAction($state, 'p1', ['type' => 'ATTACK', 'attackerId' => 'lethal', 'targetId' => 'core:p2']);
     expect($state['status'] === 'finished' && $state['winnerId'] === 'p1');
+});
+
+check('Match result records statistics and exposes the highest-impact MVP card', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['services'] = [entity($catalog, 'frontend-web-worker', 'lethal')];
+    $state['players']['p2']['services'] = [];
+    $state['players']['p2']['core'] = 2;
+    $engine->applyAction($state, 'p1', ['type' => 'ATTACK', 'attackerId' => 'lethal', 'targetId' => 'core:p2']);
+    expect($state['players']['p1']['matchStats']['attacks'] === 1);
+    expect($state['players']['p1']['matchStats']['coreDamageDealt'] === 3);
+    expect($state['players']['p1']['matchStats']['mvpDefinitionId'] === 'frontend-web-worker');
+    expect($state['startedAt'] !== null && $state['finishedAt'] !== null);
+    $view = PlayerView::build($state, 'p1');
+    expect($view['players']['p1']['matchStats']['mvpDefinitionId'] === 'frontend-web-worker');
 });
 
 check('Invalid player action is rejected', function () use ($catalog): void {
@@ -493,6 +544,60 @@ check('Server bot completes a legal turn', function () use ($catalog): void {
     $bot = new BotPlayer($engine, $catalog);
     $bot->playTurn($state, $botId);
     expect($state['status'] === 'finished' || $state['activePlayerId'] !== $botId);
+});
+
+check('Tutorial rejects actions outside the current objective', function () use ($catalog): void {
+    $engine = new GameEngine($catalog);
+    $scenario = new TutorialScenario($catalog);
+    $state = $engine->createState('LEARN', 'tutorial');
+    $engine->addPlayer($state, 'p1', 'Ada', $catalog->starterDeck('frontend-backend'));
+    $engine->addPlayer($state, 'coach', 'Runtime Coach', $catalog->starterDeck('infrastructure-security'), true);
+    $scenario->initialize($state, 'p1', 'coach');
+    expectCode('TUTORIAL_ACTION_REQUIRED', fn() => $scenario->assertActionAllowed($state, 'p1', ['type' => 'END_TURN']));
+});
+
+check('Tutorial completes all eight server-authoritative lessons', function () use ($catalog): void {
+    $engine = new GameEngine($catalog);
+    $scenario = new TutorialScenario($catalog);
+    $state = $engine->createState('LEARN', 'tutorial');
+    $engine->addPlayer($state, 'p1', 'Ada', $catalog->starterDeck('frontend-backend'));
+    $engine->addPlayer($state, 'coach', 'Runtime Coach', $catalog->starterDeck('infrastructure-security'), true);
+    $scenario->initialize($state, 'p1', 'coach');
+
+    $actionForStep = static function (array $state): array {
+        $player = $state['players']['p1'];
+        $coach = $state['players']['coach'];
+        return match ($state['tutorial']['key']) {
+            'deploy-service', 'deploy-infrastructure' => ['type' => 'PLAY_CARD', 'cardInstanceId' => $player['hand'][0]['instanceId']],
+            'attack-core' => ['type' => 'ATTACK', 'attackerId' => $player['services'][0]['instanceId'], 'targetId' => 'core:coach'],
+            'debug-bug' => ['type' => 'DEBUG', 'targetId' => $player['services'][1]['instanceId']],
+            'patch-service' => ['type' => 'PLAY_CARD', 'cardInstanceId' => $player['hand'][0]['instanceId'], 'targetId' => $player['services'][0]['instanceId']],
+            'crash-service' => ['type' => 'ATTACK', 'attackerId' => $player['services'][0]['instanceId'], 'targetId' => $coach['services'][0]['instanceId']],
+            'replace-infrastructure' => ['type' => 'PLAY_CARD', 'cardInstanceId' => $player['hand'][0]['instanceId'], 'targetId' => $player['infrastructure'][0]['instanceId']],
+            default => throw new RuntimeException('Unexpected guided step.'),
+        };
+    };
+
+    for ($step = 0; $step < 7; $step++) {
+        $action = $actionForStep($state);
+        $scenario->assertActionAllowed($state, 'p1', $action);
+        $engine->applyAction($state, 'p1', $action);
+        $scenario->afterAction($state, 'p1');
+        expect($state['tutorial']['objectiveComplete'] === true, 'Lesson objective should be complete.');
+        $scenario->continue($state, 'p1');
+        expect($state['tutorial']['step'] === $step + 1, 'Tutorial should advance exactly one lesson.');
+    }
+
+    while ($state['status'] === 'active') {
+        $attacker = current(array_filter($state['players']['p1']['services'], static fn(array $service): bool => !$service['exhausted']));
+        expect(is_array($attacker), 'Final lesson needs another ready attacker.');
+        $action = ['type' => 'ATTACK', 'attackerId' => $attacker['instanceId'], 'targetId' => 'core:coach'];
+        $scenario->assertActionAllowed($state, 'p1', $action);
+        $engine->applyAction($state, 'p1', $action);
+        $scenario->afterAction($state, 'p1');
+    }
+    expect($state['winnerId'] === 'p1');
+    expect($state['tutorial']['completed'] === true);
 });
 
 echo "\n{$passed} passed, {$failed} failed\n";

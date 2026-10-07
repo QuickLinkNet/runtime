@@ -5,6 +5,8 @@ import { Button } from '../../ui/atoms';
 import { BoosterPack } from './components/BoosterPack';
 import { BoosterReveal } from './components/BoosterReveal';
 import { CollectionGrid } from './components/CollectionGrid';
+import { playSfx } from '../../audio/sfx';
+import type { CardRarity } from '../../game/types';
 
 interface BoosterLabProps {
   initialCollection: CollectionSnapshot | null;
@@ -31,6 +33,7 @@ export function BoosterLab({ initialCollection, onCollectionChange, onBack }: Bo
     try {
       const result = await api.openBooster();
       setOpening(result);
+      playSfx('booster-open');
       setCollection(result.collection);
       onCollectionChange(result.collection);
       setRevealed(0);
@@ -43,7 +46,24 @@ export function BoosterLab({ initialCollection, onCollectionChange, onBack }: Bo
 
   function reveal(index: number) {
     if (index > revealed) return;
+    const rarity = opening?.cards[index]?.rarity;
+    if (rarity) playReveal(rarity);
     setRevealed((current) => Math.max(current, index + 1));
+  }
+
+  function playReveal(rarity: CardRarity) {
+    if (rarity === 'legendary') playSfx('legendary-reveal');
+    else if (rarity === 'rare') playSfx('rare-reveal');
+    else playSfx('card-reveal');
+  }
+
+  function revealAll() {
+    if (!opening) return;
+    const remaining = opening.cards.slice(revealed);
+    const rarityScore: Record<CardRarity, number> = { common: 0, uncommon: 1, rare: 2, legendary: 3 };
+    const best = remaining.reduce<CardRarity>((current, card) => rarityScore[card.rarity] > rarityScore[current] ? card.rarity : current, 'common');
+    playReveal(best);
+    setRevealed(opening.cards.length);
   }
 
   const allRevealed = opening !== null && revealed >= opening.cards.length;
@@ -65,7 +85,7 @@ export function BoosterLab({ initialCollection, onCollectionChange, onBack }: Bo
           <div className="booster-opening">
             <BoosterReveal cards={opening.cards} revealed={revealed} onReveal={reveal} />
             <div className="booster-reveal-actions">
-              {!allRevealed && <Button variant="primary" onClick={() => setRevealed(opening.cards.length)}>Alle aufdecken</Button>}
+              {!allRevealed && <Button variant="primary" onClick={revealAll}>Alle aufdecken</Button>}
               {allRevealed && <Button variant="primary" onClick={() => setOpening(null)}>Nächsten Booster öffnen</Button>}
             </div>
           </div>

@@ -1,0 +1,30 @@
+.music-control { position: fixed; z-index: 220; top: 18px; left: clamp(190px, 16vw, 286px); display: flex; height: 38px; align-items: center; gap: 5px; border: 1px solid rgba(126,151,137,.36); border-radius: 999px; padding: 4px 9px 4px 5px; color: var(--muted); background: rgba(9,15,12,.82); box-shadow: 0 8px 28px rgba(0,0,0,.28), inset 0 1px rgba(255,255,255,.03); opacity: .72; backdrop-filter: blur(12px); transition: border-color .18s, opacity .18s, background .18s; }
+.music-control:hover, .music-control:focus-within, .music-control.is-playing { border-color: rgba(185,244,74,.48); opacity: 1; }
+.audio-channel { display: flex; align-items: center; gap: 4px; }
+.audio-divider { width: 1px; height: 20px; margin-inline: 2px; background: rgba(126,151,137,.25); }
+.music-toggle { display: flex; height: 28px; align-items: center; gap: 6px; border: 0; border-radius: 999px; padding: 0 6px; color: inherit; background: transparent; cursor: pointer; }
+.music-toggle:hover { color: var(--text); }
+.music-icon { display: grid; width: 19px; height: 19px; place-items: center; }
+.music-icon svg { width: 19px; height: 19px; overflow: visible; fill: currentColor; }
+.music-icon path:not(:first-child) { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.music-control.is-playing .music-icon { color: var(--accent); filter: drop-shadow(0 0 6px rgba(185,244,74,.35)); }
+.music-control.is-sfx-enabled .sfx-icon { color: var(--accent); filter: drop-shadow(0 0 6px rgba(185,244,74,.3)); }
+.music-control.is-playing .music-muted { display: none; }
+.music-control:not(.is-playing) .music-wave { display: none; }
+.music-label { font-size: 8px; font-weight: 900; letter-spacing: .13em; }
+.music-volume { display: flex; align-items: center; }
+.music-volume .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.music-volume input { width: 72px; height: 18px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+
+@media (max-width: 680px) {
+  .music-control { top: 12px; right: 12px; bottom: auto; left: auto; height: 36px; padding-right: 8px; }
+  .music-label { display: none; }
+  .music-volume input { width: 54px; }
+  body:has(.menu-screen) .music-control { top: 68px; }
+  body:has(.match-screen) .music-control { top: auto; bottom: calc(var(--match-mobile-hand-dock-height) + 10px); }
+  body:has(.mulligan-screen) .music-control { top: 12px; right: 12px; bottom: auto; }
+}
+
+@media (max-width: 380px) {
+  body:has(.identity-screen) .music-control { top: 60px; }
+}
