@@ -10,7 +10,8 @@
     "build": "tsc -b && vite build && node scripts/build-sw.mjs",
     "test:pwa": "node scripts/test-pwa.mjs",
     "deploy": "npm run build && node scripts/deploy.mjs",
-    "test:php": "php tests/run.php"
+    "test:php": "php tests/run.php",
+    "test:api": "php tests/api-integration.php"
   },
   "dependencies": {
     "react": "^19.1.1",

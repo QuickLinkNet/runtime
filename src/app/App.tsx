@@ -30,6 +30,11 @@ function loadStoredDeck(): string[] | null {
   }
 }
 
+function actionId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  return `action-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
 export function App() {
   const { store, dispatch } = useGame();
   const [screen, setScreen] = useState<Screen>('boot');
@@ -82,11 +87,18 @@ export function App() {
 
   const refresh = useCallback(async () => {
     if (!store.state) return;
+    if (!navigator.onLine) {
+      dispatch({ type: 'SYNC', status: 'offline' });
+      return;
+    }
     try {
       const result = await api.getState(store.state.roomCode, store.version);
       if (result.changed && result.state) dispatch({ type: 'MATCH', payload: { version: result.version, state: result.state } });
+      dispatch({ type: 'SYNC', status: 'connected' });
     } catch (error) {
-      if (error instanceof ApiError && error.code !== 'MATCH_NOT_FOUND') dispatch({ type: 'ERROR', message: error.message });
+      if (error instanceof ApiError) {
+        if (error.code !== 'MATCH_NOT_FOUND') dispatch({ type: 'ERROR', message: error.message });
+      } else dispatch({ type: 'SYNC', status: 'offline' });
     }
   }, [dispatch, store.state, store.version]);
 
@@ -97,6 +109,28 @@ export function App() {
     document.addEventListener('visibilitychange', visibility);
     return () => { window.clearInterval(interval); document.removeEventListener('visibilitychange', visibility); };
   }, [refresh, store.state]);
+
+  useEffect(() => {
+    const offline = () => dispatch({ type: 'SYNC', status: 'offline' });
+    const online = () => {
+      dispatch({ type: 'SYNC', status: 'reconnecting' });
+      void (async () => {
+        try {
+          if (store.state) await refresh();
+          else {
+            const recovered = await api.resume();
+            if (recovered.match) setResume(recovered.match);
+            dispatch({ type: 'SYNC', status: 'connected' });
+          }
+        } catch {
+          dispatch({ type: 'SYNC', status: 'offline' });
+        }
+      })();
+    };
+    window.addEventListener('offline', offline);
+    window.addEventListener('online', online);
+    return () => { window.removeEventListener('offline', offline); window.removeEventListener('online', online); };
+  }, [dispatch, refresh, store.state]);
 
   async function run(task: () => Promise<MatchPayload>) {
     dispatch({ type: 'PENDING', value: true });
@@ -109,12 +143,26 @@ export function App() {
 
   async function submit(action: GameAction) {
     if (!store.state || store.pending) return;
+    if (!navigator.onLine) {
+      dispatch({ type: 'SYNC', status: 'offline' });
+      dispatch({ type: 'ERROR', message: 'Du bist offline. Die Aktion wird nicht gesendet.' });
+      return;
+    }
+    const outgoing = { ...action, clientActionId: action.clientActionId ?? actionId() };
     dispatch({ type: 'PENDING', value: true });
     try {
-      const payload = await api.submitAction(store.state.roomCode, store.version, action);
+      let payload: MatchPayload;
+      try {
+        payload = await api.submitAction(store.state.roomCode, store.version, outgoing);
+      } catch (firstError) {
+        if (firstError instanceof ApiError || !navigator.onLine) throw firstError;
+        payload = await api.submitAction(store.state.roomCode, store.version, outgoing);
+      }
       dispatch({ type: 'MATCH', payload });
+      dispatch({ type: 'SYNC', status: 'connected' });
     } catch (error) {
       if (error instanceof ApiError && ['VERSION_CONFLICT', 'TURN_TIMED_OUT'].includes(error.code)) await refresh();
+      if (!(error instanceof ApiError)) dispatch({ type: 'SYNC', status: 'offline' });
       dispatch({ type: 'ERROR', message: error instanceof Error ? error.message : 'Aktion fehlgeschlagen.' });
     }
   }
@@ -188,7 +236,7 @@ export function App() {
     }
     return <>
       {store.error && <ErrorToast message={store.error} onClose={() => dispatch({ type: 'ERROR', message: null })} />}
-      <MatchBoard state={store.state} pending={store.pending} onAction={submit} onRematch={rematch} onDeck={editDeckAfterMatch} onExit={leaveMatch} />
+      <MatchBoard state={store.state} pending={store.pending} syncStatus={store.syncStatus} onAction={submit} onRematch={rematch} onDeck={editDeckAfterMatch} onExit={leaveMatch} />
     </>;
   }
 

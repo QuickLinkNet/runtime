@@ -139,15 +139,17 @@ export interface MatchPayload {
   version: number;
   state: GameState;
   timedOut?: boolean;
+  replayed?: boolean;
 }
 
-export type GameAction =
+export type GameAction = (
   | { type: 'MULLIGAN'; cardInstanceIds: string[] }
   | { type: 'PLAY_CARD'; cardInstanceId: string; targetId?: string; overclock?: boolean }
   | { type: 'ATTACK'; attackerId: string; targetId: string }
   | { type: 'DEBUG'; targetId: string }
   | { type: 'END_TURN' }
-  | { type: 'CONTINUE_TUTORIAL' };
+  | { type: 'CONTINUE_TUTORIAL' }
+) & { clientActionId?: string };
 
 export interface PlayerIdentity {
   id: string;

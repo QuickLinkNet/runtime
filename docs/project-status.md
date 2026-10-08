@@ -1,6 +1,6 @@
 # Projektstand RUNTIME
 
-Stand: 5. Oktober 2026
+Stand: 8. Oktober 2026
 
 Diese Datei ist der kurze, verbindliche Übergabepunkt für die weitere Entwicklung. Detailregeln stehen in den jeweils verlinkten Fachdokumenten.
 
@@ -35,11 +35,17 @@ Diese Datei ist der kurze, verbindliche Übergabepunkt für die weitere Entwickl
 
 - Set 2 „Production Incident“ mit 24 neuen, spielbaren Karten und gekapselten Servereffekten
 - explizite, erweiterungssichere 30-Karten-Starterdecks in gemeinsamer Konfiguration
+- optionaler Account-Flow: Gast spielen ohne Zwang, registrieren/anmelden/verknüpfen für persistente eigene Stacks, Sammlung und Booster
+- Match-Abschluss mit serverseitigen Ergebnissen, Stats, Rewards und sicherem Rematch-/Deck-Flow
+- Härtung: idempotente `clientActionId`-Aktionen, Wiederverbindungsstatus und ein sicherer Einzel-Retry nach Netzfehlern
+- Balancing-Telemetrie für Aktionen und Match-Zusammenfassungen, inklusive automatischer Migration
+- HTTP-Integrationstest für Identität, Gastgrenze, Match-Aktion und Replay-Schutz
 
 ## Qualitätssicherung
 
 - `npm run build` kompiliert TypeScript und erstellt den Production-Build.
-- `npm run test:php` prüft aktuell 45 Regeln, Tutorialabläufe, Booster-Garantien und Sicherheitsgrenzen der Engine.
+- `npm run test:php` prüft die Regeln, Tutorialabläufe, Booster-Garantien und Sicherheitsgrenzen der Engine.
+- `npm run test:api` prüft gegen eine lokale Test-API den HTTP-Flow und den idempotenten Replay-Schutz.
 - Sichtbare Änderungen werden zusätzlich in Desktop- und Mobile-Viewports geprüft.
 - TS-, TSX- und CSS-Dateien sollen nach Möglichkeit unter 500 Zeilen bleiben.
 - Letzte vollständige Prüfung am 5. Oktober 2026: Production-Build, 39 PHP-Tests, Booster-API, Desktop-/Mobile-UI und PWA-Prüfung erfolgreich.
@@ -50,7 +56,7 @@ Diese Datei ist der kurze, verbindliche Übergabepunkt für die weitere Entwickl
 1. **Set-2-Artworks:** die 24 Motive aus der Artwork-Queue einzeln erstellen und abnehmen.
 2. **Audio:** Pack-Riss, Reveal-Stufen und Legendary-Stinger sowie Match-Sounds mit Lautstärkereglern.
 3. **Onboarding:** abgeschlossen; als Nächstes den Match-Abschluss und Statistiken ausbauen.
-4. **Balancing & Härtung:** Telemetrie, API-Integrationstests, Wiederverbindung und parallele Aktionen.
+4. **Balancing & Härtung:** abgeschlossen: Telemetrie, HTTP-Integrationstest, Wiederverbindung und Replay-Schutz bei parallelen/erneuten Aktionen.
 
 ## Danach
 

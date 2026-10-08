@@ -20,6 +20,7 @@ require_once __DIR__ . '/repositories/MatchRepository.php';
 require_once __DIR__ . '/services/MatchService.php';
 require_once __DIR__ . '/services/CollectionService.php';
 require_once __DIR__ . '/services/AccountService.php';
+require_once __DIR__ . '/services/TelemetryService.php';
 
 try {
     require_once __DIR__ . '/config/load_env.php';
@@ -46,7 +47,7 @@ try {
     $catalog = new CardCatalog();
     $engine = new GameEngine($catalog);
     $bot = new BotPlayer($engine, $catalog);
-    $matches = new MatchService($db, $engine, $bot, $catalog);
+    $matches = new MatchService($db, $engine, $bot, $catalog, new TelemetryService($db));
     $collection = new CollectionService($db, new BoosterGenerator($catalog));
     $accounts = new AccountService($db);
     $action = (string)($_GET['action'] ?? '');

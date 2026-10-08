@@ -10,7 +10,8 @@ final class MatchService
         private PDO $db,
         private GameEngine $engine,
         private BotPlayer $bot,
-        private CardCatalog $catalog
+        private CardCatalog $catalog,
+        private TelemetryService $telemetry
     ) {
         $this->matches = new MatchRepository($db);
         $this->tutorial = new TutorialScenario($catalog);
@@ -130,7 +131,7 @@ final class MatchService
             $version = (int)$row['version'];
             if ($state['status'] === 'active' && $state['mode'] === 'multi' && $state['turnDeadlineAt'] !== null && strtotime($state['turnDeadlineAt']) <= time()) {
                 $this->engine->endTurn($state, $state['activePlayerId'], true);
-                $this->recordFinishedMatch($state);
+                $this->recordFinishedMatch((int)$row['id'], $state);
                 $version++;
                 $this->matches->save((int)$row['id'], $state, $version);
             }
@@ -147,48 +148,59 @@ final class MatchService
 
     public function submit(string $playerId, string $roomCode, int $expectedVersion, array $action): array
     {
+        $startedAt = microtime(true);
+        $matchId = null;
+        $actionType = strtoupper((string)($action['type'] ?? 'UNKNOWN'));
+        $actionId = (string)($action['clientActionId'] ?? '');
+        if ($actionId !== '' && !preg_match('/^[a-zA-Z0-9_-]{12,80}$/', $actionId)) throw new ApiException('INVALID_ACTION_ID', 'Ungültige Aktionskennung.', 400);
         $this->db->beginTransaction();
         try {
             $row = $this->requireMatch($roomCode, true);
-            if ((int)$row['version'] !== $expectedVersion) {
-                throw new ApiException('VERSION_CONFLICT', 'Der Match-Stand hat sich geändert.', 409);
-            }
+            $matchId = (int)$row['id'];
             $state = $row['state'];
+            $replayedVersion = $actionId !== '' ? $this->replayedActionVersion($state, $playerId, $actionId) : null;
+            if ($replayedVersion !== null) {
+                $currentVersion = (int)$row['version'];
+                $this->telemetry->recordAction($matchId, $playerId, $actionType, $expectedVersion, $currentVersion, $this->durationMs($startedAt), true);
+                $this->db->commit();
+                return ['version' => $currentVersion, 'replayed' => true, 'state' => PlayerView::build($state, $playerId)];
+            }
+            if ((int)$row['version'] !== $expectedVersion) throw new ApiException('VERSION_CONFLICT', 'Der Match-Stand hat sich geändert.', 409);
             if ($state['status'] === 'active' && $state['mode'] === 'multi' && $state['turnDeadlineAt'] !== null && strtotime($state['turnDeadlineAt']) <= time()) {
                 $this->engine->endTurn($state, $state['activePlayerId'], true);
-                $this->recordFinishedMatch($state);
+                $this->recordFinishedMatch($matchId, $state);
                 $version = (int)$row['version'] + 1;
-                $this->matches->save((int)$row['id'], $state, $version);
+                $this->matches->save($matchId, $state, $version);
+                $this->telemetry->recordAction($matchId, $playerId, $actionType, $expectedVersion, $version, $this->durationMs($startedAt), true);
                 $this->db->commit();
                 return ['version' => $version, 'timedOut' => true, 'state' => PlayerView::build($state, $playerId)];
             }
             if ($state['mode'] === 'tutorial') {
-                if (strtoupper((string)($action['type'] ?? '')) === 'CONTINUE_TUTORIAL') {
-                    $this->tutorial->continue($state, $playerId);
-                } else {
+                if ($actionType === 'CONTINUE_TUTORIAL') $this->tutorial->continue($state, $playerId);
+                else {
                     $this->tutorial->assertActionAllowed($state, $playerId, $action);
                     $this->engine->applyAction($state, $playerId, $action);
                     $this->tutorial->afterAction($state, $playerId);
-                    if (($state['tutorial']['completed'] ?? false) === true) {
-                        $state['tutorial']['rewardGranted'] = $this->completeTutorial($playerId);
-                    }
+                    if (($state['tutorial']['completed'] ?? false) === true) $state['tutorial']['rewardGranted'] = $this->completeTutorial($playerId);
                 }
-            } else {
-                $this->engine->applyAction($state, $playerId, $action);
-            }
+            } else $this->engine->applyAction($state, $playerId, $action);
             if ($state['mode'] === 'single' && $state['status'] === 'active') {
                 $active = $state['activePlayerId'];
-                if ($state['players'][$active]['isBot']) {
-                    $this->bot->playTurn($state, $active);
-                }
+                if ($state['players'][$active]['isBot']) $this->bot->playTurn($state, $active);
             }
-            $this->recordFinishedMatch($state);
+            $this->recordFinishedMatch($matchId, $state);
             $version = (int)$row['version'] + 1;
-            $this->matches->save((int)$row['id'], $state, $version);
+            if ($actionId !== '') $this->rememberAction($state, $playerId, $actionId, $version);
+            $this->matches->save($matchId, $state, $version);
+            $this->telemetry->recordAction($matchId, $playerId, $actionType, $expectedVersion, $version, $this->durationMs($startedAt), true);
             $this->db->commit();
             return ['version' => $version, 'state' => PlayerView::build($state, $playerId)];
         } catch (Throwable $error) {
-            $this->db->rollBack();
+            if ($this->db->inTransaction()) $this->db->rollBack();
+            if ($matchId !== null) try {
+                $code = $error instanceof ApiException ? $error->errorCode : 'INTERNAL_ERROR';
+                $this->telemetry->recordAction($matchId, $playerId, $actionType, $expectedVersion, 0, $this->durationMs($startedAt), false, $code);
+            } catch (Throwable) { /* Telemetry must never shadow gameplay errors. */ }
             throw $error;
         }
     }
@@ -273,12 +285,12 @@ final class MatchService
         return $statement->rowCount() === 1;
     }
 
-    private function recordFinishedMatch(array &$state): void
+    private function recordFinishedMatch(int $matchId, array &$state): void
     {
-        if ($state['status'] !== 'finished' || $state['mode'] === 'tutorial' || ($state['resultsRecorded'] ?? false)) {
+        if ($state['status'] !== 'finished') {
             return;
         }
-        foreach ($state['order'] as $playerId) {
+        if ($state['mode'] !== 'tutorial' && !($state['resultsRecorded'] ?? false)) foreach ($state['order'] as $playerId) {
             $player = $state['players'][$playerId];
             if ($player['isBot']) {
                 continue;
@@ -305,6 +317,26 @@ final class MatchService
             }
             $state['matchRewards'][$playerId] = ['firstWinBooster' => $rewarded];
         }
-        $state['resultsRecorded'] = true;
+        if ($state['mode'] !== 'tutorial') $state['resultsRecorded'] = true;
+        $this->telemetry->recordSummary($matchId, $state);
+    }
+
+    private function replayedActionVersion(array $state, string $playerId, string $actionId): ?int
+    {
+        $version = $state['actionReceipts'][$playerId][$actionId]['version'] ?? null;
+        return is_int($version) || ctype_digit((string)$version) ? (int)$version : null;
+    }
+
+    private function rememberAction(array &$state, string $playerId, string $actionId, int $version): void
+    {
+        $receipts = (array)($state['actionReceipts'][$playerId] ?? []);
+        $receipts[$actionId] = ['version' => $version];
+        if (count($receipts) > 20) $receipts = array_slice($receipts, -20, null, true);
+        $state['actionReceipts'][$playerId] = $receipts;
+    }
+
+    private function durationMs(float $startedAt): int
+    {
+        return max(0, (int)round((microtime(true) - $startedAt) * 1000));
     }
 }

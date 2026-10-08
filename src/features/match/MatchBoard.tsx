@@ -23,25 +23,27 @@ import { tutorialSteps } from '../tutorial/tutorialSteps';
 interface MatchBoardProps {
   state: GameState;
   pending: boolean;
+  syncStatus: 'connected' | 'reconnecting' | 'offline';
   onAction: (action: GameAction) => Promise<void>;
   onRematch: () => void;
   onDeck: () => void;
   onExit: () => void;
 }
 
-export function MatchBoard({ state, pending, onAction, onRematch, onDeck, onExit }: MatchBoardProps) {
+export function MatchBoard({ state, pending, syncStatus, onAction, onRematch, onDeck, onExit }: MatchBoardProps) {
   useMatchSounds(state);
-  const match = useMatchController({ state, pending, onAction });
+  const interactionPending = pending || syncStatus !== 'connected';
+  const match = useMatchController({ state, pending: interactionPending, onAction });
 
   if (!match.opponent) {
-    return <WaitingLobby state={state} pending={pending} onExit={onExit} />;
+    return <WaitingLobby state={state} pending={interactionPending} onExit={onExit} />;
   }
 
   if (state.status === 'mulligan') {
     return (
       <MulliganScreen
         player={match.player}
-        pending={pending}
+        pending={interactionPending}
         selectedIds={match.mulligan}
         onToggle={match.toggleMulligan}
         onSubmit={() => { playSfx('command-execute'); void onAction({ type: 'MULLIGAN', cardInstanceIds: match.mulligan }); }}
@@ -82,6 +84,7 @@ export function MatchBoard({ state, pending, onAction, onRematch, onDeck, onExit
           myTurn={match.myTurn}
           opponentName={opponent.name}
           seconds={match.seconds}
+          syncStatus={syncStatus}
           animationSpeed={match.animationSpeed}
           onAnimationSpeedChange={match.setAnimationSpeed}
           onOpenGlossary={() => match.setGlossaryOpen(true)}
@@ -92,7 +95,7 @@ export function MatchBoard({ state, pending, onAction, onRematch, onDeck, onExit
         {state.tutorial && (
           <TutorialCoach
             tutorial={state.tutorial}
-            pending={pending}
+            pending={interactionPending}
             onContinue={() => { playSfx('command-execute'); void onAction({ type: 'CONTINUE_TUTORIAL' }); }}
             onExit={onExit}
           />
@@ -157,7 +160,7 @@ export function MatchBoard({ state, pending, onAction, onRematch, onDeck, onExit
           player={player}
           selection={match.selection}
           myTurn={match.myTurn}
-          pending={pending}
+          pending={interactionPending}
           onSelectCard={match.selectHandCard}
           onDebug={(targetId) => onAction({ type: 'DEBUG', targetId })}
           onEndTurn={() => { playSfx('command-execute'); void onAction({ type: 'END_TURN' }); }}

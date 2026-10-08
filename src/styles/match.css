@@ -20,6 +20,9 @@
 @keyframes pulse { to { opacity: .45; } }
 .icon-button { border: 1px solid var(--line); border-radius: 6px; padding: 7px 11px; color: var(--muted); background: transparent; cursor: pointer; }
 .match-header-actions { display: flex; align-items: center; gap: 7px; }
+.match-sync-status { border: 1px solid rgba(139,169,154,.4); border-radius: 999px; padding: 5px 7px; color: #9cb5a8; background: rgba(13,22,17,.72); font-size: 8px; font-weight: 900; letter-spacing: .1em; line-height: 1; }
+.match-sync-status.is-reconnecting { border-color: rgba(255,207,87,.62); color: #ffcf57; }
+.match-sync-status.is-offline { border-color: rgba(239,112,95,.65); color: #ef705f; }
 .animation-speed-control { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 8px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .animation-speed-control select { min-height: 31px; border: 1px solid var(--line); border-radius: 6px; padding: 5px 25px 5px 8px; color: var(--text); background: var(--panel); font: inherit; cursor: pointer; }
 .rules-button { color: var(--text); }

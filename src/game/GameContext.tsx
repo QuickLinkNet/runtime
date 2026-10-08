@@ -6,21 +6,24 @@ interface GameStore {
   version: number;
   pending: boolean;
   error: string | null;
+  syncStatus: 'connected' | 'reconnecting' | 'offline';
 }
 
 type StoreAction =
   | { type: 'MATCH'; payload: MatchPayload }
   | { type: 'PENDING'; value: boolean }
   | { type: 'ERROR'; message: string | null }
+  | { type: 'SYNC'; status: GameStore['syncStatus'] }
   | { type: 'CLEAR' };
 
-const initial: GameStore = { state: null, version: 0, pending: false, error: null };
+const initial: GameStore = { state: null, version: 0, pending: false, error: null, syncStatus: 'connected' };
 
 function reducer(store: GameStore, action: StoreAction): GameStore {
   switch (action.type) {
-    case 'MATCH': return { state: action.payload.state, version: action.payload.version, pending: false, error: null };
+    case 'MATCH': return { ...store, state: action.payload.state, version: action.payload.version, pending: false, error: null };
     case 'PENDING': return { ...store, pending: action.value };
     case 'ERROR': return { ...store, pending: false, error: action.message };
+    case 'SYNC': return { ...store, syncStatus: action.status };
     case 'CLEAR': return initial;
   }
 }
