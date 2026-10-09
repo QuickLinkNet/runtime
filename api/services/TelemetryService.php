@@ -29,6 +29,7 @@ final class TelemetryService
             if ($player['isBot'] ?? false) continue;
             $metrics[$playerId] = [
                 'core' => max(0, (int)$player['core']),
+                'domains' => array_values((array)($player['domains'] ?? [])),
                 'stats' => $player['matchStats'] ?? [],
             ];
         }

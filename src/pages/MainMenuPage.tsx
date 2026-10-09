@@ -8,6 +8,7 @@ import { Button } from '../ui/atoms';
 interface MainMenuPageProps {
   identity: PlayerIdentity;
   deck: string[];
+  activeDeckName?: string;
   collection: CollectionSnapshot | null;
   resume: MatchPayload | null;
   pending: boolean;
@@ -42,9 +43,9 @@ function MenuAction({ kind, children }: { kind: MenuActionKind; children: string
   return <><span className="mode-action-icon"><MenuActionIcon kind={kind} /></span><span>{children}</span><span className="mode-action-arrow" aria-hidden="true">→</span></>;
 }
 
-export function MainMenuPage({ identity, deck, collection, resume, pending, onSingle, onMultiplayer, onDeck, onBoosters, onChooseStarter, onTutorial, onResume, onAccount, onAdmin }: MainMenuPageProps) {
+export function MainMenuPage({ identity, deck, activeDeckName: activeDeckNameOverride, collection, resume, pending, onSingle, onMultiplayer, onDeck, onBoosters, onChooseStarter, onTutorial, onResume, onAccount, onAdmin }: MainMenuPageProps) {
   const starterKey = starterKeyForDeck(deck);
-  const activeDeckName = starterKey ? starterNames[starterKey] : 'Custom Stack';
+  const activeDeckName = activeDeckNameOverride ?? (starterKey ? starterNames[starterKey] : 'Custom Stack');
   const [launchMode, setLaunchMode] = useState<LaunchMode | null>(null);
   const [botProfile, setBotProfile] = useState<BotProfileKey>('junior');
   const deckDomains = [...new Set(deck

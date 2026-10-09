@@ -1,4 +1,5 @@
 import { domainLabels, starterNames } from '../../../game/catalog';
+import { factionProfile } from '../../../game/factions';
 import type { Domain } from '../../../game/types';
 import { Button } from '../../../ui/atoms';
 import type { DeckEntry, DeckHealth } from '../model/deckBuilder';
@@ -33,6 +34,7 @@ export function DeckSidebar({ deck, domains, entries, domainCounts, validation, 
         <span className="domain-neutral"><i />Neutral <b>{domainCounts.get('neutral') ?? 0}</b></span>
       </div>
       <div className="deck-health"><span>INFRA <b>{health.infrastructure}/4</b></span><span>SERVICES <b>{health.services}</b></span><span>CURVE <b>{health.early}/{health.mid}/{health.late}</b></span><strong>{health.archetype}</strong><small>{health.recommendation}</small>{health.warnings.map((warning) => <small key={warning}>{warning}</small>)}</div>
+      <div className="deck-faction-brief">{domains.map((domain) => { const faction = factionProfile(domain); return faction && <div key={domain}><b>{domainLabels[domain]} · {faction.identity}</b><small>{faction.verbs.join(' · ')}</small></div>; })}</div>
       <div className="deck-list">
         {entries.length === 0 ? <p>Noch keine Karten im Deck.</p> : entries.map(({ card, count }) => (
           <button type="button" key={card.id} onClick={() => onRemove(card.id)} title="Eine Kopie entfernen">

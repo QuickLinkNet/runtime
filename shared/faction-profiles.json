@@ -1,0 +1,65 @@
+{
+  "frontend": {
+    "name": "Frontend",
+    "identity": "Tempo & Resilienz",
+    "fantasy": "Baue viele kleine Services, repariere Ausfälle und verwandle BUGs in bessere Interfaces.",
+    "verbs": ["DEPLOY", "PATCH", "COMPONENT", "RENDER"],
+    "strengths": ["Breites frühes Board", "Schnelle Wiederherstellung", "Günstige Synergien"],
+    "weaknesses": ["Einzelne Services sind fragil", "Schwächer gegen harte Kontrolle"],
+    "designRule": "Jedes Set sollte mindestens eine günstige DEPLOY-Karte und eine Belohnung für reparierte oder erzeugte Services enthalten."
+  },
+  "backend": {
+    "name": "Backend",
+    "identity": "Value & Zuverlässigkeit",
+    "fantasy": "Services arbeiten weiter, ziehen Wert aus stabiler Infrastruktur und überstehen lange Matches.",
+    "verbs": ["QUEUE", "DRAW", "HOTFIX", "REDUNDANCY"],
+    "strengths": ["Nachhaltige Karten-Vorteile", "Stabile Midrange-Services", "Effiziente Infrastruktur"],
+    "weaknesses": ["Träger Start", "Abhängig von aufgebautem Board"],
+    "designRule": "Neue Backend-Karten sollen Queue, Draw oder Resilienz verbinden – keine reinen Tempo-Kopien des Frontends."
+  },
+  "infrastructure": {
+    "name": "DevOps",
+    "identity": "Skalierung & Ausfallsicherheit",
+    "fantasy": "Du investierst in dein System, skalierst Services und machst aus CRASHs kontrollierbare Zwischenfälle.",
+    "verbs": ["SCALE", "REPLICA", "REDUNDANCY", "CRASH"],
+    "strengths": ["Starkes Mid/Late Game", "Hohe Service-Qualität", "Guter Wiederaufbau"],
+    "weaknesses": ["Begrenzte Infrastructure-Slots", "Investition vor Ertrag"],
+    "designRule": "DevOps erhält Belohnungen für mindestens zwei eigene Services oder bewältigte CRASH-Ereignisse."
+  },
+  "data": {
+    "name": "Data",
+    "identity": "Selektion & Ressourcen",
+    "fantasy": "Du filterst gezielt Informationen, ziehst die richtigen Tools und wandelst Daten in Spielvorteil um.",
+    "verbs": ["DRAW", "FILTER", "CACHE", "QUERY"],
+    "strengths": ["Kartenauswahl", "Compute-Effizienz", "Gezielte Antworten"],
+    "weaknesses": ["Wenig direkter Druck", "Braucht Zeit zur Vorbereitung"],
+    "designRule": "Data sollte Auswahl besser machen als bloß mehr Karten ziehen und AI auf vorbereitete Daten belohnen."
+  },
+  "security": {
+    "name": "Security",
+    "identity": "Kontrolle & Schutz",
+    "fantasy": "Sichere deinen Core, isoliere Risiken und zwinge den Gegner zu teuren, schlechten Entscheidungen.",
+    "verbs": ["FIREWALL", "SANDBOX", "PATCH", "RATE LIMIT"],
+    "strengths": ["Core-Schutz", "Kontrolle einzelner Services", "Stabile Trades"],
+    "weaknesses": ["Niedriger Explosivschaden", "Reagiert statt zu eröffnen"],
+    "designRule": "Security bekommt defensive Antworten und Kosten-Druck, aber keine überlegene Value-Engine ohne Risiko."
+  },
+  "ai": {
+    "name": "AI",
+    "identity": "Optionen & Overclock",
+    "fantasy": "Du generierst Möglichkeiten, bündelst Compute und gewinnst mit explosiven, vorbereiteten Turns.",
+    "verbs": ["GENERATE", "OVERCLOCK", "INFER", "MODEL"],
+    "strengths": ["Flexible Hand", "Hohe Spitzenleistung", "Starke Komboturns"],
+    "weaknesses": ["Volatilität", "Gefahr von Leerlauf ohne Vorbereitung"],
+    "designRule": "AI-Karten brauchen eine echte Wahl oder Vorbereitung; die größte Auszahlung darf nicht kostenlos sein."
+  },
+  "neutral": {
+    "name": "Neutral",
+    "identity": "Werkzeugkasten",
+    "fantasy": "Solide Spezialisten, die Lücken schließen, ohne die Identität einer Fraktion zu ersetzen.",
+    "verbs": ["UTILITY", "QA", "INCIDENT"],
+    "strengths": ["Flexibilität", "Deck-Kleber"],
+    "weaknesses": ["Keine dominanten Synergie-Pakete"],
+    "designRule": "Neutrale Karten dürfen stabilisieren, aber niemals die beste Karte für eine Fraktions-Kernaufgabe sein."
+  }
+}

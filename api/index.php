@@ -21,6 +21,8 @@ require_once __DIR__ . '/repositories/MatchRepository.php';
 require_once __DIR__ . '/services/MatchService.php';
 require_once __DIR__ . '/services/CollectionService.php';
 require_once __DIR__ . '/services/ContractService.php';
+require_once __DIR__ . '/services/BalanceSimulator.php';
+require_once __DIR__ . '/services/BalanceLabService.php';
 require_once __DIR__ . '/services/AccountService.php';
 require_once __DIR__ . '/services/TelemetryService.php';
 require_once __DIR__ . '/services/AdminService.php';
@@ -51,7 +53,9 @@ try {
     $engine = new GameEngine($catalog);
     $bot = new BotPlayer($engine, $catalog);
     $contracts = new ContractService($db);
-    $matches = new MatchService($db, $engine, $bot, $catalog, new TelemetryService($db), new BotProfiles($catalog), $contracts);
+    $botProfiles = new BotProfiles($catalog);
+    $matches = new MatchService($db, $engine, $bot, $catalog, new TelemetryService($db), $botProfiles, $contracts);
+    $balanceLab = new BalanceLabService($db, new BalanceSimulator($engine, $bot, $catalog, $botProfiles));
     $collection = new CollectionService($db, new BoosterGenerator($catalog), $catalog, $contracts);
     $accounts = new AccountService($db);
     $adminEmails = explode(',', (string)(getenv('RUNTIME_ADMIN_EMAILS') ?: ''));
@@ -134,6 +138,32 @@ try {
             if (!$isAccount) throw new ApiException('ACCOUNT_REQUIRED', 'Melde dich an, um deinen Stack geräteübergreifend zu speichern.', 403);
             Http::success(['deck' => $accounts->loadout($playerId)]);
         })(),
+        'deckSlots' => (function () use ($accounts, $playerId, $isAccount): void {
+            if (!$isAccount) throw new ApiException('ACCOUNT_REQUIRED', 'Melde dich an, um eigene Stacks zu speichern.', 403);
+            Http::success($accounts->deckSlots($playerId));
+        })(),
+        'createDeckSlot' => (function () use ($accounts, $catalog, $playerId, $isAccount, $body): void {
+            if (!$isAccount) throw new ApiException('ACCOUNT_REQUIRED', 'Melde dich an, um eigene Stacks zu speichern.', 403);
+            $deck = (array)($body['deck'] ?? []); $catalog->validateDeck($deck);
+            Http::success($accounts->createDeckSlot($playerId, (string)($body['name'] ?? ''), $deck), 201);
+        })(),
+        'updateDeckSlot' => (function () use ($accounts, $catalog, $playerId, $isAccount, $body): void {
+            if (!$isAccount) throw new ApiException('ACCOUNT_REQUIRED', 'Melde dich an, um eigene Stacks zu speichern.', 403);
+            $deck = (array)($body['deck'] ?? []); $catalog->validateDeck($deck);
+            Http::success($accounts->updateDeckSlot($playerId, (string)($body['slotId'] ?? ''), (string)($body['name'] ?? ''), $deck));
+        })(),
+        'activateDeckSlot' => (function () use ($accounts, $playerId, $isAccount, $body): void {
+            if (!$isAccount) throw new ApiException('ACCOUNT_REQUIRED', 'Melde dich an, um eigene Stacks zu speichern.', 403);
+            Http::success($accounts->activateDeckSlot($playerId, (string)($body['slotId'] ?? '')));
+        })(),
+        'duplicateDeckSlot' => (function () use ($accounts, $playerId, $isAccount, $body): void {
+            if (!$isAccount) throw new ApiException('ACCOUNT_REQUIRED', 'Melde dich an, um eigene Stacks zu speichern.', 403);
+            Http::success($accounts->duplicateDeckSlot($playerId, (string)($body['slotId'] ?? ''), (string)($body['name'] ?? '')), 201);
+        })(),
+        'deleteDeckSlot' => (function () use ($accounts, $playerId, $isAccount, $body): void {
+            if (!$isAccount) throw new ApiException('ACCOUNT_REQUIRED', 'Melde dich an, um eigene Stacks zu speichern.', 403);
+            Http::success($accounts->deleteDeckSlot($playerId, (string)($body['slotId'] ?? '')));
+        })(),
         'saveLoadout' => (function () use ($accounts, $catalog, $playerId, $isAccount, $body): void {
             if (!$isAccount) throw new ApiException('ACCOUNT_REQUIRED', 'Melde dich an, um eigene Stacks zu speichern.', 403);
             $deck = (array)($body['deck'] ?? []);
@@ -201,22 +231,24 @@ try {
             }
             Http::success($admin->deleteAllGuestPlayers($playerId));
         })(),
-        'createMatch' => Http::success($matches->create(
-            $playerId,
-            $player['name'],
-            (string)($body['mode'] ?? ''),
-            (array)($body['deck'] ?? []),
-            $isAccount,
-            (string)($body['botProfile'] ?? 'junior')
-        ), 201),
+        'adminBalanceReport' => (function () use ($admin, $balanceLab, $player, $isAccount): void {
+            $admin->assertAllowed($isAccount ? (string)$player['account_email'] : null);
+            Http::success(['report' => $balanceLab->latest()]);
+        })(),
+        'adminRunBalanceSimulation' => (function () use ($admin, $balanceLab, $player, $playerId, $isAccount, $body): void {
+            $admin->assertAllowed($isAccount ? (string)$player['account_email'] : null);
+            $samples = max(2, min(100, (int)($body['matchesPerPair'] ?? 12)));
+            Http::success($balanceLab->run($playerId, $samples), 201);
+        })(),
+        'createMatch' => (function () use ($matches, $accounts, $playerId, $player, $body, $isAccount): void {
+            $deck = $isAccount ? ($accounts->loadout($playerId) ?? (array)($body['deck'] ?? [])) : (array)($body['deck'] ?? []);
+            Http::success($matches->create($playerId, $player['name'], (string)($body['mode'] ?? ''), $deck, $isAccount, (string)($body['botProfile'] ?? 'junior')), 201);
+        })(),
         'createTutorial' => Http::success($matches->createTutorial($playerId, $player['name']), 201),
-        'joinMatch' => Http::success($matches->join(
-            $playerId,
-            $player['name'],
-            strtoupper(trim((string)($body['roomCode'] ?? ''))),
-            (array)($body['deck'] ?? []),
-            $isAccount
-        )),
+        'joinMatch' => (function () use ($matches, $accounts, $playerId, $player, $body, $isAccount): void {
+            $deck = $isAccount ? ($accounts->loadout($playerId) ?? (array)($body['deck'] ?? [])) : (array)($body['deck'] ?? []);
+            Http::success($matches->join($playerId, $player['name'], strtoupper(trim((string)($body['roomCode'] ?? ''))), $deck, $isAccount));
+        })(),
         'startMatch' => Http::success($matches->start(
             $playerId,
             strtoupper(trim((string)($body['roomCode'] ?? '')))

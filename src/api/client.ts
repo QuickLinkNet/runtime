@@ -1,4 +1,4 @@
-import type { AdminOverview, AdminPlayerDetail, AdminPlayerSummary, BoosterOpening, CollectionSnapshot, GameAction, GameState, MatchPayload, PlayerIdentity } from '../game/types';
+import type { AdminOverview, AdminPlayerDetail, AdminPlayerSummary, BalanceReport, BoosterOpening, CollectionSnapshot, DeckSlotsSnapshot, GameAction, GameState, MatchPayload, PlayerIdentity } from '../game/types';
 import type { BotProfileKey } from '../game/botProfiles';
 
 interface ApiSuccess<T> { success: true; data: T }
@@ -61,6 +61,12 @@ export const api = {
   collection: () => request<CollectionSnapshot>('collection'),
   loadout: () => request<{ deck: string[] | null }>('loadout'),
   saveLoadout: (deck: string[]) => request<void>('saveLoadout', { method: 'POST', body: JSON.stringify({ deck }) }),
+  deckSlots: () => request<DeckSlotsSnapshot>('deckSlots'),
+  createDeckSlot: (name: string, deck: string[]) => request<DeckSlotsSnapshot>('createDeckSlot', { method: 'POST', body: JSON.stringify({ name, deck }) }),
+  updateDeckSlot: (slotId: string, name: string, deck: string[]) => request<DeckSlotsSnapshot>('updateDeckSlot', { method: 'POST', body: JSON.stringify({ slotId, name, deck }) }),
+  activateDeckSlot: (slotId: string) => request<DeckSlotsSnapshot>('activateDeckSlot', { method: 'POST', body: JSON.stringify({ slotId }) }),
+  duplicateDeckSlot: (slotId: string, name: string) => request<DeckSlotsSnapshot>('duplicateDeckSlot', { method: 'POST', body: JSON.stringify({ slotId, name }) }),
+  deleteDeckSlot: (slotId: string) => request<DeckSlotsSnapshot>('deleteDeckSlot', { method: 'POST', body: JSON.stringify({ slotId }) }),
   openBooster: () => request<BoosterOpening>('openBooster', { method: 'POST', body: '{}' }),
   buyBooster: () => request<CollectionSnapshot>('buyBooster', { method: 'POST', body: '{}' }),
   salvageDuplicates: () => request<CollectionSnapshot>('salvageDuplicates', { method: 'POST', body: '{}' }),
@@ -78,6 +84,8 @@ export const api = {
   adminDeleteGuestPlayers: () => request<{ deletedPlayers: number; deletedOwnedMatches: number }>('adminDeleteGuestPlayers', {
     method: 'POST', body: JSON.stringify({ confirmation: 'DELETE GUESTS', doubleConfirmed: true }),
   }),
+  adminBalanceReport: () => request<{ report: BalanceReport | null }>('adminBalanceReport'),
+  adminRunBalanceSimulation: (matchesPerPair: number) => request<BalanceReport>('adminRunBalanceSimulation', { method: 'POST', body: JSON.stringify({ matchesPerPair }) }),
   createMatch: (mode: 'single' | 'multi', deck: string[], botProfile?: BotProfileKey) => request<MatchPayload>('createMatch', {
     method: 'POST', body: JSON.stringify({ mode, deck, ...(mode === 'single' && botProfile ? { botProfile } : {}) }),
   }),

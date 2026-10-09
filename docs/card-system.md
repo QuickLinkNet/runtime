@@ -12,6 +12,8 @@ Die Booster-Seltenheiten stehen zentral in `shared/booster-config.json`. Alle Ka
 
 Die drei Starterdecks sind explizit in `shared/starter-decks.json` definiert. Dadurch bleiben sie valide 30-Karten-Decks, wenn neue Sets zum Katalog hinzukommen.
 
+Die Fraktions-Identitäten stehen verbindlich in [`factions-and-balance.md`](factions-and-balance.md). Frontend steht für Tempo und Wiederaufbau, Backend für zuverlässigen Value, DevOps für Skalierung, Data für Auswahl und Ressourcen, Security für Kontrolle und AI für vorbereitete Komboturns. Neutral bleibt bewusst ein Werkzeugkasten.
+
 Decks enthalten genau 30 Karten, genau zwei Tech-Domains und höchstens zwei Kopien je Karte. Legendary-Karten dürfen nur einmal vorkommen; damit Infrastructure-Hände nicht kippen, sind maximal vier Infrastructures pro Deck erlaubt. Im Match bleiben zehn Handkarten das Limit. Eine Infrastructure von der Hand kann einmal pro Zug dekommissioniert werden: Sie wandert in den Trash und wird direkt durch eine Karte ersetzt.
 
 Jede Karte in einem Match erhält zusätzlich eine eindeutige `instanceId`. Dadurch bleiben zwei Kopien derselben Definition unterscheidbar. Services und Infrastructure speichern ihre veränderlichen Werte direkt in ihrer Board-Entity.

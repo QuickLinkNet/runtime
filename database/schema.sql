@@ -102,6 +102,18 @@ CREATE TABLE IF NOT EXISTS player_loadouts (
   CONSTRAINT fk_loadout_player FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS player_deck_slots (
+  id CHAR(32) NOT NULL PRIMARY KEY,
+  player_id BIGINT UNSIGNED NOT NULL,
+  name VARCHAR(40) NOT NULL,
+  deck_json TEXT NOT NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_deck_slots_player (player_id, is_active, updated_at),
+  CONSTRAINT fk_deck_slots_player FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS booster_openings (
   id CHAR(32) NOT NULL PRIMARY KEY,
   player_id BIGINT UNSIGNED NOT NULL,
@@ -109,6 +121,16 @@ CREATE TABLE IF NOT EXISTS booster_openings (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_booster_player (player_id, created_at),
   CONSTRAINT fk_booster_player FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS balance_reports (
+  id CHAR(32) NOT NULL PRIMARY KEY,
+  admin_player_id BIGINT UNSIGNED NOT NULL,
+  simulated_matches INT UNSIGNED NOT NULL,
+  report_json MEDIUMTEXT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_balance_reports_created (created_at),
+  CONSTRAINT fk_balance_report_admin FOREIGN KEY (admin_player_id) REFERENCES players(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS match_action_telemetry (

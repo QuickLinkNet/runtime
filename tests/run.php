@@ -8,6 +8,7 @@ require_once __DIR__ . '/../api/game/GameEngine.php';
 require_once __DIR__ . '/../api/game/PlayerView.php';
 require_once __DIR__ . '/../api/game/BotPlayer.php';
 require_once __DIR__ . '/../api/game/BotProfiles.php';
+require_once __DIR__ . '/../api/services/BalanceSimulator.php';
 require_once __DIR__ . '/../api/game/TutorialScenario.php';
 
 $catalog = new CardCatalog(__DIR__ . '/../shared/cards.json');
@@ -607,6 +608,15 @@ check('Chaos Engineer prioritizes BUG generation', function () use ($catalog): v
     $state['players']['p1']['hand'] = [card('neutral-technical-debt', 'chaos-debt')];
     (new BotPlayer($engine, $catalog))->playTurn($state, 'p1');
     expect(count(array_filter($state['players']['p2']['services'], static fn(array $service): bool => $service['definitionId'] === 'token-bug')) === 3);
+});
+
+check('Balance simulator produces a matchup report without mutating live matches', function () use ($catalog): void {
+    $engine = new GameEngine($catalog);
+    $bot = new BotPlayer($engine, $catalog);
+    $report = (new BalanceSimulator($engine, $bot, $catalog, new BotProfiles($catalog)))->run(2);
+    expect($report['summary']['simulatedMatches'] === 32, 'Expected every ordered archetype pairing to be simulated twice.');
+    expect(count($report['archetypes']) === 4, 'Expected four balance archetypes.');
+    expect($report['recommendations'] !== [], 'Expected actionable balance signals.');
 });
 
 check('Tutorial rejects actions outside the current objective', function () use ($catalog): void {

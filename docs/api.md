@@ -18,6 +18,11 @@ Alle Endpunkte verwenden `api/index.php?action=…` und antworten mit `{ "succes
 | `salvageDuplicates` | POST | Alte Kopien oberhalb des 2er-Limits in Komponenten umwandeln |
 | `craftCard` | POST | Eine Set-2-Karte gezielt mit Komponenten herstellen |
 | `claimContract` | POST | Eine abgeschlossene Wochenbelohnung abholen |
+| `deckSlots` | GET | Alle gespeicherten Stacks inklusive aktivem Stack laden |
+| `createDeckSlot` / `updateDeckSlot` | POST | Benannten Stack speichern oder bearbeiten |
+| `activateDeckSlot` / `duplicateDeckSlot` / `deleteDeckSlot` | POST | Stack aktivieren, kopieren oder löschen |
+| `adminBalanceReport` | GET | Letzten gespeicherten Balance-Lab-Report laden |
+| `adminRunBalanceSimulation` | POST | Isolierte Bot-Simulation starten und Report speichern |
 | `adminOverview` | GET | Geschützte Admin-Kennzahlen und letzte Admin-Aktionen laden |
 | `adminPlayers` | GET | Geschützte Spielersuche (maximal 100 Treffer) |
 | `adminPlayer` | GET | Geschützte Spieler-, Karten- und Audit-Details laden |

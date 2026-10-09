@@ -3,6 +3,8 @@ import { api } from '../api/client';
 import { cardById } from '../game/catalog';
 import type { AdminOverview, AdminPlayerDetail, AdminPlayerSummary } from '../game/types';
 import { Button } from '../ui/atoms';
+import { BalanceLab } from '../features/balance/BalanceLab';
+import type { BalanceReport } from '../game/types';
 
 interface AdminPageProps {
   onBack: () => void;
@@ -37,14 +39,16 @@ export function AdminPage({ onBack }: AdminPageProps) {
   const [guestDeleteArmed, setGuestDeleteArmed] = useState(false);
   const [guestDeleteAccepted, setGuestDeleteAccepted] = useState(false);
   const [guestDeletePhrase, setGuestDeletePhrase] = useState('');
+  const [balanceReport, setBalanceReport] = useState<BalanceReport | null>(null);
 
   async function load(queryValue = query) {
     setPending(true);
     setError(null);
     try {
-      const [nextOverview, nextPlayers] = await Promise.all([api.adminOverview(), api.adminPlayers(queryValue)]);
+      const [nextOverview, nextPlayers, nextBalance] = await Promise.all([api.adminOverview(), api.adminPlayers(queryValue), api.adminBalanceReport()]);
       setOverview(nextOverview);
       setPlayers(nextPlayers.players);
+      setBalanceReport(nextBalance.report);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Admin-Daten konnten nicht geladen werden.');
     } finally {
@@ -132,6 +136,20 @@ export function AdminPage({ onBack }: AdminPageProps) {
     }
   }
 
+  async function runBalanceSimulation(matchesPerPair: number) {
+    setPending(true);
+    setError(null);
+    try {
+      const report = await api.adminRunBalanceSimulation(matchesPerPair);
+      setBalanceReport(report);
+      setNotice(`${report.simulatedMatches} Bot-Matches analysiert. Keine Kartenwerte wurden automatisch verändert.`);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Balance-Simulation konnte nicht gestartet werden.');
+    } finally {
+      setPending(false);
+    }
+  }
+
   return (
     <main className="admin-screen">
       <header className="admin-header">
@@ -148,6 +166,8 @@ export function AdminPage({ onBack }: AdminPageProps) {
         <article><span>UNGEÖFFNET</span><b>{overview?.summary.unopenedBoosters ?? '–'}</b><small>Booster</small></article>
         <article><span>KARTEN</span><b>{overview?.summary.collectedCards ?? '–'}</b><small>Sammlungskopien</small></article>
       </section>
+
+      <BalanceLab report={balanceReport} pending={pending} onRun={(matchesPerPair) => void runBalanceSimulation(matchesPerPair)} />
 
       <section className="admin-workspace">
         <div className="admin-players">

@@ -163,6 +163,16 @@ export interface PlayerIdentity {
   isAdmin: boolean;
 }
 
+export interface DeckSlot {
+  id: string;
+  name: string;
+  deck: string[];
+  isActive: boolean;
+  updatedAt: string;
+}
+
+export interface DeckSlotsSnapshot { slots: DeckSlot[] }
+
 export interface AdminAuditEntry {
   id: number;
   action: string;
@@ -198,6 +208,21 @@ export interface AdminPlayerDetail {
 export interface AdminOverview {
   summary: { players: number; accounts: number; credits: number; components: number; unopenedBoosters: number; collectedCards: number };
   recentAudit: AdminAuditEntry[];
+}
+
+export interface BalanceReport {
+  id: string;
+  createdAt: string;
+  simulatedMatches: number;
+  report: {
+    summary: { simulatedMatches: number; matchesPerPair: number; averageTurns: number; draws: number };
+    archetypes: Array<{ id: string; name: string; games: number; winRate: number; avgTurns: number }>;
+    matchups: Array<{ left: string; right: string; games: number; leftWins: number; rightWins: number; draws: number; turns: number }>;
+    factions: Array<{ id: Domain; games: number; winRate: number }>;
+    cards: Array<{ definitionId: string; games: number; impactPerGame: number; winRate: number; domain: Domain }>;
+    recommendations: Array<{ tone: 'buff' | 'nerf' | 'synergy' | 'observe'; scope: string; message: string }>;
+    live: { recordedMatches: number; factions: Array<{ id: Domain; games: number; winRate: number }>; cards: Array<{ definitionId: string; games: number; impactPerGame: number }> };
+  };
 }
 
 export interface CollectionSnapshot {
