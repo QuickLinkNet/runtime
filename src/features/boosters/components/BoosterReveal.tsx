@@ -20,7 +20,7 @@ export function BoosterReveal({ cards, revealed, onReveal }: BoosterRevealProps)
                 <GameCard card={{ instanceId: `booster-${index}`, definitionId: card.definitionId }} detailsOnHover={false} detailsOnTap />
                 <footer>
                   <b>{rarityLabels[card.rarity]}</b>
-                  <span>{card.isNew ? 'NEU' : `Besitz ${card.previousQuantity + 1}`}</span>
+                  <span>{card.salvaged ? `+${card.salvageValue ?? 0} Komponenten` : card.isNew ? 'NEU' : `Besitz ${card.previousQuantity + 1}`}</span>
                 </footer>
               </>
             ) : (

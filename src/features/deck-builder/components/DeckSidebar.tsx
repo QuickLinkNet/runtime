@@ -1,7 +1,7 @@
 import { domainLabels, starterNames } from '../../../game/catalog';
 import type { Domain } from '../../../game/types';
 import { Button } from '../../../ui/atoms';
-import type { DeckEntry } from '../model/deckBuilder';
+import type { DeckEntry, DeckHealth } from '../model/deckBuilder';
 
 interface DeckSidebarProps {
   deck: string[];
@@ -9,6 +9,7 @@ interface DeckSidebarProps {
   entries: DeckEntry[];
   domainCounts: Map<Domain, number>;
   validation: string | null;
+  health: DeckHealth;
   dirty: boolean;
   starterKey: string;
   onStarterChange: (key: string) => void;
@@ -19,7 +20,7 @@ interface DeckSidebarProps {
   onSave: () => void;
 }
 
-export function DeckSidebar({ deck, domains, entries, domainCounts, validation, dirty, starterKey, onStarterChange, onLoadStarter, onRemove, onClear, onCancel, onSave }: DeckSidebarProps) {
+export function DeckSidebar({ deck, domains, entries, domainCounts, validation, health, dirty, starterKey, onStarterChange, onLoadStarter, onRemove, onClear, onCancel, onSave }: DeckSidebarProps) {
   return (
     <aside className="deck-sidebar">
       <div className="deck-sidebar-title">
@@ -31,6 +32,7 @@ export function DeckSidebar({ deck, domains, entries, domainCounts, validation, 
         {domains.map((domain) => <span key={domain} className={`domain-${domain}`}><i />{domainLabels[domain]} <b>{domainCounts.get(domain) ?? 0}</b></span>)}
         <span className="domain-neutral"><i />Neutral <b>{domainCounts.get('neutral') ?? 0}</b></span>
       </div>
+      <div className="deck-health"><span>INFRA <b>{health.infrastructure}/4</b></span><span>SERVICES <b>{health.services}</b></span><span>CURVE <b>{health.early}/{health.mid}/{health.late}</b></span><strong>{health.archetype}</strong><small>{health.recommendation}</small>{health.warnings.map((warning) => <small key={warning}>{warning}</small>)}</div>
       <div className="deck-list">
         {entries.length === 0 ? <p>Noch keine Karten im Deck.</p> : entries.map(({ card, count }) => (
           <button type="button" key={card.id} onClick={() => onRemove(card.id)} title="Eine Kopie entfernen">

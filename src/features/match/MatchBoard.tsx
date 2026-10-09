@@ -163,6 +163,7 @@ export function MatchBoard({ state, pending, syncStatus, onAction, onRematch, on
           pending={interactionPending}
           onSelectCard={match.selectHandCard}
           onDebug={(targetId) => onAction({ type: 'DEBUG', targetId })}
+          onDecommission={() => { void match.decommission(); }}
           onEndTurn={() => { playSfx('command-execute'); void onAction({ type: 'END_TURN' }); }}
         />
       </main>

@@ -16,9 +16,11 @@ interface CatalogToolbarProps {
   ownership: 'all' | 'owned';
   onOwnershipChange: (mode: 'all' | 'owned') => void;
   collectionAvailable: boolean;
+  collectionMode: boolean;
+  onCollectionModeChange: (enabled: boolean) => void;
 }
 
-export function CatalogToolbar({ cardCount, domains, filter, query, sort, onFilterChange, onQueryChange, onSortChange, columns, onColumnsChange, ownership, onOwnershipChange, collectionAvailable }: CatalogToolbarProps) {
+export function CatalogToolbar({ cardCount, domains, filter, query, sort, onFilterChange, onQueryChange, onSortChange, columns, onColumnsChange, ownership, onOwnershipChange, collectionAvailable, collectionMode, onCollectionModeChange }: CatalogToolbarProps) {
   return (
     <section className="catalog-controls" aria-labelledby="catalog-heading">
       <div className="deck-section-heading compact">
@@ -37,6 +39,7 @@ export function CatalogToolbar({ cardCount, domains, filter, query, sort, onFilt
           {collectionAvailable && <div className="ownership-switch" aria-label="Sammlungsfilter">
             <button type="button" className={ownership === 'all' ? 'active' : ''} onClick={() => onOwnershipChange('all')}>Alle Karten</button>
             <button type="button" className={ownership === 'owned' ? 'active' : ''} onClick={() => onOwnershipChange('owned')}>Nur Sammlung</button>
+            <button type="button" className={collectionMode ? 'active collection-mode-toggle' : 'collection-mode-toggle'} onClick={() => onCollectionModeChange(!collectionMode)}>Collection Mode: {collectionMode ? 'AN' : 'AUS'}</button>
           </div>}
           <label className="catalog-search">
             <span>Suche</span>

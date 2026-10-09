@@ -22,6 +22,7 @@ const fallbackLabels: Record<string, string> = {
   SERVICE_CRASHED: 'Service abgestürzt',
   INFRASTRUCTURE_DESTROYED: 'Infrastructure zerstört',
   INFRASTRUCTURE_REPLACED: 'Infrastructure ersetzt',
+  INFRASTRUCTURE_DECOMMISSIONED: 'Infrastructure dekommissioniert',
   REDUNDANCY_TRIGGERED: 'Redundancy ausgelöst',
   SERVICE_SANDBOXED: 'Service isoliert',
   SERVICE_FORKED: 'Service kopiert',

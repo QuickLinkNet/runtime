@@ -1,0 +1,12 @@
+{
+  "expansionCardIds": [
+    "frontend-microfrontend", "frontend-feature-flag", "frontend-design-system",
+    "backend-graphql-gateway", "backend-retry-storm", "backend-circuit-breaker",
+    "infrastructure-chaos-monkey", "infrastructure-terraform-apply", "infrastructure-service-mesh",
+    "data-data-scientist", "data-schema-migration", "data-event-stream",
+    "security-penetration-tester", "security-rotate-secrets", "security-siem",
+    "ai-prompt-engineer", "ai-model-drift", "ai-rag-pipeline",
+    "neutral-werkstudent", "neutral-product-owner", "neutral-scrum-master",
+    "neutral-monitoring-dashboard", "neutral-maintenance-window", "neutral-technical-debt"
+  ]
+}

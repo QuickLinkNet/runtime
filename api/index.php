@@ -15,12 +15,15 @@ require_once __DIR__ . '/game/BoosterGenerator.php';
 require_once __DIR__ . '/game/GameEngine.php';
 require_once __DIR__ . '/game/PlayerView.php';
 require_once __DIR__ . '/game/BotPlayer.php';
+require_once __DIR__ . '/game/BotProfiles.php';
 require_once __DIR__ . '/game/TutorialScenario.php';
 require_once __DIR__ . '/repositories/MatchRepository.php';
 require_once __DIR__ . '/services/MatchService.php';
 require_once __DIR__ . '/services/CollectionService.php';
+require_once __DIR__ . '/services/ContractService.php';
 require_once __DIR__ . '/services/AccountService.php';
 require_once __DIR__ . '/services/TelemetryService.php';
+require_once __DIR__ . '/services/AdminService.php';
 
 try {
     require_once __DIR__ . '/config/load_env.php';
@@ -47,9 +50,12 @@ try {
     $catalog = new CardCatalog();
     $engine = new GameEngine($catalog);
     $bot = new BotPlayer($engine, $catalog);
-    $matches = new MatchService($db, $engine, $bot, $catalog, new TelemetryService($db));
-    $collection = new CollectionService($db, new BoosterGenerator($catalog));
+    $contracts = new ContractService($db);
+    $matches = new MatchService($db, $engine, $bot, $catalog, new TelemetryService($db), new BotProfiles($catalog), $contracts);
+    $collection = new CollectionService($db, new BoosterGenerator($catalog), $catalog, $contracts);
     $accounts = new AccountService($db);
+    $adminEmails = explode(',', (string)(getenv('RUNTIME_ADMIN_EMAILS') ?: ''));
+    $admin = new AdminService($db, $adminEmails, $collection);
     $action = (string)($_GET['action'] ?? '');
 
     if ($action === 'health') {
@@ -74,19 +80,23 @@ try {
         $token = bin2hex(random_bytes(32));
         $stmt = $db->prepare('INSERT INTO players (name, token_hash) VALUES (?, ?)');
         $stmt->execute([$name, hash('sha256', $token)]);
-        Http::success(['player' => ['id' => (string)$db->lastInsertId(), 'name' => $name, 'tutorialCompleted' => false, 'isAccount' => false, 'accountEmail' => null], 'token' => $token], 201);
+        Http::success(['player' => ['id' => (string)$db->lastInsertId(), 'name' => $name, 'tutorialCompleted' => false, 'isAccount' => false, 'accountEmail' => null, 'isAdmin' => false], 'token' => $token], 201);
     }
     if ($action === 'login') {
         $body = Http::body();
-        Http::success($accounts->login((string)($body['email'] ?? ''), (string)($body['password'] ?? '')));
+        $result = $accounts->login((string)($body['email'] ?? ''), (string)($body['password'] ?? ''));
+        $result['player']['isAdmin'] = $admin->isAllowed($result['player']['accountEmail']);
+        Http::success($result);
     }
     if ($action === 'registerAccount') {
         $body = Http::body();
-        Http::success($accounts->register(
+        $result = $accounts->register(
             (string)($body['name'] ?? ''),
             (string)($body['email'] ?? ''),
             (string)($body['password'] ?? '')
-        ), 201);
+        );
+        $result['player']['isAdmin'] = $admin->isAllowed($result['player']['accountEmail']);
+        Http::success($result, 201);
     }
 
     $token = Http::token();
@@ -102,6 +112,7 @@ try {
     }
     $playerId = (string)$player['id'];
     $isAccount = $player['account_email'] !== null;
+    $isAdmin = $admin->isAllowed($isAccount ? (string)$player['account_email'] : null);
     $db->prepare('UPDATE players SET last_seen_at = CURRENT_TIMESTAMP WHERE id = ?')->execute([$playerId]);
     $body = in_array($_SERVER['REQUEST_METHOD'] ?? 'GET', ['POST', 'PUT', 'PATCH'], true) ? Http::body() : [];
 
@@ -112,8 +123,13 @@ try {
             'tutorialCompleted' => $player['tutorial_completed_at'] !== null,
             'isAccount' => $isAccount,
             'accountEmail' => $isAccount ? $player['account_email'] : null,
+            'isAdmin' => $isAdmin,
         ]]),
-        'linkAccount' => Http::success($accounts->linkGuest($playerId, (string)($body['email'] ?? ''), (string)($body['password'] ?? ''))),
+        'linkAccount' => (function () use ($accounts, $admin, $playerId, $body): void {
+            $result = $accounts->linkGuest($playerId, (string)($body['email'] ?? ''), (string)($body['password'] ?? ''));
+            $result['player']['isAdmin'] = $admin->isAllowed($result['player']['accountEmail']);
+            Http::success($result);
+        })(),
         'loadout' => (function () use ($accounts, $playerId, $isAccount): void {
             if (!$isAccount) throw new ApiException('ACCOUNT_REQUIRED', 'Melde dich an, um deinen Stack geräteübergreifend zu speichern.', 403);
             Http::success(['deck' => $accounts->loadout($playerId)]);
@@ -133,12 +149,65 @@ try {
             if (!$isAccount) throw new ApiException('ACCOUNT_REQUIRED', 'Booster und Sammlung sind mit einem kostenlosen Account verfügbar.', 403);
             Http::success($collection->openBooster($playerId), 201);
         })(),
+        'buyBooster' => (function () use ($collection, $playerId, $isAccount): void {
+            if (!$isAccount) throw new ApiException('ACCOUNT_REQUIRED', 'Booster and collection require a free account.', 403);
+            Http::success($collection->buyBooster($playerId), 201);
+        })(),
+        'salvageDuplicates' => (function () use ($collection, $playerId, $isAccount): void {
+            if (!$isAccount) throw new ApiException('ACCOUNT_REQUIRED', 'Die Sammlung benötigt einen kostenlosen Account.', 403);
+            Http::success($collection->salvageDuplicates($playerId));
+        })(),
+        'craftCard' => (function () use ($collection, $playerId, $isAccount, $body): void {
+            if (!$isAccount) throw new ApiException('ACCOUNT_REQUIRED', 'Die Sammlung benötigt einen kostenlosen Account.', 403);
+            Http::success($collection->craft($playerId, (string)($body['definitionId'] ?? '')));
+        })(),
+        'claimContract' => (function () use ($collection, $playerId, $isAccount, $body): void {
+            if (!$isAccount) throw new ApiException('ACCOUNT_REQUIRED', 'Contracts benötigen einen kostenlosen Account.', 403);
+            Http::success($collection->claimContract($playerId, (string)($body['key'] ?? '')));
+        })(),
+        'adminOverview' => (function () use ($admin, $player, $isAccount): void {
+            $admin->assertAllowed($isAccount ? (string)$player['account_email'] : null);
+            Http::success($admin->overview());
+        })(),
+        'adminPlayers' => (function () use ($admin, $player, $isAccount): void {
+            $admin->assertAllowed($isAccount ? (string)$player['account_email'] : null);
+            Http::success(['players' => $admin->players((string)($_GET['query'] ?? ''))]);
+        })(),
+        'adminPlayer' => (function () use ($admin, $player, $isAccount): void {
+            $admin->assertAllowed($isAccount ? (string)$player['account_email'] : null);
+            Http::success($admin->player((string)($_GET['playerId'] ?? '')));
+        })(),
+        'adminUpdatePlayer' => (function () use ($admin, $player, $playerId, $isAccount, $body): void {
+            $admin->assertAllowed($isAccount ? (string)$player['account_email'] : null);
+            $credits = $body['credits'] ?? null;
+            $boosters = $body['boosterBalance'] ?? null;
+            $components = $body['components'] ?? null;
+            if ((!is_int($credits) && !(is_string($credits) && ctype_digit($credits))) || (!is_int($boosters) && !(is_string($boosters) && ctype_digit($boosters))) || (!is_int($components) && !(is_string($components) && ctype_digit($components)))) {
+                throw new ApiException('INVALID_ADMIN_VALUE', 'Credits und Booster müssen ganze, nichtnegative Zahlen sein.', 422);
+            }
+            Http::success($admin->updateProgression($playerId, (string)($body['playerId'] ?? ''), (int)$credits, (int)$boosters, (int)$components));
+        })(),
+        'adminResetCollections' => (function () use ($admin, $player, $playerId, $isAccount, $body): void {
+            $admin->assertAllowed($isAccount ? (string)$player['account_email'] : null);
+            if (($body['confirmation'] ?? '') !== 'RESET ALL' || ($body['doubleConfirmed'] ?? false) !== true) {
+                throw new ApiException('RESET_CONFIRMATION_REQUIRED', 'Bestätige den Reset doppelt und gib RESET ALL ein.', 422);
+            }
+            Http::success($admin->resetAllCollections($playerId));
+        })(),
+        'adminDeleteGuestPlayers' => (function () use ($admin, $player, $playerId, $isAccount, $body): void {
+            $admin->assertAllowed($isAccount ? (string)$player['account_email'] : null);
+            if (($body['confirmation'] ?? '') !== 'DELETE GUESTS' || ($body['doubleConfirmed'] ?? false) !== true) {
+                throw new ApiException('DELETE_CONFIRMATION_REQUIRED', 'Bestätige die Gastlöschung doppelt und gib DELETE GUESTS ein.', 422);
+            }
+            Http::success($admin->deleteAllGuestPlayers($playerId));
+        })(),
         'createMatch' => Http::success($matches->create(
             $playerId,
             $player['name'],
             (string)($body['mode'] ?? ''),
             (array)($body['deck'] ?? []),
-            $isAccount
+            $isAccount,
+            (string)($body['botProfile'] ?? 'junior')
         ), 201),
         'createTutorial' => Http::success($matches->createTutorial($playerId, $player['name']), 201),
         'joinMatch' => Http::success($matches->join(

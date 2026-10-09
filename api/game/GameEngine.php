@@ -130,6 +130,7 @@ final class GameEngine
                 (string)($action['targetId'] ?? '')
             ),
             'DEBUG' => $this->debug($state, $playerId, (string)($action['targetId'] ?? '')),
+            'DECOMMISSION' => $this->decommission($state, $playerId, (string)($action['cardInstanceId'] ?? '')),
             'END_TURN' => $this->endTurn($state, $playerId),
             default => throw new ApiException('INVALID_ACTION', 'Unbekannte Spielaktion.'),
         };
@@ -205,6 +206,7 @@ final class GameEngine
             'targetedCommandPlayed' => 0,
             'serviceCrashed' => false,
             'projectManagerDiscount' => false,
+            'infrastructureDecommissioned' => false,
         ];
     }
 

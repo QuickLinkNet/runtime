@@ -12,7 +12,7 @@ export function cachedIdentity(): PlayerIdentity | null {
   try {
     const identity = JSON.parse(value) as Partial<PlayerIdentity>;
     return typeof identity.id === 'string' && typeof identity.name === 'string'
-      ? { id: identity.id, name: identity.name, isAccount: identity.isAccount === true, accountEmail: typeof identity.accountEmail === 'string' ? identity.accountEmail : null }
+      ? { id: identity.id, name: identity.name, isAccount: identity.isAccount === true, accountEmail: typeof identity.accountEmail === 'string' ? identity.accountEmail : null, isAdmin: identity.isAdmin === true }
       : null;
   } catch {
     return null;

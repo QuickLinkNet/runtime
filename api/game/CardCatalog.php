@@ -3,8 +3,11 @@ declare(strict_types=1);
 
 final class CardCatalog
 {
+    public const MAX_INFRASTRUCTURE_PER_DECK = 4;
     /** @var array<string,array<string,mixed>> */
     private array $cards = [];
+    /** @var array<string,string> */
+    private array $rarities = [];
 
     public function __construct(?string $path = null)
     {
@@ -13,6 +16,8 @@ final class CardCatalog
         foreach ($decoded as $card) {
             $this->cards[$card['id']] = $card;
         }
+        $booster = json_decode((string)file_get_contents(dirname(__DIR__, 2) . '/shared/booster-config.json'), true, 512, JSON_THROW_ON_ERROR);
+        $this->rarities = array_map('strval', (array)($booster['rarities'] ?? []));
     }
 
     public function get(string $id): array
@@ -38,14 +43,21 @@ final class CardCatalog
         }
         $counts = array_count_values($definitionIds);
         $domains = [];
+        $infrastructure = 0;
         foreach ($counts as $id => $count) {
             $card = $this->get((string)$id);
-            if (($card['token'] ?? false) || $count > 2) {
+            $maxCopies = ($this->rarities[$id] ?? '') === 'legendary' ? 1 : 2;
+            if (($card['token'] ?? false) || $count > $maxCopies) {
+                if ($maxCopies === 1) throw new ApiException('INVALID_LEGENDARY_COPIES', 'Legendary-Karten dürfen nur einmal im Deck sein.');
                 throw new ApiException('INVALID_DECK_COPIES', 'Maximal zwei Kopien pro Karte sind erlaubt.');
             }
+            if (($card['type'] ?? '') === 'infrastructure') $infrastructure += $count;
             if ($card['domain'] !== 'neutral') {
                 $domains[$card['domain']] = true;
             }
+        }
+        if ($infrastructure > self::MAX_INFRASTRUCTURE_PER_DECK) {
+            throw new ApiException('INVALID_INFRASTRUCTURE_COUNT', 'Ein Deck darf maximal vier Infrastructure-Karten enthalten.');
         }
         if (count($domains) !== 2) {
             throw new ApiException('INVALID_DECK_DOMAINS', 'Das Deck muss genau zwei Tech-Domains enthalten.');

@@ -1,9 +1,10 @@
 interface DeckHeaderProps {
   deckSize: number;
   validation: string | null;
+  health?: { infrastructure: number; early: number };
 }
 
-export function DeckHeader({ deckSize, validation }: DeckHeaderProps) {
+export function DeckHeader({ deckSize, validation, health }: DeckHeaderProps) {
   return (
     <header className="screen-header deck-header">
       <div>
@@ -13,6 +14,7 @@ export function DeckHeader({ deckSize, validation }: DeckHeaderProps) {
       </div>
       <div className={`deck-counter ${validation ? 'invalid' : 'valid'}`}>
         <span>KARTEN</span>{deckSize}<small>/30</small>
+        {health && <em>{health.infrastructure}/4 Infra · {health.early} Early</em>}
       </div>
     </header>
   );

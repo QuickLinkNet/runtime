@@ -23,7 +23,7 @@ export function DeckBuilder({ initialDeck, onSave, onCancel, collection }: DeckB
 
   return (
     <main className="screen deck-screen">
-      <DeckHeader deckSize={builder.deck.length} validation={builder.validation} />
+      <DeckHeader deckSize={builder.deck.length} validation={builder.validation} health={builder.health} />
       <DomainSelector
         availableDomains={builder.techDomains}
         selectedDomains={builder.domains}
@@ -44,6 +44,8 @@ export function DeckBuilder({ initialDeck, onSave, onCancel, collection }: DeckB
         ownership={builder.ownership}
         onOwnershipChange={builder.setOwnership}
         collectionAvailable={collection !== null && collection !== undefined}
+        collectionMode={builder.collectionMode}
+        onCollectionModeChange={builder.setCollectionMode}
       />
       <div className="deck-layout">
         <CardCatalog
@@ -53,6 +55,8 @@ export function DeckBuilder({ initialDeck, onSave, onCancel, collection }: DeckB
           deckSize={builder.deck.length}
           counts={builder.counts}
           owned={collection?.cards ?? null}
+          collectionMode={builder.collectionMode}
+          infrastructureCount={builder.health.infrastructure}
           columns={catalogColumns}
           onAdd={addCard}
           onRemove={removeCard}
@@ -63,6 +67,7 @@ export function DeckBuilder({ initialDeck, onSave, onCancel, collection }: DeckB
           entries={builder.deckEntries}
           domainCounts={builder.domainCounts}
           validation={builder.validation}
+          health={builder.health}
           dirty={builder.dirty}
           starterKey={builder.starterKey}
           onStarterChange={builder.setStarterKey}

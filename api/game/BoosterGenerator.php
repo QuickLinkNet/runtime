@@ -17,15 +17,16 @@ final class BoosterGenerator
         $this->validateConfig();
     }
 
-    /** @param array<string,int> $owned @return array<int,array<string,mixed>> */
-    public function generate(array $owned): array
+    /** @param array<string,int> $owned @param string[]|null $allowedDefinitionIds @return array<int,array<string,mixed>> */
+    public function generate(array $owned, ?array $allowedDefinitionIds = null): array
     {
         $cards = [];
         $picked = [];
+        $allowed = $allowedDefinitionIds === null ? null : array_fill_keys($allowedDefinitionIds, true);
         foreach ($this->config['slots'] as $slot) {
             for ($index = 0; $index < (int)$slot['count']; $index++) {
                 $rarity = $this->weightedRarity($slot['weights']);
-                $definitionId = $this->pickCard($rarity, $owned, $picked);
+                $definitionId = $this->pickCard($rarity, $owned, $picked, $allowed);
                 $previous = (int)($owned[$definitionId] ?? 0);
                 $cards[] = [
                     'definitionId' => $definitionId,
@@ -56,13 +57,15 @@ final class BoosterGenerator
         throw new RuntimeException('Invalid booster rarity weights.');
     }
 
-    /** @param array<string,int> $owned @param array<string,bool> $picked */
-    private function pickCard(string $rarity, array $owned, array $picked): string
+    /** @param array<string,int> $owned @param array<string,bool> $picked @param array<string,bool>|null $allowed */
+    private function pickCard(string $rarity, array $owned, array $picked, ?array $allowed): string
     {
         $pool = array_keys(array_filter(
             $this->config['rarities'],
-            static fn(string $value): bool => $value === $rarity
+            static fn(string $value, string $id): bool => $value === $rarity && ($allowed === null || isset($allowed[$id])),
+            ARRAY_FILTER_USE_BOTH
         ));
+        if ($pool === []) throw new RuntimeException('No eligible card exists for booster rarity ' . $rarity . '.');
         $unique = array_values(array_filter($pool, static fn(string $id): bool => !isset($picked[$id])));
         if ($unique !== []) $pool = $unique;
 

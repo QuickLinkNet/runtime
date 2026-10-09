@@ -46,7 +46,10 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 CREATE TABLE IF NOT EXISTS player_progression (
   player_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
   booster_balance INT UNSIGNED NOT NULL DEFAULT 0,
-  test_mode TINYINT(1) NOT NULL DEFAULT 1,
+  credits INT UNSIGNED NOT NULL DEFAULT 0,
+  salvage_components INT UNSIGNED NOT NULL DEFAULT 0,
+  total_credits_earned INT UNSIGNED NOT NULL DEFAULT 0,
+  test_mode TINYINT(1) NOT NULL DEFAULT 0,
   total_boosters_opened INT UNSIGNED NOT NULL DEFAULT 0,
   last_booster_at DATETIME NULL,
   tutorial_completed_at DATETIME NULL,
@@ -59,6 +62,19 @@ CREATE TABLE IF NOT EXISTS player_progression (
   CONSTRAINT fk_progression_player FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS admin_audit_log (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  admin_player_id BIGINT UNSIGNED NOT NULL,
+  target_player_id BIGINT UNSIGNED NULL,
+  action VARCHAR(80) NOT NULL,
+  details_json TEXT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_admin_audit_created (created_at),
+  INDEX idx_admin_audit_target (target_player_id, created_at),
+  CONSTRAINT fk_admin_audit_admin FOREIGN KEY (admin_player_id) REFERENCES players(id),
+  CONSTRAINT fk_admin_audit_target FOREIGN KEY (target_player_id) REFERENCES players(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS player_collections (
   player_id BIGINT UNSIGNED NOT NULL,
   card_definition_id VARCHAR(100) NOT NULL,
@@ -67,6 +83,16 @@ CREATE TABLE IF NOT EXISTS player_collections (
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (player_id, card_definition_id),
   CONSTRAINT fk_collection_player FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS player_contracts (
+  player_id BIGINT UNSIGNED NOT NULL,
+  cycle_key VARCHAR(16) NOT NULL,
+  contract_key VARCHAR(64) NOT NULL,
+  progress INT UNSIGNED NOT NULL DEFAULT 0,
+  claimed_at DATETIME NULL,
+  PRIMARY KEY (player_id, cycle_key, contract_key),
+  CONSTRAINT fk_contract_player FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS player_loadouts (

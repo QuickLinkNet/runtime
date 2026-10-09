@@ -7,6 +7,7 @@ require_once __DIR__ . '/../api/game/BoosterGenerator.php';
 require_once __DIR__ . '/../api/game/GameEngine.php';
 require_once __DIR__ . '/../api/game/PlayerView.php';
 require_once __DIR__ . '/../api/game/BotPlayer.php';
+require_once __DIR__ . '/../api/game/BotProfiles.php';
 require_once __DIR__ . '/../api/game/TutorialScenario.php';
 
 $catalog = new CardCatalog(__DIR__ . '/../shared/cards.json');
@@ -208,12 +209,32 @@ check('Booster marks owned cards and prefers missing copies', function () use ($
     expect($common[0]['isNew'] === true);
 });
 
+check('Economy boosters contain only cards from the expansion pool', function () use ($catalog): void {
+    $sets = json_decode((string)file_get_contents(__DIR__ . '/../shared/card-sets.json'), true, 512, JSON_THROW_ON_ERROR);
+    $expansion = (array)$sets['expansionCardIds'];
+    $generator = new BoosterGenerator($catalog, null, static fn(int $min, int $max): int => $min);
+    $cards = $generator->generate([], $expansion);
+    expect(count($cards) === 5);
+    foreach ($cards as $card) expect(in_array($card['definitionId'], $expansion, true));
+});
+
 check('Starter decks are valid and contain 30 cards', function () use ($catalog): void {
     foreach (['frontend-backend', 'infrastructure-security', 'data-ai'] as $key) {
         $deck = $catalog->starterDeck($key);
         expect(count($deck) === 30);
         expect(count($catalog->validateDeck($deck)) === 2);
     }
+});
+
+check('Deck rules limit Legendary cards and Infrastructure density', function () use ($catalog): void {
+    $deck = $catalog->starterDeck('frontend-backend');
+    $deck[0] = 'frontend-angular-module';
+    $deck[1] = 'frontend-angular-module';
+    expectCode('INVALID_LEGENDARY_COPIES', fn() => $catalog->validateDeck($deck));
+    $deck = array_values(array_filter($catalog->starterDeck('frontend-backend'), fn(string $id): bool => $catalog->get($id)['type'] !== 'infrastructure'));
+    $deck = array_slice($deck, 0, 25);
+    $deck = array_merge($deck, ['frontend-state-store', 'frontend-design-system', 'backend-message-queue', 'backend-circuit-breaker', 'neutral-ci-pipeline']);
+    expectCode('INVALID_INFRASTRUCTURE_COUNT', fn() => $catalog->validateDeck($deck));
 });
 
 check('Only the three predefined starter decks qualify as free guest decks', function () use ($catalog): void {
@@ -316,6 +337,17 @@ check('Infrastructure can replace an occupied own slot', function () use ($catal
     expect(count($state['players']['p1']['infrastructure']) === 2);
     expect(in_array('new-infra', array_column($state['players']['p1']['infrastructure'], 'instanceId'), true));
     expect(in_array('old-infra', array_column($state['players']['p1']['trash'], 'instanceId'), true));
+});
+
+check('Infrastructure can be decommissioned once per turn to draw a replacement', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['hand'] = [card('frontend-state-store', 'spare-infra')];
+    $state['players']['p1']['deck'] = [card('frontend-vue-widget', 'fresh-card')];
+    $engine->applyAction($state, 'p1', ['type' => 'DECOMMISSION', 'cardInstanceId' => 'spare-infra']);
+    expect(in_array('fresh-card', array_column($state['players']['p1']['hand'], 'instanceId'), true));
+    expect(in_array('spare-infra', array_column($state['players']['p1']['trash'], 'instanceId'), true));
+    expectCode('DECOMMISSION_ALREADY_USED', fn() => $engine->applyAction($state, 'p1', ['type' => 'DECOMMISSION', 'cardInstanceId' => 'fresh-card']));
 });
 
 check('Hand limit sends overflow to trash', function () use ($catalog): void {
@@ -544,6 +576,37 @@ check('Server bot completes a legal turn', function () use ($catalog): void {
     $bot = new BotPlayer($engine, $catalog);
     $bot->playTurn($state, $botId);
     expect($state['status'] === 'finished' || $state['activePlayerId'] !== $botId);
+});
+
+check('Bot profiles provide three valid and distinct training opponents', function () use ($catalog): void {
+    $profiles = new BotProfiles($catalog);
+    $all = $profiles->all();
+    expect(array_keys($all) === ['junior', 'security', 'chaos']);
+    foreach ($all as $profile) {
+        expect(count($profile['deck']) === 30);
+        expect(count($catalog->validateDeck($profile['deck'])) === 2);
+    }
+    expect($all['junior']['name'] !== $all['security']['name'] && $all['security']['name'] !== $all['chaos']['name']);
+});
+
+check('Security Auditor prioritizes a FIREWALL deployment', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1', 4);
+    $state['players']['p1']['isBot'] = true;
+    $state['players']['p1']['botProfile'] = 'security';
+    $state['players']['p1']['hand'] = [card('security-firewall-gateway', 'auditor-firewall')];
+    (new BotPlayer($engine, $catalog))->playTurn($state, 'p1');
+    expect(in_array('security-firewall-gateway', array_column($state['players']['p1']['services'], 'definitionId'), true));
+});
+
+check('Chaos Engineer prioritizes BUG generation', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1', 5);
+    $state['players']['p1']['isBot'] = true;
+    $state['players']['p1']['botProfile'] = 'chaos';
+    $state['players']['p1']['hand'] = [card('neutral-technical-debt', 'chaos-debt')];
+    (new BotPlayer($engine, $catalog))->playTurn($state, 'p1');
+    expect(count(array_filter($state['players']['p2']['services'], static fn(array $service): bool => $service['definitionId'] === 'token-bug')) === 3);
 });
 
 check('Tutorial rejects actions outside the current objective', function () use ($catalog): void {

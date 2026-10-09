@@ -40,6 +40,11 @@ body:has(.boot-screen) :is(.music-control, .pwa-controls) { visibility: hidden; 
 /* Menu */
 .menu-screen { min-height: 100vh; padding: 28px clamp(28px, 6vw, 92px); background-image: linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px); background-size: 48px 48px; }
 .menu-header, .match-topbar { display: flex; align-items: center; justify-content: space-between; }
+.menu-account-area { display: flex; align-items: center; gap: 8px; }
+.admin-launch { border: 1px solid #a57234; border-radius: 999px; padding: 8px 10px; color: #ffc76c; background: rgba(165,114,52,.11); cursor: pointer; font: 800 8px/1 ui-monospace, monospace; letter-spacing: .12em; }
+.credits-chip { display: flex; align-items: center; gap: 7px; border: 1px solid #355b6b; border-radius: 999px; padding: 7px 11px; color: #84d7ff; background: rgba(44,130,170,.1); }
+.credits-chip small { color: #82a9b9; font: 800 8px/1 ui-monospace, monospace; letter-spacing: .11em; }
+.credits-chip b { font-size: 12px; }
 .brand-small { font-size: 20px; font-weight: 900; letter-spacing: -.04em; }
 .profile-chip { display: flex; align-items: center; gap: 9px; border: 1px solid var(--line); border-radius: 999px; padding: 8px 13px; color: var(--muted); background: rgba(14,23,18,.7); cursor: pointer; font-size: 12px; }
 .profile-chip i { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px rgba(185,244,74,.1); }

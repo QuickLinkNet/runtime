@@ -1,4 +1,5 @@
-import type { BoosterOpening, CollectionSnapshot, GameAction, GameState, MatchPayload, PlayerIdentity } from '../game/types';
+import type { AdminOverview, AdminPlayerDetail, AdminPlayerSummary, BoosterOpening, CollectionSnapshot, GameAction, GameState, MatchPayload, PlayerIdentity } from '../game/types';
+import type { BotProfileKey } from '../game/botProfiles';
 
 interface ApiSuccess<T> { success: true; data: T }
 interface ApiFailure { success: false; error: { code: string; message: string } }
@@ -61,8 +62,24 @@ export const api = {
   loadout: () => request<{ deck: string[] | null }>('loadout'),
   saveLoadout: (deck: string[]) => request<void>('saveLoadout', { method: 'POST', body: JSON.stringify({ deck }) }),
   openBooster: () => request<BoosterOpening>('openBooster', { method: 'POST', body: '{}' }),
-  createMatch: (mode: 'single' | 'multi', deck: string[]) => request<MatchPayload>('createMatch', {
-    method: 'POST', body: JSON.stringify({ mode, deck }),
+  buyBooster: () => request<CollectionSnapshot>('buyBooster', { method: 'POST', body: '{}' }),
+  salvageDuplicates: () => request<CollectionSnapshot>('salvageDuplicates', { method: 'POST', body: '{}' }),
+  craftCard: (definitionId: string) => request<CollectionSnapshot>('craftCard', { method: 'POST', body: JSON.stringify({ definitionId }) }),
+  claimContract: (key: string) => request<CollectionSnapshot>('claimContract', { method: 'POST', body: JSON.stringify({ key }) }),
+  adminOverview: () => request<AdminOverview>('adminOverview'),
+  adminPlayers: (query = '') => request<{ players: AdminPlayerSummary[] }>('adminPlayers', undefined, `&query=${encodeURIComponent(query)}`),
+  adminPlayer: (playerId: string) => request<AdminPlayerDetail>('adminPlayer', undefined, `&playerId=${encodeURIComponent(playerId)}`),
+  adminUpdatePlayer: (playerId: string, credits: number, boosterBalance: number, components: number) => request<AdminPlayerDetail>('adminUpdatePlayer', {
+    method: 'POST', body: JSON.stringify({ playerId, credits, boosterBalance, components }),
+  }),
+  adminResetCollections: () => request<{ deletedCopies: number }>('adminResetCollections', {
+    method: 'POST', body: JSON.stringify({ confirmation: 'RESET ALL', doubleConfirmed: true }),
+  }),
+  adminDeleteGuestPlayers: () => request<{ deletedPlayers: number; deletedOwnedMatches: number }>('adminDeleteGuestPlayers', {
+    method: 'POST', body: JSON.stringify({ confirmation: 'DELETE GUESTS', doubleConfirmed: true }),
+  }),
+  createMatch: (mode: 'single' | 'multi', deck: string[], botProfile?: BotProfileKey) => request<MatchPayload>('createMatch', {
+    method: 'POST', body: JSON.stringify({ mode, deck, ...(mode === 'single' && botProfile ? { botProfile } : {}) }),
   }),
   createTutorial: () => request<MatchPayload>('createTutorial', { method: 'POST', body: '{}' }),
   joinMatch: (roomCode: string, deck: string[]) => request<MatchPayload>('joinMatch', {

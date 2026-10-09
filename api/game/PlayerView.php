@@ -16,6 +16,7 @@ final class PlayerView
                 'id' => $player['id'],
                 'name' => $player['name'],
                 'isBot' => $player['isBot'],
+                'botProfile' => $player['isBot'] ? ($player['botProfile'] ?? null) : null,
                 'domains' => $isViewer ? $player['domains'] : [],
                 'core' => $player['core'],
                 'deckCount' => count($player['deck']),
@@ -31,6 +32,7 @@ final class PlayerView
                 'fatigue' => $player['fatigue'],
                 'mulliganDone' => $isViewer ? $player['mulliganDone'] : null,
                 'consecutiveTimeouts' => $player['consecutiveTimeouts'],
+                'canDecommission' => $isViewer && !(bool)($player['turnFlags']['infrastructureDecommissioned'] ?? false),
                 'matchStats' => [
                     'cardsPlayed' => (int)($player['matchStats']['cardsPlayed'] ?? 0),
                     'servicesDeployed' => (int)($player['matchStats']['servicesDeployed'] ?? 0),
@@ -67,7 +69,12 @@ final class PlayerView
             'finishReason' => $state['finishReason'],
             'startedAt' => $state['startedAt'] ?? null,
             'finishedAt' => $state['finishedAt'] ?? null,
-            'reward' => $state['matchRewards'][$viewerId] ?? ['firstWinBooster' => false],
+            'reward' => $state['matchRewards'][$viewerId] ?? [
+                'firstWinBooster' => false,
+                'credits' => 0,
+                'matchCredits' => 0,
+                'winBonus' => 0,
+            ],
             'events' => $events,
         ];
         if (isset($state['tutorial'])) {

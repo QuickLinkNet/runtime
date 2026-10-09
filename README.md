@@ -89,4 +89,12 @@ Service Worker funktionieren lokal nur im Production-Build (`npm run build` plus
 
 Alternativ zu den Werten in `config.php` können `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` und `APP_ENV` als Umgebungsvariablen gesetzt werden. Roh-Tokens werden nie in der Datenbank gespeichert; dort liegt ausschließlich der SHA-256-Hash.
 
+Für die Admin Console wird zusätzlich eine serverseitige E-Mail-Allowlist gesetzt, zum Beispiel in `api/.env`:
+
+```ini
+RUNTIME_ADMIN_EMAILS=du@beispiel.de,kollege@beispiel.de
+```
+
+Nur angemeldete Accounts mit einer dieser E-Mail-Adressen sehen und nutzen den Admin-Zugang. Die Variable wird nie an den Browser ausgeliefert.
+
 Weitere Informationen: [Aktueller Projektstand](docs/project-status.md), [Architektur](docs/architecture.md), [Frontend-Struktur](docs/frontend-architecture.md), [Spielregeln](docs/game-rules.md), [API](docs/api.md), [Kartensystem](docs/card-system.md), [Zukunftsideen](docs/future-ideas.md).

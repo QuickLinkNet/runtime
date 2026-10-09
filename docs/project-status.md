@@ -27,8 +27,9 @@ Diese Datei ist der kurze, verbindliche Übergabepunkt für die weitere Entwickl
 - API- und Matchdaten sind bewusst vom Service-Worker-Cache ausgeschlossen
 - Android-PWA live repariert: konfliktfreie Root-Icons statt des vom Hosting reservierten `/icons/`-Pfads
 - serverautoritative Booster mit Common-, Uncommon-, Rare- und Legendary-Slots
-- persistente Sammlung pro Spieler inklusive Duplicate Protection und Opening-Historie
+- persistente Sammlung pro Spieler inklusive festem 48-Karten-Basis-Set, erspieltem Erweiterungsset, Duplicate Protection und Opening-Historie
 - responsives Booster-Opening mit einzelnem Aufdecken und kompletter Sammlungsansicht
+- verdiente Credits für Account-Matches (10 Abschluss, +15 Sieg), 100-Credit-Booster und einmaliger Bonus-Booster beim ersten Sieg
 - optionaler Sammlungsfilter und Besitzanzeige im Deck Builder; Karten bleiben in der Testphase frei spielbar
 - neue Seltenheitsrahmen auf allen Kartenansichten: Common grün, Uncommon blau, Rare violett, Legendary gold
 - achtteiliges, serverautoritatives Tutorial mit geführten Aktionen, responsivem Coach, Wiederholungsmodus und einmaliger Booster-Belohnung
@@ -40,6 +41,8 @@ Diese Datei ist der kurze, verbindliche Übergabepunkt für die weitere Entwickl
 - Härtung: idempotente `clientActionId`-Aktionen, Wiederverbindungsstatus und ein sicherer Einzel-Retry nach Netzfehlern
 - Balancing-Telemetrie für Aktionen und Match-Zusammenfassungen, inklusive automatischer Migration
 - HTTP-Integrationstest für Identität, Gastgrenze, Match-Aktion und Replay-Schutz
+- drei auswählbare, serverautoritative Bot-Profile mit eigenen Decks und klaren Spielstilen: Junior Bot, Security Auditor und Chaos Engineer
+- geschützte Admin Console mit serverseitiger E-Mail-Allowlist, Spieler-/Economy-Übersicht, Audit-Log und doppelt bestätigtem globalem Sammlungs-Reset
 
 ## Qualitätssicherung
 
@@ -55,7 +58,7 @@ Diese Datei ist der kurze, verbindliche Übergabepunkt für die weitere Entwickl
 
 1. **Set-2-Artworks:** die 24 Motive aus der Artwork-Queue einzeln erstellen und abnehmen.
 2. **Audio:** Pack-Riss, Reveal-Stufen und Legendary-Stinger sowie Match-Sounds mit Lautstärkereglern.
-3. **Onboarding:** abgeschlossen; als Nächstes den Match-Abschluss und Statistiken ausbauen.
+3. **Bot-Ausbau:** später Principal Architect mit Komboplanung und weiteren klaren Deck-Archetypen.
 4. **Balancing & Härtung:** abgeschlossen: Telemetrie, HTTP-Integrationstest, Wiederverbindung und Replay-Schutz bei parallelen/erneuten Aktionen.
 
 ## Danach

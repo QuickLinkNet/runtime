@@ -1,10 +1,12 @@
 import rawCards from '../../shared/cards.json';
 import rawStarterDecks from '../../shared/starter-decks.json';
+import { rarityByCard } from './cardRarity';
 import type { CardDefinition, Domain } from './types';
 
 export const cards = rawCards as CardDefinition[];
 export const playableCards = cards.filter((card) => !card.token);
 export const cardById = new Map(cards.map((card) => [card.id, card]));
+export const maxInfrastructurePerDeck = 4;
 export type StarterDeckKey = keyof typeof rawStarterDecks;
 
 export const domainLabels: Record<Domain, string> = {
@@ -41,13 +43,17 @@ export function validateDeck(deck: string[]): string | null {
   if (deck.length !== 30) return `Noch ${30 - deck.length} Karten bis zum vollständigen Deck.`;
   const counts = new Map<string, number>();
   const domains = new Set<Domain>();
+  let infrastructure = 0;
   for (const id of deck) {
     const card = cardById.get(id);
     if (!card || card.token) return 'Das Deck enthält eine ungültige Karte.';
     const count = (counts.get(id) ?? 0) + 1;
-    if (count > 2) return 'Maximal zwei Kopien pro Karte.';
+    const maxCopies = rarityByCard[id] === 'legendary' ? 1 : 2;
+    if (count > maxCopies) return maxCopies === 1 ? 'Legendary-Karten dürfen nur einmal im Deck sein.' : 'Maximal zwei Kopien pro Karte.';
     counts.set(id, count);
+    if (card.type === 'infrastructure') infrastructure += 1;
     if (card.domain !== 'neutral') domains.add(card.domain);
   }
+  if (infrastructure > maxInfrastructurePerDeck) return `Maximal ${maxInfrastructurePerDeck} Infrastructure-Karten pro Deck.`;
   return domains.size === 2 ? null : 'Wähle Karten aus genau zwei Tech-Domains.';
 }

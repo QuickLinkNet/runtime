@@ -7,7 +7,9 @@
 @import './tokens.css';
 @import './base.css';
 @import './screens.css';
+@import './admin.css';
 @import './starter-decks.css';
+@import './bot-profiles.css';
 @import './deck-builder.css';
 @import './boosters.css';
 @import './match.css';

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { cardById, domainLabels, makeStarterDeck, playableCards, starterNames, validateDeck } from '../../../game/catalog';
 import type { Domain } from '../../../game/types';
-import { compareCards, domainOrder, domainsInDeck, techDomains, type CatalogFilter, type DeckEntry, type SortMode } from '../model/deckBuilder';
+import { analyzeDeck, compareCards, domainOrder, domainsInDeck, maxCopiesFor, techDomains, type CatalogFilter, type DeckEntry, type SortMode } from '../model/deckBuilder';
 
 export function useDeckBuilder(initialDeck: string[], collection: Record<string, number> | null) {
   const [deck, setDeck] = useState([...initialDeck]);
@@ -12,6 +12,7 @@ export function useDeckBuilder(initialDeck: string[], collection: Record<string,
   const [starterKey, setStarterKey] = useState('frontend-backend');
   const [notice, setNotice] = useState<string | null>(null);
   const [ownership, setOwnership] = useState<'all' | 'owned'>('all');
+  const [collectionMode, setCollectionMode] = useState(false);
 
   const counts = useMemo(() => {
     const next = new Map<string, number>();
@@ -46,7 +47,15 @@ export function useDeckBuilder(initialDeck: string[], collection: Record<string,
     deck.filter((id) => cardById.get(id)?.domain === domain).length,
   ])), [deck]);
 
-  const validation = validateDeck(deck);
+  const collectionValidation = useMemo(() => {
+    if (!collectionMode || !collection) return null;
+    for (const [id, amount] of counts.entries()) {
+      if (amount > (collection[id] ?? 0)) return `Collection Mode: Dir fehlt eine Kopie von ${cardById.get(id)?.name ?? 'dieser Karte'}.`;
+    }
+    return null;
+  }, [collection, collectionMode, counts]);
+  const validation = validateDeck(deck) ?? collectionValidation;
+  const health = useMemo(() => analyzeDeck(deck), [deck]);
   const dirty = deck.join('|') !== initialDeck.join('|');
 
   function toggleDomain(domain: Domain) {
@@ -73,8 +82,16 @@ export function useDeckBuilder(initialDeck: string[], collection: Record<string,
 
   function addCard(id: string) {
     const card = cardById.get(id);
-    if (!card || deck.length >= 30 || (counts.get(id) ?? 0) >= 2) return;
+    if (!card || deck.length >= 30 || (counts.get(id) ?? 0) >= maxCopiesFor(card)) return;
+    if (card.type === 'infrastructure' && health.infrastructure >= 4) {
+      setNotice('Maximal vier Infrastructure-Karten pro Deck – damit deine Hand spielbar bleibt.');
+      return;
+    }
     if (card.domain !== 'neutral' && !domains.includes(card.domain)) return;
+    if (collectionMode && (collection?.[id] ?? 0) <= (counts.get(id) ?? 0)) {
+      setNotice('Collection Mode: Diese Kopie ist nicht in deiner Sammlung verfügbar.');
+      return;
+    }
     setDeck((current) => [...current, id]);
     setNotice(null);
   }
@@ -109,17 +126,20 @@ export function useDeckBuilder(initialDeck: string[], collection: Record<string,
     starterKey,
     notice,
     ownership,
+    collectionMode,
     counts,
     visibleCards,
     deckEntries,
     domainCounts,
     validation,
+    health,
     dirty,
     setFilter,
     setQuery,
     setSort,
     setStarterKey,
     setOwnership,
+    setCollectionMode,
     toggleDomain,
     addCard,
     removeCard,

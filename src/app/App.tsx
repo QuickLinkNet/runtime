@@ -4,11 +4,13 @@ import { DeckBuilder } from '../features/deck-builder/DeckBuilder';
 import { BoosterLab } from '../features/boosters/BoosterLab';
 import { MatchBoard } from '../features/match/MatchBoard';
 import { makeStarterDeck, validateDeck, type StarterDeckKey } from '../game/catalog';
+import type { BotProfileKey } from '../game/botProfiles';
 import { useGame } from '../game/GameContext';
 import type { CollectionSnapshot, GameAction, MatchPayload, PlayerIdentity } from '../game/types';
 import { BootPage } from '../pages/BootPage';
 import { IdentityPage } from '../pages/IdentityPage';
 import { AccountPage } from '../pages/AccountPage';
+import { AdminPage } from '../pages/AdminPage';
 import { MainMenuPage } from '../pages/MainMenuPage';
 import { MultiplayerPage } from '../pages/MultiplayerPage';
 import { cacheIdentity, cachedIdentity, clearCachedIdentity } from '../pwa/identityCache';
@@ -17,7 +19,7 @@ import { StarterDeckPage } from '../pages/StarterDeckPage';
 import { TutorialIntroPage } from '../pages/TutorialIntroPage';
 import { ErrorToast } from '../ui/molecules';
 
-type Screen = 'boot' | 'name' | 'starter' | 'tutorial' | 'menu' | 'deck' | 'multiplayer' | 'boosters' | 'account';
+type Screen = 'boot' | 'name' | 'starter' | 'tutorial' | 'menu' | 'deck' | 'multiplayer' | 'boosters' | 'account' | 'admin';
 
 function loadStoredDeck(): string[] | null {
   const saved = localStorage.getItem('runtime.deck');
@@ -176,6 +178,9 @@ export function App() {
       setIdentity((current) => current ? { ...current, tutorialCompleted: true } : current);
       try { setCollection(await api.collection()); } catch { /* reward is already persisted server-side */ }
     }
+    if (state?.status === 'finished' && identity?.isAccount) {
+      try { setCollection(await api.collection()); } catch { /* the result remains visible even when the refresh fails */ }
+    }
     dispatch({ type: 'CLEAR' });
     setResume(null);
     setScreen('menu');
@@ -183,8 +188,9 @@ export function App() {
 
   function rematch() {
     const mode = store.state?.mode === 'multi' ? 'multi' : 'single';
+    const botProfile = Object.values(store.state?.players ?? {}).find((player) => player.isBot)?.botProfile as BotProfileKey | null | undefined;
     dispatch({ type: 'CLEAR' });
-    void run(() => api.createMatch(mode, deck));
+    void run(() => api.createMatch(mode, deck, botProfile ?? 'junior'));
   }
 
   function editDeckAfterMatch() {
@@ -229,6 +235,7 @@ export function App() {
 
   if (screen === 'starter') return <StarterDeckPage currentDeck={deck} allowBack={hasSelectedDeck} onConfirm={selectStarter} onBack={() => setScreen('menu')} />;
   if (screen === 'account') return <AccountPage identity={identity} onLinked={accountLinked} onBack={() => setScreen('menu')} />;
+  if (screen === 'admin' && identity.isAdmin) return <AdminPage onBack={() => setScreen('menu')} />;
 
   if (store.state) {
     if (store.state.status === 'lobby') {
@@ -259,14 +266,16 @@ export function App() {
   return <MainMenuPage
     identity={identity}
     deck={deck}
+    collection={collection}
     resume={resume}
     pending={store.pending}
-    onSingle={() => run(() => api.createMatch('single', deck))}
+    onSingle={(botProfile) => run(() => api.createMatch('single', deck, botProfile))}
     onMultiplayer={() => setScreen('multiplayer')}
     onDeck={() => setScreen('deck')}
     onBoosters={() => setScreen('boosters')}
     onChooseStarter={() => setScreen('starter')}
     onAccount={() => setScreen('account')}
+    onAdmin={() => setScreen('admin')}
     onTutorial={() => setScreen('tutorial')}
     onResume={() => { if (resume) { dispatch({ type: 'MATCH', payload: resume }); setResume(null); } }}
   />;

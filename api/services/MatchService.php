@@ -11,7 +11,9 @@ final class MatchService
         private GameEngine $engine,
         private BotPlayer $bot,
         private CardCatalog $catalog,
-        private TelemetryService $telemetry
+        private TelemetryService $telemetry,
+        private BotProfiles $botProfiles,
+        private ContractService $contracts
     ) {
         $this->matches = new MatchRepository($db);
         $this->tutorial = new TutorialScenario($catalog);
@@ -39,7 +41,7 @@ final class MatchService
         }
     }
 
-    public function create(string $playerId, string $playerName, string $mode, array $deck, bool $isAccount = true): array
+    public function create(string $playerId, string $playerName, string $mode, array $deck, bool $isAccount = true, string $botProfile = 'junior'): array
     {
         if (!in_array($mode, ['single', 'multi'], true)) {
             throw new ApiException('INVALID_MODE', 'Ungültiger Spielmodus.');
@@ -56,9 +58,11 @@ final class MatchService
             $matchId = $this->matches->create($code, $mode, $playerId, $state);
             $this->matches->addPlayer($matchId, $playerId, 0);
             if ($mode === 'single') {
-                [$botId, $botName] = $this->createBotIdentity();
-                $botDeck = $this->catalog->starterDeck('data-ai');
+                $profile = $this->botProfiles->get($botProfile);
+                [$botId, $botName] = $this->createBotIdentity((string)$profile['name']);
+                $botDeck = (array)$profile['deck'];
                 $this->engine->addPlayer($state, $botId, $botName, $botDeck, true);
+                $state['players'][$botId]['botProfile'] = $botProfile;
                 $this->matches->addPlayer($matchId, $botId, 1);
                 $this->engine->startMatch($state);
                 $this->matches->save($matchId, $state, 2);
@@ -297,28 +301,51 @@ final class MatchService
             }
             $this->db->prepare('INSERT IGNORE INTO player_progression (player_id) VALUES (?)')->execute([$playerId]);
             $won = $state['winnerId'] === $playerId;
+            $isAccount = $this->isAccount($playerId);
+            $matchCredits = $isAccount ? 10 : 0;
+            $winBonus = $isAccount && $won ? 15 : 0;
+            $credits = $matchCredits + $winBonus;
             $rewarded = false;
             if ($won) {
-                $reward = $this->db->prepare(
-                    'UPDATE player_progression
-                     SET matches_played = matches_played + 1, wins = wins + 1,
-                         first_win_at = COALESCE(first_win_at, CURRENT_TIMESTAMP),
-                         first_win_reward_claimed_at = CURRENT_TIMESTAMP,
-                         booster_balance = booster_balance + 1
-                     WHERE player_id = ? AND first_win_reward_claimed_at IS NULL'
-                );
-                $reward->execute([$playerId]);
-                $rewarded = $reward->rowCount() === 1;
+                if ($isAccount) {
+                    $reward = $this->db->prepare(
+                        'UPDATE player_progression
+                         SET matches_played = matches_played + 1, wins = wins + 1,
+                             first_win_at = COALESCE(first_win_at, CURRENT_TIMESTAMP),
+                             first_win_reward_claimed_at = CURRENT_TIMESTAMP,
+                             booster_balance = booster_balance + 1,
+                             credits = credits + ?, total_credits_earned = total_credits_earned + ?
+                         WHERE player_id = ? AND first_win_reward_claimed_at IS NULL'
+                    );
+                    $reward->execute([$credits, $credits, $playerId]);
+                    $rewarded = $reward->rowCount() === 1;
+                }
                 if (!$rewarded) {
-                    $this->db->prepare('UPDATE player_progression SET matches_played = matches_played + 1, wins = wins + 1 WHERE player_id = ?')->execute([$playerId]);
+                    $this->db->prepare('UPDATE player_progression SET matches_played = matches_played + 1, wins = wins + 1, credits = credits + ?, total_credits_earned = total_credits_earned + ? WHERE player_id = ?')
+                        ->execute([$credits, $credits, $playerId]);
                 }
             } else {
-                $this->db->prepare('UPDATE player_progression SET matches_played = matches_played + 1, losses = losses + 1 WHERE player_id = ?')->execute([$playerId]);
+                $this->db->prepare('UPDATE player_progression SET matches_played = matches_played + 1, losses = losses + 1, credits = credits + ?, total_credits_earned = total_credits_earned + ? WHERE player_id = ?')
+                    ->execute([$credits, $credits, $playerId]);
             }
-            $state['matchRewards'][$playerId] = ['firstWinBooster' => $rewarded];
+            $state['matchRewards'][$playerId] = [
+                'firstWinBooster' => $rewarded,
+                'credits' => $credits,
+                'matchCredits' => $matchCredits,
+                'winBonus' => $winBonus,
+            ];
+            if ($isAccount) $this->contracts->recordMatch($playerId, $won, (int)($player['matchStats']['servicesDeployed'] ?? 0));
         }
         if ($state['mode'] !== 'tutorial') $state['resultsRecorded'] = true;
         $this->telemetry->recordSummary($matchId, $state);
+    }
+
+    private function isAccount(string $playerId): bool
+    {
+        $statement = $this->db->prepare('SELECT account_email FROM players WHERE id = ?');
+        $statement->execute([$playerId]);
+        $player = $statement->fetch();
+        return $player !== false && $player['account_email'] !== null;
     }
 
     private function replayedActionVersion(array $state, string $playerId, string $actionId): ?int

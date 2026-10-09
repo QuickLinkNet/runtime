@@ -41,6 +41,7 @@ export interface PlayerView {
   id: string;
   name: string;
   isBot: boolean;
+  botProfile: string | null;
   domains: Domain[];
   core: number;
   deckCount: number;
@@ -56,6 +57,7 @@ export interface PlayerView {
   fatigue: number;
   mulliganDone: boolean | null;
   consecutiveTimeouts: number;
+  canDecommission: boolean;
   matchStats: MatchStats;
 }
 
@@ -110,7 +112,7 @@ export interface GameState {
   finishReason: string | null;
   startedAt: string | null;
   finishedAt: string | null;
-  reward: { firstWinBooster: boolean };
+  reward: { firstWinBooster: boolean; credits: number; matchCredits: number; winBonus: number };
   events: GameEvent[];
   tutorial?: TutorialProgress;
 }
@@ -147,6 +149,7 @@ export type GameAction = (
   | { type: 'PLAY_CARD'; cardInstanceId: string; targetId?: string; overclock?: boolean }
   | { type: 'ATTACK'; attackerId: string; targetId: string }
   | { type: 'DEBUG'; targetId: string }
+  | { type: 'DECOMMISSION'; cardInstanceId: string }
   | { type: 'END_TURN' }
   | { type: 'CONTINUE_TUTORIAL' }
 ) & { clientActionId?: string };
@@ -157,15 +160,70 @@ export interface PlayerIdentity {
   tutorialCompleted?: boolean;
   isAccount: boolean;
   accountEmail: string | null;
+  isAdmin: boolean;
+}
+
+export interface AdminAuditEntry {
+  id: number;
+  action: string;
+  detailsJson: string;
+  createdAt: string;
+  adminName: string;
+  targetName: string | null;
+}
+
+export interface AdminPlayerSummary {
+  id: string;
+  name: string;
+  account_email: string | null;
+  created_at: string;
+  last_seen_at: string;
+  matchesPlayed: number;
+  wins: number;
+  losses: number;
+  credits: number;
+  components: number;
+  boosterBalance: number;
+  uniqueCards: number;
+  totalCards: number;
+}
+
+export interface AdminPlayerDetail {
+  player: AdminPlayerSummary & { totalCreditsEarned: number; totalBoostersOpened: number };
+  cards: Array<{ definitionId: string; quantity: number }>;
+  deck: string[] | null;
+  audit: AdminAuditEntry[];
+}
+
+export interface AdminOverview {
+  summary: { players: number; accounts: number; credits: number; components: number; unopenedBoosters: number; collectedCards: number };
+  recentAudit: AdminAuditEntry[];
 }
 
 export interface CollectionSnapshot {
   cards: Record<string, number>;
   uniqueCards: number;
   totalCards: number;
+  credits: number;
+  components: number;
+  excessCopies: number;
+  boosterPrice: number;
   boosterBalance: number;
   unlimitedBoosters: boolean;
   totalBoostersOpened: number;
+  contracts: { cycleKey: string; items: ContractProgress[] };
+}
+
+export interface ContractProgress {
+  key: string;
+  label: string;
+  description: string;
+  goal: number;
+  credits: number;
+  components: number;
+  progress: number;
+  claimed: boolean;
+  claimable: boolean;
 }
 
 export interface BoosterCard {
@@ -173,6 +231,8 @@ export interface BoosterCard {
   rarity: CardRarity;
   previousQuantity: number;
   isNew: boolean;
+  salvaged?: boolean;
+  salvageValue?: number;
 }
 
 export interface BoosterOpening {

@@ -96,7 +96,7 @@ export function useMatchController({ state, pending, onAction }: UseMatchControl
       playSfx('card-select');
       setSelection({ kind: 'card', id: instanceId, definition });
       if (definition.type === 'infrastructure' && player.infrastructure.length >= 2) {
-        setInteractionNotice('2/2 Infrastructure-Slots belegt: Wähle auf deinem Board die Karte, die in den Trash wandert.');
+        setInteractionNotice('2/2 Infrastructure-Slots belegt: Ersetze eine ausgelegte Karte – oder dekommissioniere diese Handkarte und ziehe 1.');
       } else {
         setInteractionNotice(`${definition.name} ausgewählt.`);
       }
@@ -159,6 +159,14 @@ export function useMatchController({ state, pending, onAction }: UseMatchControl
     setSelection(null);
   }
 
+  async function decommission() {
+    if (selection?.kind !== 'card' || selection.definition.type !== 'infrastructure') return;
+    if (!player.canDecommission || pending || !myTurn) return;
+    await onAction({ type: 'DECOMMISSION', cardInstanceId: selection.id });
+    playSfx('infrastructure-deploy');
+    setSelection(null);
+  }
+
   return {
     player,
     opponent,
@@ -185,6 +193,7 @@ export function useMatchController({ state, pending, onAction }: UseMatchControl
     selectAttacker,
     target,
     playWithoutTarget,
+    decommission,
     canTargetEntity: (entity: BoardEntity, ownerId: string, zone: 'services' | 'infrastructure') => {
       if (!canTargetEntity(selection, state.viewerId, entity, ownerId, zone)) return false;
       if (!state.tutorial || !selection) return true;

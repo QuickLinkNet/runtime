@@ -32,6 +32,7 @@ export function MatchResult({ player, opponent, won, state, onRematch, onDeck, o
         <span className="eyebrow">MATCH ABSCHLUSS · TURN {state.turn}</span>
         <h1>{won ? 'DEPLOYMENT SUCCESSFUL' : 'SYSTEM COMPROMISED'}</h1>
         <p>{resultCopy(state.finishReason, won)}</p>
+        {state.reward.credits > 0 && <strong className="credits-reward">+{state.reward.credits} CREDITS{state.reward.winBonus > 0 ? ` · ${state.reward.matchCredits} MATCH + ${state.reward.winBonus} WIN` : ' · MATCH ABSCHLUSS'}</strong>}
         {state.reward.firstWinBooster && <strong className="first-win-reward">✦ ERSTER SIEG · BOOSTER FREIGESCHALTET</strong>}
       </section>
 

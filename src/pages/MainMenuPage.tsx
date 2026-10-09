@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { GameCard } from '../features/cards';
 import { cardById, domainLabels, starterKeyForDeck, starterNames } from '../game/catalog';
-import type { Domain, MatchPayload, PlayerIdentity } from '../game/types';
+import { botProfileKeys, botProfiles, type BotProfileKey } from '../game/botProfiles';
+import type { CollectionSnapshot, Domain, MatchPayload, PlayerIdentity } from '../game/types';
 import { Button } from '../ui/atoms';
 
 interface MainMenuPageProps {
   identity: PlayerIdentity;
   deck: string[];
+  collection: CollectionSnapshot | null;
   resume: MatchPayload | null;
   pending: boolean;
-  onSingle: () => void;
+  onSingle: (profile: BotProfileKey) => void;
   onMultiplayer: () => void;
   onDeck: () => void;
   onBoosters: () => void;
@@ -17,6 +19,7 @@ interface MainMenuPageProps {
   onTutorial: () => void;
   onResume: () => void;
   onAccount: () => void;
+  onAdmin: () => void;
 }
 
 type MenuActionKind = 'singleplayer' | 'multiplayer' | 'deck' | 'booster';
@@ -39,10 +42,11 @@ function MenuAction({ kind, children }: { kind: MenuActionKind; children: string
   return <><span className="mode-action-icon"><MenuActionIcon kind={kind} /></span><span>{children}</span><span className="mode-action-arrow" aria-hidden="true">→</span></>;
 }
 
-export function MainMenuPage({ identity, deck, resume, pending, onSingle, onMultiplayer, onDeck, onBoosters, onChooseStarter, onTutorial, onResume, onAccount }: MainMenuPageProps) {
+export function MainMenuPage({ identity, deck, collection, resume, pending, onSingle, onMultiplayer, onDeck, onBoosters, onChooseStarter, onTutorial, onResume, onAccount, onAdmin }: MainMenuPageProps) {
   const starterKey = starterKeyForDeck(deck);
   const activeDeckName = starterKey ? starterNames[starterKey] : 'Custom Stack';
   const [launchMode, setLaunchMode] = useState<LaunchMode | null>(null);
+  const [botProfile, setBotProfile] = useState<BotProfileKey>('junior');
   const deckDomains = [...new Set(deck
     .map((id) => cardById.get(id)?.domain)
     .filter((domain): domain is Domain => domain !== undefined && domain !== 'neutral' && domain !== 'token'))];
@@ -50,18 +54,23 @@ export function MainMenuPage({ identity, deck, resume, pending, onSingle, onMult
     ...deckDomains.map((domain) => deck.find((id) => cardById.get(id)?.domain === domain)),
     deck.find((id) => cardById.get(id)?.domain === 'neutral'),
   ].filter((id): id is string => Boolean(id)).slice(0, 3);
+  const selectedBot = botProfiles[botProfile];
 
   function startSelectedMode() {
-    const action = launchMode === 'single' ? onSingle : onMultiplayer;
     setLaunchMode(null);
-    action();
+    if (launchMode === 'single') onSingle(botProfile);
+    else onMultiplayer();
   }
 
   return (
     <main className="menu-screen">
       <header className="menu-header">
         <div className="brand-small">RUNTIME<span>_</span></div>
-        <button className={`profile-chip${identity.isAccount ? ' is-account' : ''}`} type="button" onClick={onAccount}><i />{identity.name}<small>{identity.isAccount ? 'ACCOUNT' : 'GAST'}</small></button>
+        <div className="menu-account-area">
+          {identity.isAccount && collection && <span className="credits-chip"><small>CREDITS</small><b>{collection.credits}</b></span>}
+          {identity.isAdmin && <button type="button" className="admin-launch" onClick={onAdmin}>ADMIN</button>}
+          <button className={`profile-chip${identity.isAccount ? ' is-account' : ''}`} type="button" onClick={onAccount}><i />{identity.name}<small>{identity.isAccount ? 'ACCOUNT' : 'GAST'}</small></button>
+        </div>
       </header>
       <section className="menu-hero">
         <span className="eyebrow">MULTIPLAYER TECH CARD GAME</span>
@@ -120,31 +129,48 @@ export function MainMenuPage({ identity, deck, resume, pending, onSingle, onMult
         }}>
           <section className="modal-shell launch-stack-dialog" role="dialog" aria-modal="true" aria-labelledby="launch-stack-title">
             <button className="launch-stack-close" type="button" onClick={() => setLaunchMode(null)} aria-label="Auswahl schließen">×</button>
-            <span className="eyebrow">ACTIVE LOADOUT</span>
-            <h2 id="launch-stack-title">Mit diesem Stack starten?</h2>
-            <p>Prüfe dein aktives Deck, bevor es in Production geht.</p>
+            <span className="eyebrow">{launchMode === 'single' ? 'OPPONENT PROTOCOL' : 'ACTIVE LOADOUT'}</span>
+            <h2 id="launch-stack-title">{launchMode === 'single' ? 'Wen forderst du heraus?' : 'Mit diesem Stack starten?'}</h2>
+            <p>{launchMode === 'single' ? 'Jeder Bot testet eine andere Schwachstelle deines Stacks.' : 'Prüfe dein aktives Deck, bevor es in Production geht.'}</p>
+            {launchMode === 'single' && (
+              <div className="bot-profile-grid" aria-label="Bot-Profil wählen">
+                {botProfileKeys.map((key) => {
+                  const profile = botProfiles[key];
+                  return <button
+                    className={`bot-profile-card is-${profile.accent}${botProfile === key ? ' is-selected' : ''}`}
+                    type="button"
+                    key={key}
+                    aria-pressed={botProfile === key}
+                    onClick={() => setBotProfile(key)}
+                  >
+                    <span>{profile.label}</span><strong>{profile.name}</strong><i>{profile.description}</i><b>{profile.strategy}</b>
+                  </button>;
+                })}
+              </div>
+            )}
             <div className="launch-stack-summary">
               <div>
-                <small>AKTIVER STACK</small>
-                <strong>{activeDeckName}</strong>
+                <small>{launchMode === 'single' ? 'GEWÄHLTER GEGNER' : 'AKTIVER STACK'}</small>
+                <strong>{launchMode === 'single' ? selectedBot.name : activeDeckName}</strong>
                 <span>{deckDomains.map((domain) => domainLabels[domain]).join(' + ')} · {deck.length} Karten</span>
               </div>
-              <button type="button" onClick={() => { setLaunchMode(null); onChooseStarter(); }}>Anderen Stack wählen →</button>
+              {launchMode === 'single' && <span className="bot-profile-summary-tag">{selectedBot.name} · {selectedBot.strategy}</span>}
+              {launchMode === 'multi' && <button type="button" onClick={() => { setLaunchMode(null); onChooseStarter(); }}>Anderen Stack wählen →</button>}
             </div>
-            <div className="launch-card-fan" aria-label="Beispielkarten des aktiven Stacks">
-              {previewCards.map((definitionId) => (
+            <div className="launch-card-fan" aria-label={launchMode === 'single' ? `Beispielkarten von ${selectedBot.name}` : 'Beispielkarten des aktiven Stacks'}>
+              {(launchMode === 'single' ? selectedBot.deck.slice(0, 3) : previewCards).map((definitionId, index) => (
                 <GameCard
-                  card={{ instanceId: `launch-preview-${definitionId}`, definitionId }}
+                  card={{ instanceId: `launch-preview-${definitionId}-${index}`, definitionId }}
                   detailsOnHover
                   detailsOnTap
-                  key={definitionId}
+                  key={`${definitionId}-${index}`}
                 />
               ))}
             </div>
             <div className="launch-stack-actions">
               <Button variant="ghost" onClick={() => setLaunchMode(null)}>Abbrechen</Button>
               <Button variant="primary" disabled={pending} onClick={startSelectedMode}>
-                {launchMode === 'single' ? 'Bot-Match starten' : 'Zur Multiplayer-Lobby'} <span aria-hidden="true">→</span>
+                {launchMode === 'single' ? `${selectedBot.name} herausfordern` : 'Zur Multiplayer-Lobby'} <span aria-hidden="true">→</span>
               </Button>
             </div>
           </section>

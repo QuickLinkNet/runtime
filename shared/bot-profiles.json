@@ -1,0 +1,32 @@
+{
+  "junior": {
+    "name": "Junior Bot",
+    "label": "BUILD APPRENTICE",
+    "description": "Macht gelegentlich vorschnelle Deploys und suboptimale Trades. Ideal zum Kennenlernen neuer Stacks.",
+    "strategy": "Unberechenbar",
+    "accent": "lime",
+    "deck": [
+      "frontend-react-component", "frontend-react-component", "frontend-vue-widget", "frontend-vue-widget", "frontend-angular-module", "neutral-rubber-duck", "frontend-web-worker", "frontend-web-worker", "frontend-infinite-rerender", "frontend-infinite-rerender", "frontend-state-store", "frontend-state-store", "backend-legacy-php", "backend-legacy-php", "backend-api-gateway", "backend-api-gateway", "backend-queue-worker", "backend-queue-worker", "backend-java-service", "neutral-old-workstation", "backend-hotfix", "backend-hotfix", "backend-message-queue", "backend-message-queue", "neutral-junior-developer", "neutral-junior-developer", "neutral-senior-developer", "neutral-senior-developer", "neutral-qa-engineer", "neutral-qa-engineer"
+    ]
+  },
+  "security": {
+    "name": "Security Auditor",
+    "label": "DEFENSIVE CONTROL",
+    "description": "Sichert den Core mit FIREWALL, REDUNDANCY und PATCH. Seine Konter zwingen dich zu sauberen Lines.",
+    "strategy": "Defensiv",
+    "accent": "cyan",
+    "deck": [
+      "infrastructure-docker-container", "infrastructure-docker-container", "infrastructure-load-balancer", "infrastructure-load-balancer", "infrastructure-auto-scaler", "infrastructure-auto-scaler", "infrastructure-kubernetes-pod", "infrastructure-kubernetes-pod", "infrastructure-horizontal-scaling", "infrastructure-horizontal-scaling", "infrastructure-kubernetes-cluster", "neutral-rubber-duck", "security-firewall-gateway", "security-firewall-gateway", "security-sandbox-container", "security-sandbox-container", "security-rate-limiter", "security-rate-limiter", "security-security-engineer", "security-security-engineer", "security-emergency-patch", "security-emergency-patch", "security-zero-trust", "neutral-old-workstation", "neutral-junior-developer", "neutral-junior-developer", "neutral-senior-developer", "neutral-senior-developer", "neutral-qa-engineer", "neutral-qa-engineer"
+    ]
+  },
+  "chaos": {
+    "name": "Chaos Engineer",
+    "label": "INCIDENT RESPONSE",
+    "description": "Flutet Slots mit BUGs, provoziert CRASH-Momente und nimmt aggressive Trades in Kauf.",
+    "strategy": "Aggressiv",
+    "accent": "orange",
+    "deck": [
+      "infrastructure-docker-container", "infrastructure-docker-container", "infrastructure-auto-scaler", "infrastructure-auto-scaler", "infrastructure-chaos-monkey", "infrastructure-chaos-monkey", "infrastructure-horizontal-scaling", "infrastructure-horizontal-scaling", "infrastructure-kubernetes-pod", "infrastructure-kubernetes-pod", "security-firewall-gateway", "security-firewall-gateway", "security-sandbox-container", "security-sandbox-container", "security-penetration-tester", "security-penetration-tester", "security-emergency-patch", "security-emergency-patch", "security-rate-limiter", "security-rate-limiter", "neutral-technical-debt", "neutral-qa-engineer", "neutral-spaghetti-code", "neutral-spaghetti-code", "neutral-friday-deploy", "neutral-old-workstation", "neutral-junior-developer", "neutral-junior-developer", "neutral-senior-developer", "neutral-senior-developer"
+    ]
+  }
+}

@@ -173,6 +173,33 @@ trait GameEngineActions
         }
     }
 
+    /** Remove one unneeded Infrastructure from the hand and replace it with a fresh draw. */
+    private function decommission(array &$state, string $playerId, string $instanceId): void
+    {
+        $player =& $state['players'][$playerId];
+        if (($player['turnFlags']['infrastructureDecommissioned'] ?? false) === true) {
+            throw new ApiException('DECOMMISSION_ALREADY_USED', 'Du kannst pro Zug nur eine Infrastructure dekommissionieren.', 409);
+        }
+        $handIndex = $this->findIndex($player['hand'], $instanceId);
+        if ($handIndex === null) {
+            throw new ApiException('CARD_NOT_IN_HAND', 'Diese Karte ist nicht auf deiner Hand.');
+        }
+        $card = $player['hand'][$handIndex];
+        $definition = $this->catalog->get($card['definitionId']);
+        if (($definition['type'] ?? '') !== 'infrastructure') {
+            throw new ApiException('DECOMMISSION_REQUIRES_INFRASTRUCTURE', 'Nur Infrastructure-Karten können dekommissioniert werden.', 422);
+        }
+        array_splice($player['hand'], $handIndex, 1);
+        if (!($definition['token'] ?? false)) $player['trash'][] = $card;
+        $player['turnFlags']['infrastructureDecommissioned'] = true;
+        $this->event($state, 'INFRASTRUCTURE_DECOMMISSIONED', [
+            'playerId' => $playerId,
+            'cardInstanceId' => $card['instanceId'],
+            'definitionId' => $card['definitionId'],
+        ]);
+        $this->drawCards($state, $playerId, 1);
+    }
+
     private function attack(array &$state, string $playerId, string $attackerId, string $targetId): void
     {
         $attackerLocation = $this->locateTarget($state, $attackerId);

@@ -72,8 +72,11 @@
   .launch-card-fan .game-card:first-child { margin-left: 0; }
   .launch-stack-actions { display: grid; grid-template-columns: auto 1fr; }
   .launch-stack-actions .button.primary { min-width: 0; }
+  .bot-profile-grid { grid-template-columns: 1fr; margin-top: 14px; }
+  .bot-profile-card { min-height: 0; }
   .menu-header { gap: 10px; }
   .profile-chip { min-width: 0; max-width: 58vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .credits-chip { padding-inline: 9px; }
   .menu-hero { padding: 56px 0 32px; }
   .menu-hero h1 { font-size: clamp(46px, 14.5vw, 62px); }
   .menu-hero p { font-size: 15px; }
