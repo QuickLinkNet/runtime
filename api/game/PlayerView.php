@@ -75,6 +75,7 @@ final class PlayerView
                 'matchCredits' => 0,
                 'winBonus' => 0,
             ],
+            'incident' => $state['incident'] ?? null,
             'events' => $events,
         ];
         if (isset($state['tutorial'])) {

@@ -85,6 +85,10 @@ trait GameEngineResolution
         if ($definition['type'] === 'command' && $player['turnFlags']['projectManagerDiscount']) {
             $cost--;
         }
+        $incidentRule = (string)($state['incident']['rule'] ?? '');
+        if ($incidentRule === 'FIRST_SERVICE_PLUS_ONE' && $definition['type'] === 'service' && $player['turnFlags']['servicePlayed'] === 0) $cost++;
+        if ($incidentRule === 'FIRST_COMMAND_MINUS_ONE' && $definition['type'] === 'command' && $player['turnFlags']['commandPlayed'] === 0) $cost--;
+        if ($incidentRule === 'FIRST_DATA_AI_SERVICE_MINUS_ONE' && $definition['type'] === 'service' && in_array($definition['domain'], ['data', 'ai'], true) && $player['turnFlags']['servicePlayed'] === 0) $cost--;
         return max(0, $cost);
     }
 

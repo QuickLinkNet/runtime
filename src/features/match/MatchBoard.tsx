@@ -90,6 +90,7 @@ export function MatchBoard({ state, pending, syncStatus, onAction, onRematch, on
           onOpenGlossary={() => match.setGlossaryOpen(true)}
           onExit={onExit}
         />
+        {state.incident && <aside className="match-incident"><span>WEEKLY INCIDENT</span><b>{state.incident.name}</b><small>{state.incident.description}</small></aside>}
 
         <TurnBanner turn={state.turn} myTurn={match.myTurn} opponentName={opponent.name} animationScale={match.animationScale} />
         {state.tutorial && (

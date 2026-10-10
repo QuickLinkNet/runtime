@@ -72,6 +72,7 @@ export const api = {
   salvageDuplicates: () => request<CollectionSnapshot>('salvageDuplicates', { method: 'POST', body: '{}' }),
   craftCard: (definitionId: string) => request<CollectionSnapshot>('craftCard', { method: 'POST', body: JSON.stringify({ definitionId }) }),
   claimContract: (key: string) => request<CollectionSnapshot>('claimContract', { method: 'POST', body: JSON.stringify({ key }) }),
+  submitMatchFeedback: (roomCode: string, rating: 'easy' | 'fair' | 'hard') => request<void>('submitMatchFeedback', { method: 'POST', body: JSON.stringify({ roomCode, rating }) }),
   adminOverview: () => request<AdminOverview>('adminOverview'),
   adminPlayers: (query = '') => request<{ players: AdminPlayerSummary[] }>('adminPlayers', undefined, `&query=${encodeURIComponent(query)}`),
   adminPlayer: (playerId: string) => request<AdminPlayerDetail>('adminPlayer', undefined, `&playerId=${encodeURIComponent(playerId)}`),

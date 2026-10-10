@@ -21,6 +21,10 @@ require_once __DIR__ . '/repositories/MatchRepository.php';
 require_once __DIR__ . '/services/MatchService.php';
 require_once __DIR__ . '/services/CollectionService.php';
 require_once __DIR__ . '/services/ContractService.php';
+require_once __DIR__ . '/services/MasteryService.php';
+require_once __DIR__ . '/services/RivalryService.php';
+require_once __DIR__ . '/services/IncidentService.php';
+require_once __DIR__ . '/services/FeedbackService.php';
 require_once __DIR__ . '/services/BalanceSimulator.php';
 require_once __DIR__ . '/services/BalanceLabService.php';
 require_once __DIR__ . '/services/AccountService.php';
@@ -53,10 +57,14 @@ try {
     $engine = new GameEngine($catalog);
     $bot = new BotPlayer($engine, $catalog);
     $contracts = new ContractService($db);
+    $mastery = new MasteryService($db);
+    $rivalries = new RivalryService($db);
+    $incidents = new IncidentService();
+    $feedback = new FeedbackService($db);
     $botProfiles = new BotProfiles($catalog);
-    $matches = new MatchService($db, $engine, $bot, $catalog, new TelemetryService($db), $botProfiles, $contracts);
+    $matches = new MatchService($db, $engine, $bot, $catalog, new TelemetryService($db), $botProfiles, $contracts, $mastery, $rivalries, $incidents);
     $balanceLab = new BalanceLabService($db, new BalanceSimulator($engine, $bot, $catalog, $botProfiles));
-    $collection = new CollectionService($db, new BoosterGenerator($catalog), $catalog, $contracts);
+    $collection = new CollectionService($db, new BoosterGenerator($catalog), $catalog, $contracts, $mastery, $rivalries, $incidents);
     $accounts = new AccountService($db);
     $adminEmails = explode(',', (string)(getenv('RUNTIME_ADMIN_EMAILS') ?: ''));
     $admin = new AdminService($db, $adminEmails, $collection);
@@ -194,6 +202,10 @@ try {
         'claimContract' => (function () use ($collection, $playerId, $isAccount, $body): void {
             if (!$isAccount) throw new ApiException('ACCOUNT_REQUIRED', 'Contracts benötigen einen kostenlosen Account.', 403);
             Http::success($collection->claimContract($playerId, (string)($body['key'] ?? '')));
+        })(),
+        'submitMatchFeedback' => (function () use ($feedback, $playerId, $body): void {
+            $feedback->submit($playerId, strtoupper(trim((string)($body['roomCode'] ?? ''))), (string)($body['rating'] ?? ''));
+            Http::success();
         })(),
         'adminOverview' => (function () use ($admin, $player, $isAccount): void {
             $admin->assertAllowed($isAccount ? (string)$player['account_email'] : null);

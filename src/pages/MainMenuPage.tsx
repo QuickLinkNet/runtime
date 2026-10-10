@@ -78,6 +78,9 @@ export function MainMenuPage({ identity, deck, activeDeckName: activeDeckNameOve
         <h1>Build your stack.<br /><em>Break theirs.</em></h1>
         <p>Stelle Services bereit, sichere deinen Core und überlebe den nächsten Friday Deploy.</p>
       </section>
+      {identity.isAccount && collection && <button className="mission-control-teaser" type="button" onClick={onBoosters}>
+        <span><small>MISSION CONTROL · {collection.contracts.dailyStreak} TAG{collection.contracts.dailyStreak === 1 ? '' : 'E'} STREAK</small><b>{collection.incident.name}</b><i>{collection.contracts.dailyItems.filter((mission) => !mission.claimed).length} Tagesmissionen aktiv · Fortschritt ansehen →</i></span>
+      </button>}
       {resume && (
         <section className="resume-banner">
           <div><span>AKTIVE SESSION</span><b>Match {resume.state.roomCode} · Zug {resume.state.turn}</b></div>

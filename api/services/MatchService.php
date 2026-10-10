@@ -13,7 +13,10 @@ final class MatchService
         private CardCatalog $catalog,
         private TelemetryService $telemetry,
         private BotProfiles $botProfiles,
-        private ContractService $contracts
+        private ContractService $contracts,
+        private MasteryService $mastery,
+        private RivalryService $rivalries,
+        private IncidentService $incidents
     ) {
         $this->matches = new MatchRepository($db);
         $this->tutorial = new TutorialScenario($catalog);
@@ -25,6 +28,7 @@ final class MatchService
         try {
             $code = $this->newRoomCode();
             $state = $this->engine->createState($code, 'tutorial');
+            $state['incident'] = $this->incidents->current();
             $this->engine->addPlayer($state, $playerId, $playerName, $this->catalog->starterDeck('frontend-backend'));
             [$coachId, $coachName] = $this->createBotIdentity('Runtime Coach');
             $this->engine->addPlayer($state, $coachId, $coachName, $this->catalog->starterDeck('infrastructure-security'), true);
@@ -54,6 +58,7 @@ final class MatchService
         try {
             $code = $this->newRoomCode();
             $state = $this->engine->createState($code, $mode);
+            $state['incident'] = $this->incidents->current();
             $this->engine->addPlayer($state, $playerId, $playerName, $deck);
             $matchId = $this->matches->create($code, $mode, $playerId, $state);
             $this->matches->addPlayer($matchId, $playerId, 0);
@@ -334,7 +339,22 @@ final class MatchService
                 'matchCredits' => $matchCredits,
                 'winBonus' => $winBonus,
             ];
-            if ($isAccount) $this->contracts->recordMatch($playerId, $won, (int)($player['matchStats']['servicesDeployed'] ?? 0));
+            if ($isAccount) {
+                $services = (int)($player['matchStats']['servicesDeployed'] ?? 0);
+                $coreDamage = (int)($player['matchStats']['coreDamageDealt'] ?? 0);
+                $this->contracts->recordMatch($playerId, $won, $services, $coreDamage);
+                $mastery = $this->mastery->recordMatch($playerId, (array)$player['domains'], $won, $services);
+                $state['matchRewards'][$playerId]['mastery'] = $mastery;
+                $state['matchRewards'][$playerId]['dailyProgress'] = $this->contracts->snapshot($playerId)['dailyItems'];
+            }
+        }
+        if ($state['mode'] === 'multi') foreach ($state['order'] as $playerId) {
+            $player = $state['players'][$playerId];
+            if ($player['isBot'] || !$this->isAccount($playerId)) continue;
+            $opponentId = $state['order'][0] === $playerId ? $state['order'][1] : $state['order'][0];
+            if (!($state['players'][$opponentId]['isBot'] ?? true) && $this->isAccount($opponentId)) {
+                $this->rivalries->record($playerId, $opponentId, $state['winnerId'] === $playerId);
+            }
         }
         if ($state['mode'] !== 'tutorial') $state['resultsRecorded'] = true;
         $this->telemetry->recordSummary($matchId, $state);

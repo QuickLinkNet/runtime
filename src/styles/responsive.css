@@ -179,6 +179,8 @@
   .turn-banner b { font-size: 16px; }
   .interaction-notice { bottom: calc(var(--match-mobile-hand-dock-height) + 10px); width: max-content; padding: 7px 11px; }
   .card-help-tip { top: 62px; right: 8px; width: calc(100vw - 16px); }
+  .match-incident { top: 51px; max-width: calc(100vw - 16px); padding: 5px 9px; }
+  .match-incident small { max-width: 300px; }
 
   .mulligan-screen, .game-over, .lobby-wait { justify-content: flex-start; overflow-y: auto; }
   .mulligan-cards { width: 100%; justify-content: flex-start; gap: 9px; margin: 20px 0 26px; overflow-x: auto; padding: 5px 3px 14px; scroll-snap-type: x mandatory; }
@@ -195,6 +197,8 @@
   .result-mvp .game-card { width: 112px; }
   .result-actions { width: 100%; }
   .result-actions .button { width: 100%; min-height: 46px; }
+  .result-progression { align-items: flex-start; flex-direction: column; gap: 10px; padding: 14px; }
+  .result-missions { justify-content: flex-start; }
   .player-slots { width: 100%; }
 
   .modal-backdrop { align-items: end; padding: 8px; }

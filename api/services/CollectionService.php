@@ -11,7 +11,7 @@ final class CollectionService
     /** @var string[] */
     private array $expansionCardIds;
 
-    public function __construct(private PDO $db, private BoosterGenerator $generator, private CardCatalog $catalog, private ContractService $contracts, ?string $cardSetsPath = null)
+    public function __construct(private PDO $db, private BoosterGenerator $generator, private CardCatalog $catalog, private ContractService $contracts, private MasteryService $mastery, private RivalryService $rivalries, private IncidentService $incidents, ?string $cardSetsPath = null)
     {
         $cardSetsPath ??= dirname(__DIR__, 2) . '/shared/card-sets.json';
         $sets = json_decode((string)file_get_contents($cardSetsPath), true, 512, JSON_THROW_ON_ERROR);
@@ -51,6 +51,9 @@ final class CollectionService
             'unlimitedBoosters' => false,
             'totalBoostersOpened' => (int)$progression['total_boosters_opened'],
             'contracts' => $this->contracts->snapshot($playerId),
+            'mastery' => $this->mastery->snapshot($playerId),
+            'rivalries' => $this->rivalries->snapshot($playerId),
+            'incident' => $this->incidents->current(),
         ];
     }
 

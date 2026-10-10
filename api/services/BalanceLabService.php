@@ -31,7 +31,7 @@ final class BalanceLabService
 
     private function liveSignals(): array
     {
-        $rows = $this->db->query('SELECT winner_player_id, metrics_json FROM match_summaries ORDER BY id DESC LIMIT 500')->fetchAll();
+        $rows = $this->db->query('SELECT winner_player_id, metrics_json FROM match_summaries ORDER BY created_at DESC, match_id DESC LIMIT 500')->fetchAll();
         $factions = [];
         $cards = [];
         $matches = 0;

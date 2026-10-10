@@ -51,5 +51,8 @@ export function knownCardCost(state: GameState, card: CardInstance, definition: 
   if (definition.type === 'service' && definition.domain === 'ai' && hasInfrastructure(player, 'ai-gpu-cluster')) cost -= 1;
   if (definition.type === 'command' && !commandPlayed && hasInfrastructure(player, 'neutral-ci-pipeline')) cost -= 1;
   if (definition.type === 'command' && projectManagerDiscount) cost -= 1;
+  if (state.incident?.rule === 'FIRST_SERVICE_PLUS_ONE' && definition.type === 'service' && !servicePlayed) cost += 1;
+  if (state.incident?.rule === 'FIRST_COMMAND_MINUS_ONE' && definition.type === 'command' && !commandPlayed) cost -= 1;
+  if (state.incident?.rule === 'FIRST_DATA_AI_SERVICE_MINUS_ONE' && definition.type === 'service' && ['data', 'ai'].includes(definition.domain) && !servicePlayed) cost -= 1;
   return Math.max(0, cost);
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { api, ApiError, hasToken } from '../api/client';
 import { DeckBuilder } from '../features/deck-builder/DeckBuilder';
 import { DeckManagerPage } from '../pages/DeckManagerPage';
@@ -19,8 +20,7 @@ import { RoomLobbyPage } from '../pages/RoomLobbyPage';
 import { StarterDeckPage } from '../pages/StarterDeckPage';
 import { TutorialIntroPage } from '../pages/TutorialIntroPage';
 import { ErrorToast } from '../ui/molecules';
-
-type Screen = 'boot' | 'name' | 'starter' | 'tutorial' | 'menu' | 'deck' | 'stacks' | 'multiplayer' | 'boosters' | 'account' | 'admin';
+import { deckSlotFromPath, matchCodeFromPath, pathFor, screenFromPath, type AppScreen } from './routes';
 
 function loadStoredDeck(): string[] | null {
   const saved = localStorage.getItem('runtime.deck');
@@ -40,7 +40,9 @@ function actionId(): string {
 
 export function App() {
   const { store, dispatch } = useGame();
-  const [screen, setScreen] = useState<Screen>('boot');
+  const location = useLocation();
+  const navigate = useNavigate();
+  const screen = screenFromPath(location.pathname);
   const [identity, setIdentity] = useState<PlayerIdentity | null>(null);
   const [resume, setResume] = useState<MatchPayload | null>(null);
   const [collection, setCollection] = useState<CollectionSnapshot | null>(null);
@@ -49,6 +51,13 @@ export function App() {
   const [editingSlotId, setEditingSlotId] = useState<string | null>(null);
   const [hasSelectedDeck, setHasSelectedDeck] = useState(() => loadStoredDeck() !== null);
   const initialized = useRef(false);
+
+  const navigateScreen = useCallback((next: Exclude<AppScreen, 'match'>, replace = false) => {
+    navigate(pathFor(next), { replace });
+  }, [navigate]);
+  const navigateMatch = useCallback((roomCode: string, replace = false) => {
+    navigate(`/match/${roomCode.toUpperCase()}`, { replace });
+  }, [navigate]);
 
   const applyDeckSlots = useCallback((slots: DeckSlot[]) => {
     setDeckSlots(slots);
@@ -62,16 +71,52 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    const slotId = deckSlotFromPath(location.pathname);
+    if (!slotId || deckSlots.length === 0) return;
+    const slot = deckSlots.find((item) => item.id === slotId);
+    if (!slot) return;
+    setDeck(slot.deck);
+    setEditingSlotId(slot.id);
+  }, [deckSlots, location.pathname]);
+
+  useEffect(() => {
+    if (!store.state || screen === 'match') return;
+    navigateMatch(store.state.roomCode, true);
+  }, [navigateMatch, screen, store.state]);
+
+  useEffect(() => {
+    const roomCode = matchCodeFromPath(location.pathname);
+    if (!identity || !roomCode || store.state?.roomCode === roomCode) return;
+    void api.getState(roomCode, 0)
+      .then((payload) => {
+        if (payload.state) dispatch({ type: 'MATCH', payload: { version: payload.version, state: payload.state } });
+      })
+      .catch((error: unknown) => {
+        dispatch({ type: 'ERROR', message: error instanceof Error ? error.message : 'Match konnte nicht geladen werden.' });
+        navigateScreen('menu', true);
+      });
+  }, [dispatch, identity, location.pathname, navigateScreen, store.state?.roomCode]);
+
+  useEffect(() => {
+    if (!identity || screen === 'match') return;
+    if ((screen === 'admin' && !identity.isAdmin) || (['boosters', 'stacks'].includes(screen) && !identity.isAccount)) {
+      navigateScreen('menu', true);
+    }
+  }, [identity, navigateScreen, screen]);
+
+  useEffect(() => {
     window.scrollTo(0, 0);
     const frame = window.requestAnimationFrame(() => window.scrollTo(0, 0));
     return () => window.cancelAnimationFrame(frame);
-  }, [screen, store.state?.roomCode, store.state?.status]);
+  }, [location.pathname, store.state?.roomCode, store.state?.status]);
 
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
     async function initialize() {
-      if (!hasToken()) { setScreen('name'); return; }
+      const requestedScreen = screenFromPath(location.pathname);
+      const requestedRoom = matchCodeFromPath(location.pathname);
+      if (!hasToken()) { navigateScreen('name', true); return; }
       try {
         const [{ player }, resumeResult] = await Promise.all([api.me(), api.resume()]);
         const [collectionResult, slotsResult] = await Promise.all([
@@ -87,21 +132,29 @@ export function App() {
           const created = await api.createDeckSlot('Mein erster Stack', deck);
           applyDeckSlots(created.slots);
         }
-        setScreen(player.isAccount || hasSelectedDeck ? 'menu' : 'starter');
+        if (requestedRoom) {
+          const match = await api.getState(requestedRoom, 0);
+          if (match.state) dispatch({ type: 'MATCH', payload: { version: match.version, state: match.state } });
+          else navigateScreen('menu', true);
+          return;
+        }
+        const fallback = player.isAccount || hasSelectedDeck ? 'menu' : 'starter';
+        const accountOnly = ['boosters', 'stacks', 'admin'].includes(requestedScreen);
+        if (requestedScreen === 'name' || (accountOnly && !player.isAccount)) navigateScreen(fallback, true);
       } catch {
         const offlineIdentity = cachedIdentity();
         if (!navigator.onLine && offlineIdentity) {
           setIdentity(offlineIdentity);
-          setScreen('menu');
+          navigateScreen('menu', true);
           return;
         }
         localStorage.removeItem('runtime.playerToken');
         clearCachedIdentity();
-        setScreen('name');
+        navigateScreen('name', true);
       }
     }
     void initialize();
-  }, [applyDeckSlots, deck, hasSelectedDeck]);
+  }, [applyDeckSlots, deck, dispatch, hasSelectedDeck, location.pathname, navigateScreen]);
 
   const refresh = useCallback(async () => {
     if (!store.state) return;
@@ -153,7 +206,9 @@ export function App() {
   async function run(task: () => Promise<MatchPayload>) {
     dispatch({ type: 'PENDING', value: true });
     try {
-      dispatch({ type: 'MATCH', payload: await task() });
+      const payload = await task();
+      dispatch({ type: 'MATCH', payload });
+      navigateMatch(payload.state.roomCode);
     } catch (error) {
       dispatch({ type: 'ERROR', message: error instanceof Error ? error.message : 'Aktion fehlgeschlagen.' });
     }
@@ -199,7 +254,7 @@ export function App() {
     }
     dispatch({ type: 'CLEAR' });
     setResume(null);
-    setScreen('menu');
+    navigateScreen('menu');
   }
 
   function rematch() {
@@ -212,7 +267,7 @@ export function App() {
   function editDeckAfterMatch() {
     dispatch({ type: 'CLEAR' });
     setResume(null);
-    setScreen(identity?.isAccount ? 'deck' : 'starter');
+    navigateScreen(identity?.isAccount ? 'deck' : 'starter');
   }
 
   function selectStarter(key: StarterDeckKey) {
@@ -222,7 +277,7 @@ export function App() {
     setDeck(next);
     setHasSelectedDeck(true);
     if (identity?.isAccount) void api.saveLoadout(next).then(() => api.deckSlots()).then((snapshot) => applyDeckSlots(snapshot.slots));
-    setScreen(identity?.tutorialCompleted ? 'menu' : 'tutorial');
+    navigateScreen(identity?.tutorialCompleted ? 'menu' : 'tutorial');
   }
 
   async function saveDeckSlot(slotId: string | null, name: string, nextDeck: string[]) {
@@ -241,24 +296,23 @@ export function App() {
       setCollection(await api.collection());
       applyDeckSlots((await api.deckSlots()).slots);
     } catch { /* the account itself remains linked; the next refresh retries optional data */ }
-    setScreen('menu');
+    navigateScreen('menu');
   }
 
-  if (screen === 'boot') return <BootPage />;
-  if (screen === 'name') return <IdentityPage onCreated={(player) => { setIdentity(player); setScreen('starter'); }} onLoggedIn={(player) => {
+  if (screen === 'name') return <IdentityPage onCreated={(player) => { setIdentity(player); navigateScreen('starter', true); }} onLoggedIn={(player) => {
     setIdentity(player);
     cacheIdentity(player);
     void Promise.all([api.collection().catch(() => null), player.isAccount ? api.deckSlots().catch(() => null) : Promise.resolve(null)]).then(([nextCollection, slots]) => {
       setCollection(nextCollection);
       if (slots?.slots.length) applyDeckSlots(slots.slots);
     });
-    setScreen('menu');
+    navigateScreen('menu', true);
   }} />;
   if (!identity) return <BootPage />;
 
-  if (screen === 'starter') return <StarterDeckPage currentDeck={deck} allowBack={hasSelectedDeck} onConfirm={selectStarter} onBack={() => setScreen('menu')} />;
-  if (screen === 'account') return <AccountPage identity={identity} onLinked={accountLinked} onBack={() => setScreen('menu')} />;
-  if (screen === 'admin' && identity.isAdmin) return <AdminPage onBack={() => setScreen('menu')} />;
+  if (screen === 'starter') return <StarterDeckPage currentDeck={deck} allowBack={hasSelectedDeck} onConfirm={selectStarter} onBack={() => navigateScreen('menu')} />;
+  if (screen === 'account') return <AccountPage identity={identity} onLinked={accountLinked} onBack={() => navigateScreen('menu')} />;
+  if (screen === 'admin' && identity.isAdmin) return <AdminPage onBack={() => navigateScreen('menu')} />;
 
   if (store.state) {
     if (store.state.status === 'lobby') {
@@ -277,7 +331,7 @@ export function App() {
         completed={identity.tutorialCompleted === true}
         pending={store.pending}
         onStart={() => run(() => api.createTutorial())}
-        onBack={() => setScreen('menu')}
+        onBack={() => navigateScreen('menu')}
       />
     </>
   );
@@ -285,17 +339,17 @@ export function App() {
   if (screen === 'stacks' && identity.isAccount) return <>{store.error && <ErrorToast message={store.error} onClose={() => dispatch({ type: 'ERROR', message: null })} />}<DeckManagerPage
     slots={deckSlots}
     pending={store.pending}
-    onBack={() => setScreen('menu')}
+    onBack={() => navigateScreen('menu')}
     onActivate={(slotId) => { void api.activateDeckSlot(slotId).then((snapshot) => applyDeckSlots(snapshot.slots)).catch((error: unknown) => dispatch({ type: 'ERROR', message: error instanceof Error ? error.message : 'Stack konnte nicht aktiviert werden.' })); }}
-    onEdit={(slotId) => { const slot = deckSlots.find((item) => item.id === slotId); if (slot) { setDeck(slot.deck); setEditingSlotId(slotId); setScreen('deck'); } }}
+    onEdit={(slotId) => { const slot = deckSlots.find((item) => item.id === slotId); if (slot) { setDeck(slot.deck); setEditingSlotId(slotId); navigate(`/deck/${slotId}`); } }}
     onCreate={(name) => { const active = deckSlots.find((slot) => slot.isActive); void saveDeckSlot(null, name, active?.deck ?? deck).catch((error: unknown) => dispatch({ type: 'ERROR', message: error instanceof Error ? error.message : 'Stack konnte nicht angelegt werden.' })); }}
     onRename={(slotId, name) => { const slot = deckSlots.find((item) => item.id === slotId); if (slot) void saveDeckSlot(slotId, name, slot.deck).catch((error: unknown) => dispatch({ type: 'ERROR', message: error instanceof Error ? error.message : 'Stack konnte nicht umbenannt werden.' })); }}
     onDuplicate={(slotId, name) => { void api.duplicateDeckSlot(slotId, name).then((snapshot) => applyDeckSlots(snapshot.slots)).catch((error: unknown) => dispatch({ type: 'ERROR', message: error instanceof Error ? error.message : 'Stack konnte nicht dupliziert werden.' })); }}
     onDelete={(slotId) => { void api.deleteDeckSlot(slotId).then((snapshot) => applyDeckSlots(snapshot.slots)).catch((error: unknown) => dispatch({ type: 'ERROR', message: error instanceof Error ? error.message : 'Stack konnte nicht gelöscht werden.' })); }}
   /></>;
-  if (screen === 'deck') return <DeckBuilder initialDeck={deck} collection={collection} onCancel={() => setScreen(identity.isAccount ? 'stacks' : 'menu')} onSave={(next) => { localStorage.setItem('runtime.deck', JSON.stringify(next)); localStorage.setItem('runtime.deckSelected', '1'); setDeck(next); setHasSelectedDeck(true); if (identity.isAccount) { const slot = deckSlots.find((item) => item.id === editingSlotId) ?? deckSlots.find((item) => item.isActive); void saveDeckSlot(slot?.id ?? null, slot?.name ?? 'Mein Stack', next).then(() => { setEditingSlotId(null); setScreen('stacks'); }).catch((error: unknown) => dispatch({ type: 'ERROR', message: error instanceof Error ? error.message : 'Stack konnte nicht gespeichert werden.' })); } else setScreen('menu'); }} />;
-  if (screen === 'boosters') return <BoosterLab initialCollection={collection} onCollectionChange={setCollection} onBack={() => setScreen('menu')} />;
-  if (screen === 'multiplayer') return <MultiplayerPage pending={store.pending} error={store.error} onBack={() => setScreen('menu')} onCreate={() => run(() => api.createMatch('multi', deck))} onJoin={(code) => run(() => api.joinMatch(code, deck))} />;
+  if (screen === 'deck') return <DeckBuilder initialDeck={deck} collection={collection} onCancel={() => navigateScreen(identity.isAccount ? 'stacks' : 'menu')} onSave={(next) => { localStorage.setItem('runtime.deck', JSON.stringify(next)); localStorage.setItem('runtime.deckSelected', '1'); setDeck(next); setHasSelectedDeck(true); if (identity.isAccount) { const slot = deckSlots.find((item) => item.id === editingSlotId) ?? deckSlots.find((item) => item.isActive); void saveDeckSlot(slot?.id ?? null, slot?.name ?? 'Mein Stack', next).then(() => { setEditingSlotId(null); navigateScreen('stacks'); }).catch((error: unknown) => dispatch({ type: 'ERROR', message: error instanceof Error ? error.message : 'Stack konnte nicht gespeichert werden.' })); } else navigateScreen('menu'); }} />;
+  if (screen === 'boosters') return <BoosterLab initialCollection={collection} onCollectionChange={setCollection} onBack={() => navigateScreen('menu')} />;
+  if (screen === 'multiplayer') return <MultiplayerPage pending={store.pending} error={store.error} onBack={() => navigateScreen('menu')} onCreate={() => run(() => api.createMatch('multi', deck))} onJoin={(code) => run(() => api.joinMatch(code, deck))} />;
 
   return <MainMenuPage
     identity={identity}
@@ -305,13 +359,13 @@ export function App() {
     resume={resume}
     pending={store.pending}
     onSingle={(botProfile) => run(() => api.createMatch('single', deck, botProfile))}
-    onMultiplayer={() => setScreen('multiplayer')}
-    onDeck={() => setScreen(identity.isAccount ? 'stacks' : 'deck')}
-    onBoosters={() => setScreen('boosters')}
-    onChooseStarter={() => setScreen(identity.isAccount ? 'stacks' : 'starter')}
-    onAccount={() => setScreen('account')}
-    onAdmin={() => setScreen('admin')}
-    onTutorial={() => setScreen('tutorial')}
-    onResume={() => { if (resume) { dispatch({ type: 'MATCH', payload: resume }); setResume(null); } }}
+    onMultiplayer={() => navigateScreen('multiplayer')}
+    onDeck={() => navigateScreen(identity.isAccount ? 'stacks' : 'deck')}
+    onBoosters={() => navigateScreen('boosters')}
+    onChooseStarter={() => navigateScreen(identity.isAccount ? 'stacks' : 'starter')}
+    onAccount={() => navigateScreen('account')}
+    onAdmin={() => navigateScreen('admin')}
+    onTutorial={() => navigateScreen('tutorial')}
+    onResume={() => { if (resume) { dispatch({ type: 'MATCH', payload: resume }); navigateMatch(resume.state.roomCode); setResume(null); } }}
   />;
 }

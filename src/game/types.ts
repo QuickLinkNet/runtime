@@ -112,7 +112,8 @@ export interface GameState {
   finishReason: string | null;
   startedAt: string | null;
   finishedAt: string | null;
-  reward: { firstWinBooster: boolean; credits: number; matchCredits: number; winBonus: number };
+  reward: { firstWinBooster: boolean; credits: number; matchCredits: number; winBonus: number; mastery?: MasteryReward; dailyProgress?: ContractProgress[] };
+  incident: WeeklyIncident | null;
   events: GameEvent[];
   tutorial?: TutorialProgress;
 }
@@ -236,8 +237,16 @@ export interface CollectionSnapshot {
   boosterBalance: number;
   unlimitedBoosters: boolean;
   totalBoostersOpened: number;
-  contracts: { cycleKey: string; items: ContractProgress[] };
+  contracts: { cycleKey: string; items: ContractProgress[]; dailyCycleKey: string; dailyItems: ContractProgress[]; dailyStreak: number };
+  mastery: FactionMastery[];
+  rivalries: Rivalry[];
+  incident: WeeklyIncident;
 }
+
+export interface FactionMastery { faction: Domain; xp: number; level: number; matchesPlayed: number; wins: number; nextLevelXp: number }
+export interface MasteryReward { xpGain: number; items: FactionMastery[] }
+export interface Rivalry { name: string; matchesPlayed: number; wins: number; losses: number; lastPlayedAt: string }
+export interface WeeklyIncident { id: string; name: string; description: string; rule: string }
 
 export interface ContractProgress {
   key: string;
