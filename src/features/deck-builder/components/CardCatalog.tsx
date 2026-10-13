@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { CardDefinition, CardInstance } from '../../../game/types';
 import { GameCard } from '../../cards';
-import { CardSpotlight } from './CardSpotlight';
 import { maxCopiesFor } from '../model/deckBuilder';
 
 interface CardCatalogProps {
@@ -19,12 +19,9 @@ interface CardCatalogProps {
 }
 
 export function CardCatalog({ cards, selectedDomainCount, showingNeutral, deckSize, counts, owned, collectionMode, infrastructureCount, columns, onAdd, onRemove }: CardCatalogProps) {
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [pinnedId, setPinnedId] = useState<string | null>(null);
-  const spotlightCard = useMemo(() => {
-    const activeId = hoveredId ?? pinnedId;
-    return cards.find((card) => card.id === activeId) ?? cards[0];
-  }, [cards, hoveredId, pinnedId]);
+  const [inspectedCardId, setInspectedCardId] = useState<string | null>(null);
+  const inspectedIndex = cards.findIndex((card) => card.id === inspectedCardId);
+  const inspectedCard = inspectedIndex >= 0 ? cards[inspectedIndex] : null;
 
   if (selectedDomainCount === 0 && !showingNeutral) {
     return (
@@ -44,53 +41,86 @@ export function CardCatalog({ cards, selectedDomainCount, showingNeutral, deckSi
 
   return (
     <>
-      <section className={`catalog-grid columns-${columns}`} aria-label="Kartenkatalog" onMouseLeave={() => setHoveredId(null)}>
-        {cards.map((card) => {
-          const copies = counts.get(card.id) ?? 0;
-          const canAdd = deckSize < 30 && copies < maxCopiesFor(card) && (card.type !== 'infrastructure' || infrastructureCount < 4) && (!collectionMode || copies < (owned?.[card.id] ?? 0));
-          const previewCard: CardInstance = {
-            instanceId: `catalog-${card.id}`,
-            definitionId: card.id,
-          };
+      <section className={`catalog-grid columns-${columns}`} aria-label="Kartenkatalog">
+      {cards.map((card) => {
+        const copies = counts.get(card.id) ?? 0;
+        const canAdd = deckSize < 30 && copies < maxCopiesFor(card) && (card.type !== 'infrastructure' || infrastructureCount < 4) && (!collectionMode || copies < (owned?.[card.id] ?? 0));
+        const previewCard: CardInstance = {
+          instanceId: `catalog-${card.id}`,
+          definitionId: card.id,
+        };
 
-          return (
-            <article
-              className={`catalog-card-shell domain-${card.domain} ${canAdd ? '' : 'is-maxed'} ${spotlightCard?.id === card.id ? 'is-spotlighted' : ''}`}
-              key={card.id}
-              onMouseEnter={() => setHoveredId(card.id)}
-              onFocusCapture={() => setHoveredId(card.id)}
-              onBlurCapture={(event) => {
-                if (!event.currentTarget.contains(event.relatedTarget)) setHoveredId(null);
-              }}
-            >
-              <GameCard
-                card={previewCard}
-                detailsOnHover={false}
-                detailsOnTap
-                actionLabel="In der großen Vorschau anzeigen"
-                onClick={() => setPinnedId(card.id)}
-              />
-              <footer className="catalog-card-actions">
-                <span>Im Deck <b>{copies}/2</b>{owned && <> · Besitz <b>{owned[card.id] ?? 0}</b></>}</span>
-                <span className="copy-stepper">
-                  <button type="button" disabled={copies === 0} onClick={() => onRemove(card.id)} aria-label={`${card.name} entfernen`}>−</button>
-                  <button type="button" disabled={!canAdd} onClick={() => onAdd(card.id)} aria-label={`${card.name} hinzufügen`}>+</button>
-                </span>
-              </footer>
-            </article>
-          );
-        })}
+        return (
+          <article className={`catalog-card-shell domain-${card.domain} ${canAdd ? '' : 'is-maxed'}`} key={card.id}>
+            <GameCard
+              card={previewCard}
+              detailsOnHover
+              detailsOnTap={false}
+              actionLabel="Großansicht öffnen"
+              onClick={() => setInspectedCardId(card.id)}
+            />
+            <footer className="catalog-card-actions">
+              <span>Im Deck <b>{copies}/{maxCopiesFor(card)}</b>{owned && <> · Besitz <b>{owned[card.id] ?? 0}</b></>}</span>
+              <span className="copy-stepper">
+                <button type="button" disabled={copies === 0} onClick={() => onRemove(card.id)} aria-label={`${card.name} entfernen`}>−</button>
+                <button type="button" disabled={!canAdd} onClick={() => onAdd(card.id)} aria-label={`${card.name} hinzufügen`}>+</button>
+              </span>
+            </footer>
+          </article>
+        );
+      })}
       </section>
-
-      {spotlightCard && (
-        <CardSpotlight
-          card={spotlightCard}
-          copies={counts.get(spotlightCard.id) ?? 0}
-          canAdd={deckSize < 30 && (counts.get(spotlightCard.id) ?? 0) < maxCopiesFor(spotlightCard) && (spotlightCard.type !== 'infrastructure' || infrastructureCount < 4) && (!collectionMode || (counts.get(spotlightCard.id) ?? 0) < (owned?.[spotlightCard.id] ?? 0))}
-          onAdd={() => onAdd(spotlightCard.id)}
-          onRemove={() => onRemove(spotlightCard.id)}
+      {inspectedCard && (
+        <CardCatalogLightbox
+          card={inspectedCard}
+          hasPrevious={cards.length > 1}
+          hasNext={cards.length > 1}
+          onPrevious={() => setInspectedCardId(cards[(inspectedIndex - 1 + cards.length) % cards.length].id)}
+          onNext={() => setInspectedCardId(cards[(inspectedIndex + 1) % cards.length].id)}
+          onClose={() => setInspectedCardId(null)}
         />
       )}
     </>
+  );
+}
+
+interface CardCatalogLightboxProps {
+  card: CardDefinition;
+  hasPrevious: boolean;
+  hasNext: boolean;
+  onPrevious: () => void;
+  onNext: () => void;
+  onClose: () => void;
+}
+
+function CardCatalogLightbox({ card, hasPrevious, hasNext, onPrevious, onNext, onClose }: CardCatalogLightboxProps) {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+      if (event.key === 'ArrowLeft') onPrevious();
+      if (event.key === 'ArrowRight') onNext();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [onClose, onNext, onPrevious]);
+
+  const previewCard: CardInstance = {
+    instanceId: `catalog-lightbox-${card.id}`,
+    definitionId: card.id,
+  };
+
+  return createPortal(
+    <div className="catalog-lightbox" role="presentation" onMouseDown={(event) => {
+      if (event.currentTarget === event.target) onClose();
+    }}>
+      <div className="catalog-lightbox-dialog" role="dialog" aria-modal="true" aria-label={`Großansicht: ${card.name}`}>
+        <button className="catalog-lightbox-close" type="button" onClick={onClose} aria-label="Großansicht schließen">×</button>
+        <button className="catalog-lightbox-nav previous" type="button" onClick={onPrevious} disabled={!hasPrevious} aria-label="Vorherige Karte">‹</button>
+        <div className="catalog-lightbox-card"><GameCard card={previewCard} detailsOnHover={false} detailsOnTap={false} /></div>
+        <button className="catalog-lightbox-nav next" type="button" onClick={onNext} disabled={!hasNext} aria-label="Nächste Karte">›</button>
+        <p><b>{card.name}</b><span>← → zum Blättern · Esc zum Schließen</span></p>
+      </div>
+    </div>,
+    document.body,
   );
 }

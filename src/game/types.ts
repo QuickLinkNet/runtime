@@ -24,6 +24,7 @@ export interface CardInstance {
   definitionId: string;
   costModifier?: number;
   costModifierTurn?: number;
+  costModifierUntilPlayed?: boolean;
 }
 
 export interface BoardEntity extends CardInstance {
@@ -216,15 +217,23 @@ export interface BalanceReport {
   createdAt: string;
   simulatedMatches: number;
   report: {
-    summary: { simulatedMatches: number; matchesPerPair: number; averageTurns: number; draws: number };
-    archetypes: Array<{ id: string; name: string; games: number; winRate: number; avgTurns: number }>;
-    matchups: Array<{ left: string; right: string; games: number; leftWins: number; rightWins: number; draws: number; turns: number }>;
-    factions: Array<{ id: Domain; games: number; winRate: number }>;
-    cards: Array<{ definitionId: string; games: number; impactPerGame: number; winRate: number; domain: Domain }>;
-    recommendations: Array<{ tone: 'buff' | 'nerf' | 'synergy' | 'observe'; scope: string; message: string }>;
-    live: { recordedMatches: number; factions: Array<{ id: Domain; games: number; winRate: number }>; cards: Array<{ definitionId: string; games: number; impactPerGame: number }> };
-  };
+      summary: { simulatedMatches: number; matchesPerPair: number; averageTurns: number; draws: number; guardTerminations: number; coreTieBreaks: number; firstPlayerWinRate: number; confidence: BalanceConfidence };
+      archetypes: Array<{ id: string; name: string; games: number; winRate: number; avgTurns: number; confidence: BalanceConfidence; winRateInterval: BalanceInterval }>;
+      matchups: Array<{ left: string; right: string; games: number; leftWins: number; rightWins: number; draws: number; turns: number; leftWinRate: number; rightWinRate: number; avgTurns: number; imbalance: number; confidence: BalanceConfidence }>;
+      factions: Array<{ id: Domain; games: number; winRate: number; confidence: BalanceConfidence; winRateInterval: BalanceInterval }>;
+      cards: Array<{ definitionId: string; games: number; possibleGames: number; draws: number; plays: number; playRate: number; playConversion: number; impactPerGame: number; winRate: number; domain: Domain; confidence: BalanceConfidence }>;
+      cardAudit: Array<{ definitionId: string; name: string; domain: Domain; type: CardType; score: number; status: 'solid' | 'watch' | 'review'; summary: string; signals: Array<{ severity: 'medium' | 'high'; text: string }>; proposals: string[] }>;
+      coverage: Array<{ domain: Domain; role: string; cards: number; target: number; gap: number }>;
+      quality: { simulationConfidence: BalanceConfidence; liveConfidence: BalanceConfidence; method: string; nextStep: string };
+      recommendations: Array<{ id: string; tone: BalanceTone; scope: string; confidence: BalanceConfidence; samples: number; evidence: string; proposal: string; message: string }>;
+      live: { recordedMatches: number; factions: Array<{ id: Domain; games: number; winRate: number; confidence: BalanceConfidence; winRateInterval: BalanceInterval }>; cards: Array<{ definitionId: string; domain: Domain; games: number; draws: number; plays: number; playConversion: number; impactPerGame: number; winRate: number; confidence: BalanceConfidence }>; feedback: { responses: number; easy: number; fair: number; hard: number; coverage: number } };
+    };
+  reviews: Record<string, { status: 'open' | 'accepted' | 'dismissed'; note: string; updatedAt: string }>;
 }
+
+export type BalanceConfidence = 'low' | 'medium' | 'high';
+export type BalanceTone = 'buff' | 'nerf' | 'matchup' | 'system' | 'new-card' | 'live-check' | 'observe';
+export interface BalanceInterval { low: number; high: number; }
 
 export interface CollectionSnapshot {
   cards: Record<string, number>;

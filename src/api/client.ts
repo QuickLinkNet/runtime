@@ -87,6 +87,7 @@ export const api = {
   }),
   adminBalanceReport: () => request<{ report: BalanceReport | null }>('adminBalanceReport'),
   adminRunBalanceSimulation: (matchesPerPair: number) => request<BalanceReport>('adminRunBalanceSimulation', { method: 'POST', body: JSON.stringify({ matchesPerPair }) }),
+  adminReviewBalanceRecommendation: (reportId: string, recommendationId: string, status: 'open' | 'accepted' | 'dismissed', note = '') => request<{ reviews: BalanceReport['reviews'] }>('adminReviewBalanceRecommendation', { method: 'POST', body: JSON.stringify({ reportId, recommendationId, status, note }) }),
   createMatch: (mode: 'single' | 'multi', deck: string[], botProfile?: BotProfileKey) => request<MatchPayload>('createMatch', {
     method: 'POST', body: JSON.stringify({ mode, deck, ...(mode === 'single' && botProfile ? { botProfile } : {}) }),
   }),

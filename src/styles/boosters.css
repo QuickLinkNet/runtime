@@ -45,15 +45,17 @@
 .rarity-legendary .game-card, .rarity-legendary .booster-card-back { filter: drop-shadow(0 0 14px color-mix(in srgb, var(--rarity) 35%, transparent)); }
 .booster-reveal-actions { display: flex; justify-content: center; margin-top: 24px; }
 .booster-error { position: absolute; z-index: 3; bottom: 18px; margin: 0; color: #ff796f; }
-.collection-panel { margin-top: 46px; }
+.collection-panel { margin-top: 32px; scroll-margin-top: 16px; }
 .collection-panel > header { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 18px; }
 .collection-panel h2 { margin: 4px 0 0; font-size: 34px; }.collection-panel header p { margin: 0; font-size: 12px; }
 .collection-panel header p b { color: var(--accent); }
+.collection-summary { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 10px; }
 .collection-filters { display: flex; flex-wrap: wrap; gap: 6px; margin: -6px 0 18px; }.collection-filters button { border: 1px solid var(--line); border-radius: 999px; padding: 8px 11px; color: var(--muted); background: transparent; cursor: pointer; font-size: 9px; font-weight: 800; letter-spacing: .06em; }.collection-filters button.active { border-color: var(--accent-dark); color: var(--bg); background: var(--accent); }
+.collection-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: -8px 0 18px; }.collection-tools input, .collection-tools select { min-height: 34px; border: 1px solid var(--line); border-radius: 7px; padding: 0 10px; color: var(--text); background: rgba(8,14,10,.8); font: inherit; font-size: 10px; }.collection-tools input { width: min(270px, 100%); }.collection-tools span { color: var(--muted); font-size: 10px; }
 .collection-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 18px 12px; }
 .collection-card { display: grid; max-width: 220px; min-width: 0; align-content: start; gap: 4px; }
 .collection-card .game-card { width: 100%; height: auto; aspect-ratio: 1086 / 1448; }
-.collection-card footer b { font-size: 13px; }.collection-empty { border: 1px dashed var(--line); border-radius: var(--radius); padding: 50px; color: var(--muted); text-align: center; }
+.collection-card footer { position: relative; padding-bottom: 18px; }.collection-card footer b { font-size: 13px; }.collection-card footer small { position: absolute; right: 4px; bottom: 3px; color: var(--muted); font-size: 7px; letter-spacing: .08em; }.collection-empty { border: 1px dashed var(--line); border-radius: var(--radius); padding: 50px; color: var(--muted); text-align: center; }
 .collection-card.is-missing { opacity: .42; filter: grayscale(.8); }.collection-card.is-missing footer b { color: #9ca7a0; font-size: 8px; }
 .progression-workshop { display: grid; grid-template-columns: minmax(0, 1.35fr) repeat(2, minmax(250px, .8fr)); gap: 16px; margin-top: 38px; }
 .contracts-panel, .craft-panel { border: 1px solid var(--line); border-radius: 14px; padding: 18px; background: rgba(11,18,14,.82); }
@@ -71,7 +73,7 @@
   .booster-reveal { display: flex; justify-content: flex-start; overflow-x: auto; padding: 8px 28px 16px; scroll-snap-type: x mandatory; }
   .booster-slot { min-width: min(70vw, 255px); scroll-snap-align: center; }
   .booster-reveal-actions { margin: 10px 0 4px; }
-  .collection-panel > header { align-items: flex-start; flex-direction: column; }
+  .collection-panel > header { align-items: flex-start; flex-direction: column; }.collection-summary { justify-content: flex-start; }
   .collection-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px 8px; }
   .progression-workshop { grid-template-columns: 1fr; }
 }

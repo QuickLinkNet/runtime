@@ -21,22 +21,19 @@ trait ProductionIncidentEffects
             'design_system_deploy' => $this->buffDomainServices($state, $playerId, 'frontend', 0, 1),
             'graphql_gateway_deploy' => $this->drawFirstType($state, $playerId, 'command'),
             'retry_storm' => $this->returnServiceToHand($state, $targetId) + $this->drawCards($state, $playerId, 1),
-            'circuit_breaker_deploy' => $this->grantFirstDomainRedundancy($state, $playerId, 'backend'),
             'chaos_monkey_crash' => $this->drawCards($state, $playerId, 1),
             'terraform_apply' => $this->reinforceInfrastructure($state, $targetId, 3),
             'service_mesh_deploy' => $this->grantAllServicesRedundancy($state, $playerId),
             'data_scientist_deploy' => count($player['hand']) <= 4 ? $this->drawCards($state, $playerId, 1) : null,
             'schema_migration' => $this->drawFirstType($state, $playerId, 'infrastructure'),
-            'event_stream_deploy' => $this->drawCards($state, $playerId, 1),
             'penetration_tester_deploy', 'model_drift' => $this->sandboxTarget($state, $targetId, $playerId),
             'rotate_secrets' => $this->grantRedundancy($state, $targetId),
-            'siem_deploy' => $this->hasBug($opponent) ? $this->drawCards($state, $playerId, 2) : null,
+            'siem_deploy' => $this->drawCards($state, $playerId, $this->hasBug($opponent) ? 2 : 1),
             'prompt_engineer_deploy' => $this->generateRandomCard($state, $playerId, true, false),
             'rag_pipeline_deploy' => $this->drawFirstDomain($state, $playerId, 'data'),
             'werkstudent_deploy' => $this->spawnToken($state, $playerId, 'token-bug'),
             'product_owner_deploy' => count($player['hand']) <= 3 ? $this->drawCards($state, $playerId, 1) : null,
             'scrum_master_deploy' => $player['turnFlags']['projectManagerDiscount'] = true,
-            'monitoring_dashboard_deploy' => $this->drawCards($state, $playerId, 1),
             'maintenance_window' => $this->patchOwnBoard($state, $playerId, 2),
             'technical_debt' => $this->spawnBugs($state, $opponentId, 3),
             default => null,
@@ -56,6 +53,7 @@ trait ProductionIncidentEffects
                 $this->event($state, 'CARD_OVERFLOW', ['playerId' => $playerId, 'definitionId' => $card['definitionId']]);
             } else {
                 $player['hand'][] = $card;
+                $this->recordHandAcquisition($player, $card['definitionId']);
                 $this->event($state, 'CARD_DRAWN', ['playerId' => $playerId, 'cardInstanceId' => $card['instanceId']]);
             }
             return 1;

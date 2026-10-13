@@ -57,6 +57,8 @@ final class GameEngine
             'name' => $name,
             'isBot' => $isBot,
             'domains' => $domains,
+            // Internal telemetry only. PlayerView never exposes this field.
+            'initialDeckDefinitionIds' => array_values($deckIds),
             'core' => 30,
             'deck' => $deck,
             'hand' => [],
@@ -185,6 +187,9 @@ final class GameEngine
             'redundancy' => false,
             'sandboxed' => false,
             'sandboxUntilTurn' => 0,
+            'deployedTurn' => 0,
+            'deadLetterUntilTurn' => 0,
+            'commandImmuneUntilTurn' => 0,
             'exhausted' => false,
             'temporaryPower' => 0,
         ];
@@ -205,6 +210,13 @@ final class GameEngine
             'commandPlayed' => 0,
             'targetedCommandPlayed' => 0,
             'serviceCrashed' => false,
+            'ownServiceReturned' => false,
+            'dataPlayed' => false,
+            'backendServiceProtected' => false,
+            'eventStreamTriggered' => false,
+            'patchedOwnService' => false,
+            'bugRemoved' => false,
+            'sloMonitorArmed' => false,
             'projectManagerDiscount' => false,
             'infrastructureDecommissioned' => false,
         ];
@@ -222,6 +234,8 @@ final class GameEngine
             'bugsCreated' => 0,
             'replicasCreated' => 0,
             'servicesCrashed' => 0,
+            'cardPlayCounts' => [],
+            'cardDrawCounts' => [],
             'cardImpact' => [],
             'mvpDefinitionId' => null,
         ];
@@ -232,6 +246,8 @@ final class GameEngine
         $defaults = $this->emptyMatchStats();
         $player['matchStats'] = array_merge($defaults, (array)($player['matchStats'] ?? []));
         $player['matchStats']['cardImpact'] = (array)($player['matchStats']['cardImpact'] ?? []);
+        $player['matchStats']['cardPlayCounts'] = (array)($player['matchStats']['cardPlayCounts'] ?? []);
+        $player['matchStats']['cardDrawCounts'] = (array)($player['matchStats']['cardDrawCounts'] ?? []);
     }
 
     private function recordCardImpact(array &$player, string $definitionId, int $impact): void

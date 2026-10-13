@@ -80,21 +80,19 @@ export function App() {
   }, [deckSlots, location.pathname]);
 
   useEffect(() => {
-    if (!store.state || screen === 'match') return;
-    navigateMatch(store.state.roomCode, true);
-  }, [navigateMatch, screen, store.state]);
-
-  useEffect(() => {
     const roomCode = matchCodeFromPath(location.pathname);
     if (!identity || !roomCode || store.state?.roomCode === roomCode) return;
+    let cancelled = false;
     void api.getState(roomCode, 0)
       .then((payload) => {
-        if (payload.state) dispatch({ type: 'MATCH', payload: { version: payload.version, state: payload.state } });
+        if (!cancelled && payload.state) dispatch({ type: 'MATCH', payload: { version: payload.version, state: payload.state } });
       })
       .catch((error: unknown) => {
+        if (cancelled) return;
         dispatch({ type: 'ERROR', message: error instanceof Error ? error.message : 'Match konnte nicht geladen werden.' });
         navigateScreen('menu', true);
       });
+    return () => { cancelled = true; };
   }, [dispatch, identity, location.pathname, navigateScreen, store.state?.roomCode]);
 
   useEffect(() => {
@@ -242,8 +240,11 @@ export function App() {
 
   async function leaveMatch() {
     const state = store.state;
+    dispatch({ type: 'CLEAR' });
+    setResume(null);
+    navigateScreen('menu');
     if (state && state.status !== 'finished') {
-      try { await api.leave(state.roomCode); } catch { /* menu remains available */ }
+      try { await api.leave(state.roomCode); } catch { /* local exit remains authoritative */ }
     }
     if (state?.mode === 'tutorial' && state.tutorial?.completed) {
       setIdentity((current) => current ? { ...current, tutorialCompleted: true } : current);
@@ -252,9 +253,6 @@ export function App() {
     if (state?.status === 'finished' && identity?.isAccount) {
       try { setCollection(await api.collection()); } catch { /* the result remains visible even when the refresh fails */ }
     }
-    dispatch({ type: 'CLEAR' });
-    setResume(null);
-    navigateScreen('menu');
   }
 
   function rematch() {
@@ -314,7 +312,7 @@ export function App() {
   if (screen === 'account') return <AccountPage identity={identity} onLinked={accountLinked} onBack={() => navigateScreen('menu')} />;
   if (screen === 'admin' && identity.isAdmin) return <AdminPage onBack={() => navigateScreen('menu')} />;
 
-  if (store.state) {
+  if (screen === 'match' && store.state) {
     if (store.state.status === 'lobby') {
       return <RoomLobbyPage state={store.state} pending={store.pending} error={store.error} onStart={() => run(() => api.startMatch(store.state!.roomCode))} onExit={leaveMatch} />;
     }
@@ -323,6 +321,8 @@ export function App() {
       <MatchBoard state={store.state} pending={store.pending} syncStatus={store.syncStatus} onAction={submit} onRematch={rematch} onDeck={editDeckAfterMatch} onExit={leaveMatch} />
     </>;
   }
+
+  if (screen === 'match') return <BootPage />;
 
   if (screen === 'tutorial') return (
     <>

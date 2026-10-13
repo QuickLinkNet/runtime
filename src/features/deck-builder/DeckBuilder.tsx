@@ -17,37 +17,39 @@ interface DeckBuilderProps {
 
 export function DeckBuilder({ initialDeck, onSave, onCancel, collection }: DeckBuilderProps) {
   const builder = useDeckBuilder(initialDeck, collection?.cards ?? null);
-  const [catalogColumns, setCatalogColumns] = useState<4 | 5>(5);
+  const [catalogColumns, setCatalogColumns] = useState<4 | 5>(4);
   const addCard = (id: string) => { playSfx('card-select'); builder.addCard(id); };
   const removeCard = (id: string) => { playSfx('card-select'); builder.removeCard(id); };
 
   return (
     <main className="screen deck-screen">
-      <DeckHeader deckSize={builder.deck.length} validation={builder.validation} health={builder.health} />
-      <DomainSelector
-        availableDomains={builder.techDomains}
-        selectedDomains={builder.domains}
-        notice={builder.notice}
-        onToggle={builder.toggleDomain}
-      />
-      <CatalogToolbar
-        cardCount={builder.visibleCards.length}
-        domains={builder.domains}
-        filter={builder.filter}
-        query={builder.query}
-        sort={builder.sort}
-        onFilterChange={builder.setFilter}
-        onQueryChange={builder.setQuery}
-        onSortChange={builder.setSort}
-        columns={catalogColumns}
-        onColumnsChange={setCatalogColumns}
-        ownership={builder.ownership}
-        onOwnershipChange={builder.setOwnership}
-        collectionAvailable={collection !== null && collection !== undefined}
-        collectionMode={builder.collectionMode}
-        onCollectionModeChange={builder.setCollectionMode}
-      />
-      <div className="deck-layout">
+      <div className="deck-main">
+        <DeckHeader deckSize={builder.deck.length} validation={builder.validation} health={builder.health} />
+        <DomainSelector
+          availableDomains={builder.techDomains}
+          selectedDomains={builder.domains}
+          notice={builder.notice}
+          onToggle={builder.toggleDomain}
+        />
+        <CatalogToolbar
+          cardCount={builder.visibleCards.length}
+          domains={builder.domains}
+          filter={builder.filter}
+          typeFilter={builder.typeFilter}
+          query={builder.query}
+          sort={builder.sort}
+          onFilterChange={builder.setFilter}
+          onTypeFilterChange={builder.setTypeFilter}
+          onQueryChange={builder.setQuery}
+          onSortChange={builder.setSort}
+          columns={catalogColumns}
+          onColumnsChange={setCatalogColumns}
+          ownership={builder.ownership}
+          onOwnershipChange={builder.setOwnership}
+          collectionAvailable={collection !== null && collection !== undefined}
+          collectionMode={builder.collectionMode}
+          onCollectionModeChange={builder.setCollectionMode}
+        />
         <CardCatalog
           cards={builder.visibleCards}
           selectedDomainCount={builder.domains.length}
@@ -61,23 +63,23 @@ export function DeckBuilder({ initialDeck, onSave, onCancel, collection }: DeckB
           onAdd={addCard}
           onRemove={removeCard}
         />
-        <DeckSidebar
-          deck={builder.deck}
-          domains={builder.domains}
-          entries={builder.deckEntries}
-          domainCounts={builder.domainCounts}
-          validation={builder.validation}
-          health={builder.health}
-          dirty={builder.dirty}
-          starterKey={builder.starterKey}
-          onStarterChange={builder.setStarterKey}
-          onLoadStarter={builder.loadStarter}
-          onRemove={removeCard}
-          onClear={builder.clearDeck}
-          onCancel={onCancel}
-          onSave={() => onSave(builder.deck)}
-        />
       </div>
+      <DeckSidebar
+        deck={builder.deck}
+        domains={builder.domains}
+        entries={builder.deckEntries}
+        domainCounts={builder.domainCounts}
+        validation={builder.validation}
+        health={builder.health}
+        dirty={builder.dirty}
+        starterKey={builder.starterKey}
+        onStarterChange={builder.setStarterKey}
+        onLoadStarter={builder.loadStarter}
+        onRemove={removeCard}
+        onClear={builder.clearDeck}
+        onCancel={onCancel}
+        onSave={() => onSave(builder.deck)}
+      />
     </main>
   );
 }

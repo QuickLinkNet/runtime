@@ -56,6 +56,9 @@ export function MainMenuPage({ identity, deck, activeDeckName: activeDeckNameOve
     deck.find((id) => cardById.get(id)?.domain === 'neutral'),
   ].filter((id): id is string => Boolean(id)).slice(0, 3);
   const selectedBot = botProfiles[botProfile];
+  const openMissionCount = collection
+    ? [...collection.contracts.dailyItems, ...collection.contracts.items].filter((mission) => !mission.claimed).length
+    : 0;
 
   function startSelectedMode() {
     setLaunchMode(null);
@@ -68,6 +71,16 @@ export function MainMenuPage({ identity, deck, activeDeckName: activeDeckNameOve
       <header className="menu-header">
         <div className="brand-small">RUNTIME<span>_</span></div>
         <div className="menu-account-area">
+          {identity.isAccount && collection && <button
+            className="mission-control-chip"
+            type="button"
+            onClick={onBoosters}
+            aria-label={`Mission Control öffnen: ${openMissionCount} offene Missionen, Incident ${collection.incident.name}`}
+          >
+            <span className="mission-control-pulse" aria-hidden="true" />
+            <span className="mission-control-copy"><small>MISSION CONTROL · {collection.contracts.dailyStreak}D STREAK</small><b><span>{openMissionCount}</span><em> Mission{openMissionCount === 1 ? '' : 'en'} offen</em></b></span>
+            <i>{collection.incident.name}</i>
+          </button>}
           {identity.isAccount && collection && <span className="credits-chip"><small>CREDITS</small><b>{collection.credits}</b></span>}
           {identity.isAdmin && <button type="button" className="admin-launch" onClick={onAdmin}>ADMIN</button>}
           <button className={`profile-chip${identity.isAccount ? ' is-account' : ''}`} type="button" onClick={onAccount}><i />{identity.name}<small>{identity.isAccount ? 'ACCOUNT' : 'GAST'}</small></button>
@@ -78,29 +91,27 @@ export function MainMenuPage({ identity, deck, activeDeckName: activeDeckNameOve
         <h1>Build your stack.<br /><em>Break theirs.</em></h1>
         <p>Stelle Services bereit, sichere deinen Core und überlebe den nächsten Friday Deploy.</p>
       </section>
-      {identity.isAccount && collection && <button className="mission-control-teaser" type="button" onClick={onBoosters}>
-        <span><small>MISSION CONTROL · {collection.contracts.dailyStreak} TAG{collection.contracts.dailyStreak === 1 ? '' : 'E'} STREAK</small><b>{collection.incident.name}</b><i>{collection.contracts.dailyItems.filter((mission) => !mission.claimed).length} Tagesmissionen aktiv · Fortschritt ansehen →</i></span>
-      </button>}
       {resume && (
         <section className="resume-banner">
           <div><span>AKTIVE SESSION</span><b>Match {resume.state.roomCode} · Zug {resume.state.turn}</b></div>
           <Button variant="primary" onClick={onResume}>Match fortsetzen</Button>
         </section>
       )}
-      <button className={`tutorial-menu-banner${identity.tutorialCompleted ? ' is-complete' : ''}`} type="button" onClick={onTutorial}>
-        <span className="tutorial-menu-index">{identity.tutorialCompleted ? '✓' : '00'}</span>
+      {!identity.tutorialCompleted && <button className="tutorial-menu-banner" type="button" onClick={onTutorial}>
+        <span className="tutorial-menu-index">00</span>
         <span>
-          <small>{identity.tutorialCompleted ? 'TRAINING ABGESCHLOSSEN' : 'EMPFOHLENER ERSTER SCHRITT'}</small>
-          <strong>{identity.tutorialCompleted ? 'Runtime Training wiederholen' : 'Geführtes Tutorial starten'}</strong>
-          <i>{identity.tutorialCompleted ? 'Alle acht Lektionen jederzeit erneut spielen.' : 'Lerne Compute, Deploy, Combat, BUG, PATCH und Infrastructure in ca. 5 Minuten.'}</i>
+          <small>EMPFOHLENER ERSTER SCHRITT</small>
+          <strong>Geführtes Tutorial starten</strong>
+          <i>Lerne Compute, Deploy, Combat, BUG, PATCH und Infrastructure in ca. 5 Minuten.</i>
         </span>
-        <b>{identity.tutorialCompleted ? 'REPLAY' : '+1 BOOSTER'} <em>→</em></b>
-      </button>
+        <b>+1 BOOSTER <em>→</em></b>
+      </button>}
       <section className="menu-grid">
-        <article className="mode-card featured">
+        <article className={`mode-card featured${identity.tutorialCompleted ? ' has-training-replay' : ''}`}>
           <div className="mode-number">01</div>
           <img className="mode-card-art" src="/menu-assets/menu-singleplayer.png" alt="" aria-hidden="true" />
           <div className="mode-card-copy"><span className="eyebrow">TRAINING ENVIRONMENT</span><h2>Singleplayer</h2><p>Teste deinen Stack gegen einen serverseitigen Bot.</p></div>
+          {identity.tutorialCompleted && <button className="training-replay-link" type="button" onClick={onTutorial}>Training wiederholen <span aria-hidden="true">↗</span></button>}
           <Button className="mode-action" variant="primary" disabled={pending} onClick={() => setLaunchMode('single')}><MenuAction kind="singleplayer">{pending ? 'Initialisiere …' : 'Bot-Match starten'}</MenuAction></Button>
         </article>
         <article className="mode-card">

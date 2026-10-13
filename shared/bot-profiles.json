@@ -22,11 +22,11 @@
   "chaos": {
     "name": "Chaos Engineer",
     "label": "INCIDENT RESPONSE",
-    "description": "Flutet Slots mit BUGs, provoziert CRASH-Momente und nimmt aggressive Trades in Kauf.",
+    "description": "Provoziert CRASH-Momente, skaliert Replicas und setzt langsame Stacks mit BUGs unter Druck.",
     "strategy": "Aggressiv",
     "accent": "orange",
     "deck": [
-      "infrastructure-docker-container", "infrastructure-docker-container", "infrastructure-auto-scaler", "infrastructure-auto-scaler", "infrastructure-chaos-monkey", "infrastructure-chaos-monkey", "infrastructure-horizontal-scaling", "infrastructure-horizontal-scaling", "infrastructure-kubernetes-pod", "infrastructure-kubernetes-pod", "security-firewall-gateway", "security-firewall-gateway", "security-sandbox-container", "security-sandbox-container", "security-penetration-tester", "security-penetration-tester", "security-emergency-patch", "security-emergency-patch", "security-rate-limiter", "security-rate-limiter", "neutral-technical-debt", "neutral-qa-engineer", "neutral-spaghetti-code", "neutral-spaghetti-code", "neutral-friday-deploy", "neutral-old-workstation", "neutral-junior-developer", "neutral-junior-developer", "neutral-senior-developer", "neutral-senior-developer"
+      "infrastructure-docker-container", "infrastructure-docker-container", "infrastructure-chaos-monkey", "infrastructure-chaos-monkey", "infrastructure-slo-monitor", "infrastructure-slo-monitor", "infrastructure-kubernetes-pod", "infrastructure-kubernetes-pod", "infrastructure-auto-scaler", "infrastructure-auto-scaler", "infrastructure-rolling-deploy", "infrastructure-rolling-deploy", "infrastructure-horizontal-scaling", "infrastructure-horizontal-scaling", "infrastructure-kubernetes-cluster", "infrastructure-load-balancer", "security-sandbox-container", "security-sandbox-container", "security-penetration-tester", "security-penetration-tester", "security-rotate-secrets", "security-rotate-secrets", "security-rate-limiter", "security-rate-limiter", "neutral-old-workstation", "neutral-old-workstation", "neutral-senior-developer", "neutral-senior-developer", "neutral-force-push", "neutral-spaghetti-code"
     ]
   }
 }

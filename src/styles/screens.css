@@ -40,8 +40,15 @@ body:has(.boot-screen) :is(.music-control, .pwa-controls) { visibility: hidden; 
 /* Menu */
 .menu-screen { min-height: 100vh; padding: 28px clamp(28px, 6vw, 92px); background-image: linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px); background-size: 48px 48px; }
 .menu-header, .match-topbar { display: flex; align-items: center; justify-content: space-between; }
-.mission-control-teaser { display: flex; width: min(720px, 100%); align-items: center; justify-content: flex-start; border: 1px solid rgba(90,184,255,.38); border-radius: 10px; margin: 22px auto 0; padding: 12px 15px; color: var(--text); background: linear-gradient(100deg, rgba(64,156,219,.1), rgba(13,23,18,.78)); cursor: pointer; text-align: left; }.mission-control-teaser:hover { border-color: #72c9f1; background: linear-gradient(100deg, rgba(64,156,219,.16), rgba(13,23,18,.88)); }.mission-control-teaser span { display: grid; gap: 3px; }.mission-control-teaser small { color: #72c9f1; font-size: 8px; font-weight: 900; letter-spacing: .12em; }.mission-control-teaser b { font-size: 15px; }.mission-control-teaser i { color: var(--muted); font-size: 10px; font-style: normal; }
 .menu-account-area { display: flex; align-items: center; gap: 8px; }
+.mission-control-chip { display: grid; grid-template-columns: 8px auto auto; align-items: center; gap: 9px; border: 1px solid rgba(90,184,255,.35); border-radius: 999px; padding: 7px 11px; color: var(--text); background: rgba(11,23,23,.78); cursor: pointer; text-align: left; transition: border-color .16s, background .16s, transform .16s; }
+.mission-control-chip:hover { transform: translateY(-1px); border-color: #72c9f1; background: rgba(27,58,67,.72); }
+.mission-control-pulse { width: 7px; height: 7px; border-radius: 50%; background: #72c9f1; box-shadow: 0 0 0 4px rgba(90,184,255,.1), 0 0 12px rgba(90,184,255,.45); }
+.mission-control-copy { display: grid; gap: 2px; }
+.mission-control-copy small { color: #72c9f1; font: 850 7px/1 ui-monospace,monospace; letter-spacing: .1em; white-space: nowrap; }
+.mission-control-copy b { display: flex; gap: 3px; font-size: 10px; line-height: 1; white-space: nowrap; }
+.mission-control-copy b em { font-style: normal; }
+.mission-control-chip > i { border-left: 1px solid rgba(90,184,255,.25); padding-left: 9px; color: #8fa7a9; font-size: 9px; font-style: normal; white-space: nowrap; }
 .admin-launch { border: 1px solid #a57234; border-radius: 999px; padding: 8px 10px; color: #ffc76c; background: rgba(165,114,52,.11); cursor: pointer; font: 800 8px/1 ui-monospace, monospace; letter-spacing: .12em; }
 .credits-chip { display: flex; align-items: center; gap: 7px; border: 1px solid #355b6b; border-radius: 999px; padding: 7px 11px; color: #84d7ff; background: rgba(44,130,170,.1); }
 .credits-chip small { color: #82a9b9; font: 800 8px/1 ui-monospace, monospace; letter-spacing: .11em; }
@@ -90,6 +97,11 @@ body:has(.boot-screen) :is(.music-control, .pwa-controls) { visibility: hidden; 
 .mode-card .button.mode-action { position: relative; z-index: 1; display: grid; width: 100%; min-height: 53px; grid-template-columns: 25px minmax(0,1fr) 20px; align-items: center; align-self: stretch; gap: 11px; margin-top: auto; border-color: #56665d; border-radius: 8px; padding: 9px 14px; text-align: left; }
 .mode-card .button.mode-action.secondary { color: var(--text); background: linear-gradient(145deg, #26302b, #171f1b); }
 .mode-card .button.mode-action.ghost { background: rgba(22,31,26,.92); }
+.training-replay-link { position: relative; z-index: 1; align-self: flex-start; border: 0; padding: 3px 0; color: #91a097; background: transparent; cursor: pointer; font: 800 9px/1.2 ui-monospace,monospace; letter-spacing: .05em; }
+.training-replay-link:hover { color: var(--accent); }
+.training-replay-link span { margin-left: 4px; color: var(--accent); }
+.mode-card.has-training-replay .button.mode-action { margin-top: 0; }
+.mode-card.has-training-replay .training-replay-link { margin-top: auto; }
 .mode-action-icon { display: grid; width: 23px; height: 23px; place-items: center; }
 .mode-action-icon svg { width: 22px; height: 22px; overflow: visible; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .mode-action-arrow { justify-self: end; font-size: 21px; font-weight: 400; line-height: 1; }

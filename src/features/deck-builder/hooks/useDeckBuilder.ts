@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
 import { cardById, domainLabels, makeStarterDeck, playableCards, starterNames, validateDeck } from '../../../game/catalog';
 import type { Domain } from '../../../game/types';
-import { analyzeDeck, compareCards, domainOrder, domainsInDeck, maxCopiesFor, techDomains, type CatalogFilter, type DeckEntry, type SortMode } from '../model/deckBuilder';
+import { analyzeDeck, compareCards, domainOrder, domainsInDeck, maxCopiesFor, techDomains, type CatalogFilter, type CatalogTypeFilter, type DeckEntry, type SortMode } from '../model/deckBuilder';
 
 export function useDeckBuilder(initialDeck: string[], collection: Record<string, number> | null) {
   const [deck, setDeck] = useState([...initialDeck]);
   const [domains, setDomains] = useState<Domain[]>(() => domainsInDeck(initialDeck));
   const [filter, setFilter] = useState<CatalogFilter>('selected');
+  const [typeFilter, setTypeFilter] = useState<CatalogTypeFilter>('all');
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortMode>('cost-asc');
   const [starterKey, setStarterKey] = useState('frontend-backend');
@@ -29,10 +30,11 @@ export function useDeckBuilder(initialDeck: string[], collection: Record<string,
         if (filter === 'selected') return domains.includes(card.domain);
         return card.domain === filter && domains.includes(card.domain);
       })
+      .filter((card) => typeFilter === 'all' || card.type === typeFilter)
       .filter((card) => normalizedQuery === '' || [card.name, card.text, card.type, domainLabels[card.domain]]
         .some((value) => value.toLocaleLowerCase('de').includes(normalizedQuery)))
       .sort(compareCards(sort));
-  }, [collection, domains, filter, ownership, query, sort]);
+  }, [collection, domains, filter, ownership, query, sort, typeFilter]);
 
   const deckEntries = useMemo<DeckEntry[]>(() => [...counts.entries()]
     .map(([id, count]) => ({ card: cardById.get(id), count }))
@@ -121,6 +123,7 @@ export function useDeckBuilder(initialDeck: string[], collection: Record<string,
     deck,
     domains,
     filter,
+    typeFilter,
     query,
     sort,
     starterKey,
@@ -135,6 +138,7 @@ export function useDeckBuilder(initialDeck: string[], collection: Record<string,
     health,
     dirty,
     setFilter,
+    setTypeFilter,
     setQuery,
     setSort,
     setStarterKey,

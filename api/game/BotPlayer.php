@@ -86,13 +86,18 @@ final class BotPlayer
         if ($profile === 'chaos') {
             return $this->tryChaosAttack($state, $botId, $opponentId);
         }
+        $readyCount = count(array_filter($state['players'][$botId]['services'], fn(array $service): bool => $this->canAttack($service)));
+        $pressureCore = !$this->hasFirewall($state['players'][$opponentId])
+            && ($state['players'][$opponentId]['core'] <= 15 || $readyCount > count($state['players'][$opponentId]['services']));
         foreach ($state['players'][$botId]['services'] as $service) {
             if (!$this->canAttack($service)) {
                 continue;
             }
             $targetId = null;
             $enemyServices = $state['players'][$opponentId]['services'];
-            if ($enemyServices !== []) {
+            if ($pressureCore) {
+                $targetId = 'core:' . $opponentId;
+            } elseif ($enemyServices !== []) {
                 usort($enemyServices, static fn(array $a, array $b): int => $a['integrity'] <=> $b['integrity']);
                 $targetId = $enemyServices[0]['instanceId'];
             } elseif ($state['players'][$opponentId]['infrastructure'] !== []) {
@@ -179,11 +184,15 @@ final class BotPlayer
             'web_worker_deploy', 'security_engineer_deploy' => ($own['services'][0]['instanceId'] ?? null),
             'horizontal_scaling' => $this->cheapServiceTarget($own),
             'emergency_patch' => $own['services'][0]['instanceId'] ?? $own['infrastructure'][0]['instanceId'] ?? 'core:' . $botId,
-            'sandbox_container_deploy' => $opponent['services'][0]['instanceId'] ?? null,
+            'sandbox_container_deploy' => $this->sandboxServiceTarget($opponent),
             'feature_flag', 'retry_storm', 'rotate_secrets' => $own['services'][0]['instanceId'] ?? false,
             'terraform_apply' => $own['infrastructure'][0]['instanceId'] ?? false,
-            'penetration_tester_deploy' => $opponent['services'][0]['instanceId'] ?? null,
-            'model_drift' => $opponent['services'][0]['instanceId'] ?? false,
+            'penetration_tester_deploy' => $this->sandboxServiceTarget($opponent),
+            'model_drift' => $this->sandboxServiceTarget($opponent) ?? false,
+            'error_boundary_deploy' => $this->domainServiceTarget($own, 'frontend'),
+            'dead_letter_queue', 'rolling_deploy', 'containment_plan' => $own['services'][0]['instanceId'] ?? false,
+            'access_review' => count($opponent['services']) > count($own['services']) ? ($this->sandboxServiceTarget($opponent) ?? false) : false,
+            'inference_burst' => $this->domainServiceTarget($own, 'ai', $state['turn']),
             default => null,
         };
     }
@@ -216,6 +225,17 @@ final class BotPlayer
         return $cost;
     }
 
+    private function domainServiceTarget(array $player, string $domain, ?int $deployedTurn = null): string|false
+    {
+        foreach ($player['services'] as $service) {
+            if ($this->catalog->get($service['definitionId'])['domain'] === $domain
+                && ($deployedTurn === null || ($service['deployedTurn'] ?? 0) === $deployedTurn)) {
+                return $service['instanceId'];
+            }
+        }
+        return false;
+    }
+
     private function cheapServiceTarget(array $player): string|false
     {
         foreach ($player['services'] as $service) {
@@ -224,6 +244,26 @@ final class BotPlayer
             }
         }
         return false;
+    }
+
+    private function sandboxServiceTarget(array $opponent): ?string
+    {
+        $services = $opponent['services'];
+        if ($services === []) return null;
+        usort($services, function (array $left, array $right): int {
+            $leftDefinition = $this->catalog->get($left['definitionId']);
+            $rightDefinition = $this->catalog->get($right['definitionId']);
+            $leftScore = ($left['sandboxed'] ? -1000 : 0)
+                + (in_array('FIREWALL', $leftDefinition['keywords'] ?? [], true) ? 200 : 0)
+                + (int)($left['power'] ?? 0) * 10
+                + (int)($leftDefinition['cost'] ?? 0);
+            $rightScore = ($right['sandboxed'] ? -1000 : 0)
+                + (in_array('FIREWALL', $rightDefinition['keywords'] ?? [], true) ? 200 : 0)
+                + (int)($right['power'] ?? 0) * 10
+                + (int)($rightDefinition['cost'] ?? 0);
+            return $rightScore <=> $leftScore;
+        });
+        return $services[0]['instanceId'];
     }
 
     private function canAttack(array $service): bool

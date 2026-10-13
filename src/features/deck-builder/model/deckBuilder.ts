@@ -1,11 +1,12 @@
 import { cardById } from '../../../game/catalog';
 import { rarityByCard } from '../../../game/cardRarity';
-import type { CardDefinition, Domain } from '../../../game/types';
+import type { CardDefinition, CardType, Domain } from '../../../game/types';
 
 export const techDomains: Domain[] = ['frontend', 'backend', 'infrastructure', 'data', 'security', 'ai'];
 export const domainOrder: Domain[] = [...techDomains, 'neutral', 'token'];
 
 export type CatalogFilter = 'selected' | Domain;
+export type CatalogTypeFilter = 'all' | CardType;
 export type SortMode = 'cost-asc' | 'cost-desc' | 'name' | 'type';
 export type DeckEntry = { card: CardDefinition; count: number };
 export interface DeckHealth { infrastructure: number; services: number; early: number; mid: number; late: number; archetype: string; recommendation: string; warnings: string[]; }

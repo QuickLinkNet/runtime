@@ -1,14 +1,16 @@
 import { domainLabels } from '../../../game/catalog';
 import type { Domain } from '../../../game/types';
-import type { CatalogFilter, SortMode } from '../model/deckBuilder';
+import type { CatalogFilter, CatalogTypeFilter, SortMode } from '../model/deckBuilder';
 
 interface CatalogToolbarProps {
   cardCount: number;
   domains: Domain[];
   filter: CatalogFilter;
+  typeFilter: CatalogTypeFilter;
   query: string;
   sort: SortMode;
   onFilterChange: (filter: CatalogFilter) => void;
+  onTypeFilterChange: (filter: CatalogTypeFilter) => void;
   onQueryChange: (query: string) => void;
   onSortChange: (sort: SortMode) => void;
   columns: 4 | 5;
@@ -20,7 +22,7 @@ interface CatalogToolbarProps {
   onCollectionModeChange: (enabled: boolean) => void;
 }
 
-export function CatalogToolbar({ cardCount, domains, filter, query, sort, onFilterChange, onQueryChange, onSortChange, columns, onColumnsChange, ownership, onOwnershipChange, collectionAvailable, collectionMode, onCollectionModeChange }: CatalogToolbarProps) {
+export function CatalogToolbar({ cardCount, domains, filter, typeFilter, query, sort, onFilterChange, onTypeFilterChange, onQueryChange, onSortChange, columns, onColumnsChange, ownership, onOwnershipChange, collectionAvailable, collectionMode, onCollectionModeChange }: CatalogToolbarProps) {
   return (
     <section className="catalog-controls" aria-labelledby="catalog-heading">
       <div className="deck-section-heading compact">
@@ -28,12 +30,20 @@ export function CatalogToolbar({ cardCount, domains, filter, query, sort, onFilt
         <b>{cardCount} Karten</b>
       </div>
       <div className="catalog-toolbar">
-        <div className="catalog-filters" aria-label="Karten filtern">
-          <button type="button" className={filter === 'selected' ? 'active' : ''} onClick={() => onFilterChange('selected')}>Meine Domains</button>
-          {domains.map((domain) => (
-            <button type="button" key={domain} className={filter === domain ? 'active' : ''} onClick={() => onFilterChange(domain)}>{domainLabels[domain]}</button>
-          ))}
-          <button type="button" className={filter === 'neutral' ? 'active' : ''} onClick={() => onFilterChange('neutral')}>Neutral</button>
+        <div className="catalog-filter-groups">
+          <div className="catalog-filters" aria-label="Nach Domain filtern">
+            <button type="button" className={filter === 'selected' ? 'active' : ''} onClick={() => onFilterChange('selected')}>Meine Domains</button>
+            {domains.map((domain) => (
+              <button type="button" key={domain} className={filter === domain ? 'active' : ''} onClick={() => onFilterChange(domain)}>{domainLabels[domain]}</button>
+            ))}
+            <button type="button" className={filter === 'neutral' ? 'active' : ''} onClick={() => onFilterChange('neutral')}>Neutral</button>
+          </div>
+          <div className="catalog-filters type-filters" aria-label="Nach Kartentyp filtern">
+            <button type="button" className={typeFilter === 'all' ? 'active' : ''} onClick={() => onTypeFilterChange('all')}>Alle Typen</button>
+            <button type="button" className={typeFilter === 'service' ? 'active' : ''} onClick={() => onTypeFilterChange('service')}>Services</button>
+            <button type="button" className={typeFilter === 'command' ? 'active' : ''} onClick={() => onTypeFilterChange('command')}>Commands</button>
+            <button type="button" className={typeFilter === 'infrastructure' ? 'active' : ''} onClick={() => onTypeFilterChange('infrastructure')}>Infrastructure</button>
+          </div>
         </div>
         <div className="catalog-tools">
           {collectionAvailable && <div className="ownership-switch" aria-label="Sammlungsfilter">

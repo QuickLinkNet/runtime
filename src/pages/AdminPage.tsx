@@ -150,6 +150,18 @@ export function AdminPage({ onBack }: AdminPageProps) {
     }
   }
 
+  async function reviewBalanceRecommendation(recommendationId: string, status: 'accepted' | 'dismissed') {
+    if (!balanceReport) return;
+    setPending(true); setError(null);
+    try {
+      const result = await api.adminReviewBalanceRecommendation(balanceReport.id, recommendationId, status);
+      setBalanceReport({ ...balanceReport, reviews: result.reviews });
+      setNotice(status === 'accepted' ? 'Für den Playtest vorgemerkt. Noch keine Karte wurde verändert.' : 'Balance-Hypothese verworfen.');
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Balance-Review konnte nicht gespeichert werden.');
+    } finally { setPending(false); }
+  }
+
   return (
     <main className="admin-screen">
       <header className="admin-header">
@@ -167,7 +179,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
         <article><span>KARTEN</span><b>{overview?.summary.collectedCards ?? '–'}</b><small>Sammlungskopien</small></article>
       </section>
 
-      <BalanceLab report={balanceReport} pending={pending} onRun={(matchesPerPair) => void runBalanceSimulation(matchesPerPair)} />
+      <BalanceLab report={balanceReport} pending={pending} onRun={(matchesPerPair) => void runBalanceSimulation(matchesPerPair)} onReview={(recommendationId, status) => void reviewBalanceRecommendation(recommendationId, status)} />
 
       <section className="admin-workspace">
         <div className="admin-players">

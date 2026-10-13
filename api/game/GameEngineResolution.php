@@ -40,7 +40,7 @@ trait GameEngineResolution
             'security_engineer_deploy' => $this->grantRedundancy($state, $targetId ?? $sourceId),
             'emergency_patch' => $this->patchTarget($state, $targetId, 5),
             'llm_agent_deploy' => $this->generateRandomCard($state, $playerId, true, false),
-            'vision_model_deploy' => $this->hasBug($opponent) ? $this->drawCards($state, $playerId, 1) : null,
+            'vision_model_deploy' => $this->hasBug($opponent) ? $this->drawCards($state, $playerId, 1) : $this->buffEntity($state, $sourceId, 0, 1),
             'embedding_model_deploy' => $this->drawFirstDomain($state, $playerId, 'data'),
             'hallucination' => $this->generateRandomCard($state, $playerId, false, true),
             'junior_developer_deploy' => $this->spawnToken($state, $playerId, 'token-bug'),
@@ -54,7 +54,25 @@ trait GameEngineResolution
             'stack_overflow' => $this->resolveStackOverflow($state, $playerId),
             'spaghetti_code' => $this->spawnToken($state, $opponentId, 'token-bug') + $this->spawnToken($state, $opponentId, 'token-bug'),
             'friday_deploy' => $this->resolveFridayDeploy($state, $playerId),
-            'bootstrap' => $player['temporaryCompute']++,
+            'bootstrap' => $player['temporaryCompute'] += 3,
+            'error_boundary_deploy' => $this->resolveErrorBoundary($state, $playerId, $targetId),
+            'component_library' => $this->spawnToken($state, $playerId, 'token-child-component') + ($this->countDomainServices($player, 'frontend') >= 3 ? $this->drawCards($state, $playerId, 1) : 0),
+            'edge_runtime_deploy' => $this->buffDomainServicesTemporary($state, $playerId, 'frontend', $sourceId, 2, 2),
+            'idempotency_key_deploy' => ($player['turnFlags']['ownServiceReturned'] ?? false) ? $this->drawFirstDomain($state, $playerId, 'backend') : null,
+            'dead_letter_queue' => $this->armDeadLetterQueue($state, $targetId),
+            'event_store_deploy' => $this->resolveEventStore($state, $playerId),
+            'slo_monitor_deploy' => $player['turnFlags']['sloMonitorArmed'] = true,
+            'rolling_deploy' => $this->resolveRollingDeploy($state, $playerId, $targetId),
+            'disaster_recovery_plan' => $this->returnTrashServices($state, $playerId, 2),
+            'query_planner_deploy' => $this->discoverTopCards($state, $playerId, 3, 1, null, null),
+            'data_quality_gate' => $this->dataQualityGate($state, $playerId),
+            'predictive_query' => $this->discoverTopCards($state, $playerId, 5, 2, null, null, true),
+            'soc_analyst_deploy' => $this->removeOpponentBug($state, $opponentId),
+            'access_review' => $this->sandboxTarget($state, $targetId, $playerId),
+            'containment_plan' => $this->containServices($state, $playerId, $targetId),
+            'model_router_deploy' => $this->generateRandomCard($state, $playerId, true, false),
+            'model_ensemble' => $this->handHasDomain($player, 'data') ? $this->drawFirstDomainType($state, $playerId, 'ai', 'service') : null,
+            'inference_burst' => $this->resolveInferenceBurst($state, $playerId, $targetId),
             default => $this->resolveProductionIncidentEffect($state, $playerId, $effect, $sourceId, $targetId),
         };
     }
@@ -64,7 +82,7 @@ trait GameEngineResolution
         $player = $state['players'][$playerId];
         $opponent = $state['players'][$this->opponentId($state, $playerId)];
         $cost = (int)$definition['cost'];
-        if (($instance['costModifierTurn'] ?? null) === $state['turn']) {
+        if (($instance['costModifierUntilPlayed'] ?? false) || ($instance['costModifierTurn'] ?? null) === $state['turn']) {
             $cost += (int)($instance['costModifier'] ?? 0);
         }
         if ($definition['type'] === 'service' && $player['turnFlags']['servicePlayed'] === 0 && $this->hasActiveService($opponent, 'security-rate-limiter')) {
@@ -74,7 +92,10 @@ trait GameEngineResolution
             $cost++;
         }
         if ($definition['type'] === 'service' && $definition['domain'] === 'frontend' && $player['turnFlags']['frontendPlayed'] === 0) {
-            $cost = max(1, $cost - $this->countInfrastructure($player, 'frontend-state-store'));
+            $cost = max(1, $cost - ($this->hasInfrastructure($player, 'frontend-state-store') ? 1 : 0));
+        }
+        if ($definition['domain'] === 'data' && !($player['turnFlags']['dataPlayed'] ?? false) && $this->hasInfrastructure($player, 'ai-rag-pipeline')) {
+            $cost = max(1, $cost - 1);
         }
         if ($definition['type'] === 'service' && $definition['domain'] === 'ai' && $this->hasInfrastructure($player, 'ai-gpu-cluster')) {
             $cost = max(1, $cost - 1);
@@ -112,10 +133,17 @@ trait GameEngineResolution
                 continue;
             }
             $player['hand'][] = $card;
+            $this->recordHandAcquisition($player, $card['definitionId']);
             $drawn++;
             $this->event($state, 'CARD_DRAWN', ['playerId' => $playerId, 'cardInstanceId' => $card['instanceId']]);
         }
         return $drawn;
+    }
+
+    private function recordHandAcquisition(array &$player, string $definitionId): void
+    {
+        $this->ensureMatchStats($player);
+        $player['matchStats']['cardDrawCounts'][$definitionId] = (int)($player['matchStats']['cardDrawCounts'][$definitionId] ?? 0) + 1;
     }
 
     private function resolveDeaths(array &$state): void
@@ -151,6 +179,9 @@ trait GameEngineResolution
                     $this->ensureMatchStats($state['players'][$playerId]);
                     $state['players'][$playerId]['matchStats']['servicesCrashed']++;
                     $state['players'][$playerId]['turnFlags']['serviceCrashed'] = true;
+                    if (($entity['deadLetterUntilTurn'] ?? 0) > $state['players'][$playerId]['turnsTaken']) {
+                        $this->drawFirstDomain($state, $playerId, 'backend');
+                    }
                     $this->event($state, 'SERVICE_CRASHED', ['playerId' => $playerId, 'entityId' => $instanceId]);
                     if (!$entity['sandboxed'] && in_array('CRASH', $definition['keywords'] ?? [], true)) {
                         $this->resolveEffect($state, $playerId, $definition, null, null, false);
@@ -191,7 +222,11 @@ trait GameEngineResolution
             $state['players'][$target['ownerId']]['core'] = min(30, $state['players'][$target['ownerId']]['core'] + $amount);
         } else {
             $entity =& $state['players'][$target['ownerId']][$target['zone']][$target['index']];
+            $before = $entity['integrity'];
             $entity['integrity'] = min($entity['maxIntegrity'], $entity['integrity'] + $amount);
+            if ($target['ownerId'] === $state['activePlayerId'] && $target['zone'] === 'services' && $entity['integrity'] > $before) {
+                $state['players'][$target['ownerId']]['turnFlags']['patchedOwnService'] = true;
+            }
         }
         $this->event($state, 'PATCH_APPLIED', ['targetId' => $targetId, 'amount' => $amount]);
         return $amount;
@@ -243,7 +278,8 @@ trait GameEngineResolution
         $owner =& $state['players'][$target['ownerId']];
         $service =& $owner['services'][$target['index']];
         $service['sandboxed'] = true;
-        $service['sandboxUntilTurn'] = $owner['turnsTaken'] + 1;
+        // Keep the service isolated throughout its owner's next complete turn.
+        $service['sandboxUntilTurn'] = $owner['turnsTaken'] + 2;
         $this->event($state, 'SERVICE_SANDBOXED', ['sourcePlayerId' => $actingPlayerId, 'targetId' => $targetId]);
         return 1;
     }
@@ -317,6 +353,10 @@ trait GameEngineResolution
             $this->event($state, 'CARD_OVERFLOW', ['playerId' => $target['ownerId'], 'definitionId' => $entity['definitionId']]);
         } else {
             $player['hand'][] = $card;
+            $this->recordHandAcquisition($player, $card['definitionId']);
+            if ($target['ownerId'] === $state['activePlayerId']) {
+                $player['turnFlags']['ownServiceReturned'] = true;
+            }
         }
         return 1;
     }
@@ -332,12 +372,209 @@ trait GameEngineResolution
                     $this->event($state, 'CARD_OVERFLOW', ['playerId' => $playerId, 'definitionId' => $card['definitionId']]);
                 } else {
                     $player['hand'][] = $card;
+                    $this->recordHandAcquisition($player, $card['definitionId']);
                     $this->event($state, 'CARD_DRAWN', ['playerId' => $playerId, 'cardInstanceId' => $card['instanceId']]);
                 }
                 return 1;
             }
         }
         return 0;
+    }
+
+    private function drawFirstDomainType(array &$state, string $playerId, string $domain, string $type): int
+    {
+        $player =& $state['players'][$playerId];
+        foreach ($player['deck'] as $index => $card) {
+            $definition = $this->catalog->get($card['definitionId']);
+            if ($definition['domain'] === $domain && $definition['type'] === $type) {
+                array_splice($player['deck'], $index, 1);
+                if (count($player['hand']) < 10) {
+                    $player['hand'][] = $card;
+                    $this->recordHandAcquisition($player, $card['definitionId']);
+                } else $player['trash'][] = $card;
+                $this->event($state, 'CARD_DRAWN', ['playerId' => $playerId, 'cardInstanceId' => $card['instanceId']]);
+                return 1;
+            }
+        }
+        return 0;
+    }
+
+    private function resolveErrorBoundary(array &$state, string $playerId, ?string $targetId): int
+    {
+        $target = $this->locateTarget($state, (string)$targetId);
+        $before = $target['entity']['integrity'] ?? 0;
+        $result = $this->patchTarget($state, $targetId, 2);
+        $after = $this->locateTarget($state, (string)$targetId)['entity']['integrity'] ?? 0;
+        if ($result && $after > $before && $after === ($target['entity']['maxIntegrity'] ?? 0)) $this->drawCards($state, $playerId, 1);
+        return $result;
+    }
+
+    private function buffDomainServicesTemporary(array &$state, string $playerId, string $domain, ?string $exceptId, int $limit, int $power): int
+    {
+        $count = 0;
+        foreach ($state['players'][$playerId]['services'] as $service) {
+            if ($service['instanceId'] !== $exceptId && $this->catalog->get($service['definitionId'])['domain'] === $domain && $count < $limit) {
+                $this->buffEntity($state, $service['instanceId'], $power, 0, true);
+                $count++;
+            }
+        }
+        return $count;
+    }
+
+    private function armDeadLetterQueue(array &$state, ?string $targetId): int
+    {
+        $target = $this->locateTarget($state, (string)$targetId);
+        if ($target === null || $target['zone'] !== 'services') return 0;
+        $state['players'][$target['ownerId']]['services'][$target['index']]['deadLetterUntilTurn'] = $state['players'][$target['ownerId']]['turnsTaken'] + 1;
+        return 1;
+    }
+
+    private function resolveEventStore(array &$state, string $playerId): int
+    {
+        if ($state['players'][$playerId]['core'] <= 20) return $this->drawFirstDomain($state, $playerId, 'backend');
+        return $this->returnFirstTrashDomain($state, $playerId, 'backend');
+    }
+
+    private function returnFirstTrashDomain(array &$state, string $playerId, string $domain): int
+    {
+        $player =& $state['players'][$playerId];
+        foreach ($player['trash'] as $index => $card) {
+            if ($this->catalog->get($card['definitionId'])['domain'] === $domain) {
+                if (count($player['hand']) >= 10) return 0;
+                array_splice($player['trash'], $index, 1);
+                $player['hand'][] = $card;
+                $this->recordHandAcquisition($player, $card['definitionId']);
+                return 1;
+            }
+        }
+        return 0;
+    }
+
+    private function resolveRollingDeploy(array &$state, string $playerId, ?string $targetId): int
+    {
+        if ($targetId === null) return 0;
+        $target = $this->locateTarget($state, $targetId);
+        if ($target === null) return 0;
+        $definition = $this->catalog->get($target['entity']['definitionId']);
+        $result = $this->returnServiceToHand($state, $targetId);
+        $this->spawnToken($state, $playerId, 'token-replica');
+        if ($result && (int)$definition['cost'] <= 3) {
+            $index = $this->findIndex($state['players'][$playerId]['hand'], $targetId);
+            if ($index !== null) {
+                $state['players'][$playerId]['hand'][$index]['costModifier'] = -1;
+                $state['players'][$playerId]['hand'][$index]['costModifierUntilPlayed'] = true;
+            }
+        }
+        return $result;
+    }
+
+    private function returnTrashServices(array &$state, string $playerId, int $limit): int
+    {
+        $player =& $state['players'][$playerId]; $returned = 0;
+        for ($i = count($player['trash']) - 1; $i >= 0 && $returned < $limit; $i--) {
+            $card = $player['trash'][$i];
+            if ($this->catalog->get($card['definitionId'])['type'] === 'service' && count($player['hand']) < 10) {
+                array_splice($player['trash'], $i, 1); $player['hand'][] = $card; $this->recordHandAcquisition($player, $card['definitionId']); $returned++;
+            }
+        }
+        if ($returned > 0 && count($player['infrastructure']) >= 2) {
+            $index = array_key_last($player['hand']);
+            $player['hand'][$index]['costModifier'] = -1;
+            $player['hand'][$index]['costModifierUntilPlayed'] = true;
+        }
+        return $returned;
+    }
+
+    private function discoverTopCards(array &$state, string $playerId, int $depth, int $take, ?string $domain, ?string $type, bool $differentTypes = false): int
+    {
+        $player =& $state['players'][$playerId];
+        $top = array_splice($player['deck'], max(0, count($player['deck']) - $depth));
+        usort($top, fn(array $a, array $b): int => $this->catalog->get($b['definitionId'])['cost'] <=> $this->catalog->get($a['definitionId'])['cost']);
+        $picked = 0; $types = [];
+        foreach ($top as $index => $card) {
+            $definition = $this->catalog->get($card['definitionId']);
+            if ($picked < $take && count($player['hand']) < 10 && ($domain === null || $definition['domain'] === $domain) && ($type === null || $definition['type'] === $type) && (!$differentTypes || !isset($types[$definition['type']]))) {
+                $player['hand'][] = $card; $this->recordHandAcquisition($player, $card['definitionId']); $types[$definition['type']] = true; unset($top[$index]); $picked++;
+            }
+        }
+        $player['deck'] = array_merge(array_values($top), $player['deck']);
+        return $picked;
+    }
+
+    private function dataQualityGate(array &$state, string $playerId): int
+    {
+        $player =& $state['players'][$playerId];
+        if ($player['hand'] !== []) $player['deck'] = array_merge([array_shift($player['hand'])], $player['deck']);
+        $top = array_splice($player['deck'], max(0, count($player['deck']) - 4));
+        usort($top, fn(array $a, array $b): int => $this->catalog->get($b['definitionId'])['cost'] <=> $this->catalog->get($a['definitionId'])['cost']);
+        foreach ($top as $index => $card) {
+            $definition = $this->catalog->get($card['definitionId']);
+            if (count($player['hand']) < 10 && ($definition['domain'] === 'data' || $definition['type'] === 'command')) {
+                $player['hand'][] = $card; $this->recordHandAcquisition($player, $card['definitionId']); unset($top[$index]);
+                $player['deck'] = array_merge(array_values($top), $player['deck']);
+                return 1;
+            }
+        }
+        $player['deck'] = array_merge(array_values($top), $player['deck']);
+        return 0;
+    }
+
+    private function removeOpponentBug(array &$state, string $opponentId): int
+    {
+        foreach ($state['players'][$opponentId]['services'] as $index => $service) {
+            if ($service['definitionId'] === 'token-bug') {
+                array_splice($state['players'][$opponentId]['services'], $index, 1);
+                $activePlayer = $state['activePlayerId'];
+                if ($activePlayer !== null) $state['players'][$activePlayer]['turnFlags']['bugRemoved'] = true;
+                return 1;
+            }
+        }
+        return 0;
+    }
+
+    private function applyCircuitBreaker(array &$state, string $playerId, string $serviceId, array $definition): void
+    {
+        $player =& $state['players'][$playerId];
+        if (($definition['domain'] ?? '') !== 'backend' || ($player['turnFlags']['backendServiceProtected'] ?? false)
+            || !$this->hasInfrastructure($player, 'backend-circuit-breaker')) return;
+        if ($this->grantRedundancy($state, $serviceId) > 0) $player['turnFlags']['backendServiceProtected'] = true;
+    }
+
+    private function applyEventStream(array &$state, string $playerId, array $definition): void
+    {
+        $player =& $state['players'][$playerId];
+        if (($definition['domain'] ?? '') !== 'data' || ($definition['type'] ?? '') === 'infrastructure'
+            || ($player['turnFlags']['eventStreamTriggered'] ?? false)
+            || !$this->hasInfrastructure($player, 'data-event-stream')) return;
+        $player['turnFlags']['eventStreamTriggered'] = true;
+        $this->drawCards($state, $playerId, 1);
+    }
+
+    private function containServices(array &$state, string $playerId, ?string $targetId): int
+    {
+        $count = $this->armCommandImmunity($state, $targetId);
+        $opponentId = $this->opponentId($state, $playerId);
+        if (count($state['players'][$playerId]['services']) < count($state['players'][$opponentId]['services'])) {
+            foreach ($state['players'][$playerId]['services'] as $service) if ($service['instanceId'] !== $targetId) { $count += $this->armCommandImmunity($state, $service['instanceId']); break; }
+        }
+        return $count;
+    }
+
+    private function armCommandImmunity(array &$state, ?string $targetId): int
+    {
+        $target = $this->locateTarget($state, (string)$targetId);
+        if ($target === null || $target['zone'] !== 'services') return 0;
+        $state['players'][$target['ownerId']]['services'][$target['index']]['commandImmuneUntilTurn'] = $state['players'][$target['ownerId']]['turnsTaken'] + 1;
+        return 1;
+    }
+
+    private function resolveInferenceBurst(array &$state, string $playerId, ?string $targetId): int
+    {
+        $target = $this->locateTarget($state, (string)$targetId);
+        if ($target === null || ($target['entity']['deployedTurn'] ?? 0) !== $state['turn'] || $this->catalog->get($target['entity']['definitionId'])['domain'] !== 'ai') return 0;
+        $state['players'][$playerId]['services'][$target['index']]['exhausted'] = false;
+        if (($state['players'][$playerId]['turnFlags']['dataPlayed'] ?? false)) $this->buffEntity($state, $targetId, 1, 0, true);
+        return 1;
     }
 
     private function generateRandomCard(array &$state, string $playerId, bool $commandsOnly, bool $discount): int
@@ -359,6 +596,7 @@ trait GameEngineResolution
             $card['costModifierTurn'] = $state['turn'];
         }
         $player['hand'][] = $card;
+        $this->recordHandAcquisition($player, $card['definitionId']);
         $this->event($state, 'CARD_GENERATED', ['playerId' => $playerId, 'definitionId' => $choice['id']]);
         return 1;
     }

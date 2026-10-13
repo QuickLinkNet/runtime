@@ -7,6 +7,12 @@
     "security-penetration-tester", "security-rotate-secrets", "security-siem",
     "ai-prompt-engineer", "ai-model-drift", "ai-rag-pipeline",
     "neutral-werkstudent", "neutral-product-owner", "neutral-scrum-master",
-    "neutral-monitoring-dashboard", "neutral-maintenance-window", "neutral-technical-debt"
+    "neutral-monitoring-dashboard", "neutral-maintenance-window", "neutral-technical-debt",
+    "frontend-error-boundary", "frontend-component-library", "frontend-edge-runtime",
+    "backend-idempotency-key", "backend-dead-letter-queue", "backend-event-store",
+    "infrastructure-slo-monitor", "infrastructure-rolling-deploy", "infrastructure-disaster-recovery-plan",
+    "data-query-planner", "data-data-quality-gate", "data-predictive-query",
+    "security-soc-analyst", "security-access-review", "security-containment-plan",
+    "ai-model-router", "ai-model-ensemble", "ai-inference-burst"
   ]
 }

@@ -80,6 +80,14 @@ trait GameEngineActions
         if ($player['compute'] + $player['temporaryCompute'] < $cost) {
             throw new ApiException('INSUFFICIENT_COMPUTE', 'Nicht genug Compute.');
         }
+        if ($definition['type'] === 'command' && $targetId !== null) {
+            $commandTarget = $this->locateTarget($state, $targetId);
+            if ($commandTarget !== null && $commandTarget['ownerId'] !== $playerId
+                && $commandTarget['zone'] === 'services'
+                && ($commandTarget['entity']['commandImmuneUntilTurn'] ?? 0) > $state['players'][$commandTarget['ownerId']]['turnsTaken']) {
+                throw new ApiException('COMMAND_IMMUNE', 'Dieser Service ist bis zum nächsten Zug gegen gegnerische Commands geschützt.');
+            }
+        }
         $this->validatePlayTarget($state, $playerId, $definition, $targetId);
         $this->spendCompute($player, $cost);
         array_splice($player['hand'], $handIndex, 1);
@@ -92,7 +100,11 @@ trait GameEngineActions
         ]);
         $this->ensureMatchStats($player);
         $player['matchStats']['cardsPlayed']++;
+        $player['matchStats']['cardPlayCounts'][$definition['id']] = (int)($player['matchStats']['cardPlayCounts'][$definition['id']] ?? 0) + 1;
         $this->recordCardImpact($player, $definition['id'], 2);
+        if ($definition['domain'] === 'data') {
+            $player['turnFlags']['dataPlayed'] = true;
+        }
         if ($definition['type'] === 'command') {
             $this->resolveEffect($state, $playerId, $definition, null, $targetId, $overclock);
             if (!($definition['token'] ?? false)) {
@@ -104,10 +116,12 @@ trait GameEngineActions
             if ($targetId !== null) {
                 $player['turnFlags']['targetedCommandPlayed']++;
             }
+            $this->applyEventStream($state, $playerId, $definition);
             return;
         }
 
         $entity = $this->newEntity($cardInstance, $definition);
+        $entity['deployedTurn'] = $state['turn'];
         if ($definition['type'] === 'service') {
             $entity['exhausted'] = true;
             $player['services'][] = $entity;
@@ -121,6 +135,8 @@ trait GameEngineActions
                 $this->buffEntity($state, $entity['instanceId'], 3, 0, false);
             }
             $this->resolveEffect($state, $playerId, $definition, $entity['instanceId'], $targetId, $overclock);
+            $this->applyCircuitBreaker($state, $playerId, $entity['instanceId'], $definition);
+            $this->applyEventStream($state, $playerId, $definition);
             $this->event($state, 'SERVICE_DEPLOYED', ['playerId' => $playerId, 'entityId' => $entity['instanceId']]);
         } else {
             if ($infrastructureReplacement !== null) {
@@ -166,6 +182,9 @@ trait GameEngineActions
             'terraform_apply' => $target !== null && $target['zone'] === 'infrastructure' && $own,
             'penetration_tester_deploy' => $state['players'][$opponentId]['services'] === [] || ($service && !$own),
             'model_drift' => $service && !$own,
+            'error_boundary_deploy' => $service && $own && $this->catalog->get($target['entity']['definitionId'])['domain'] === 'frontend',
+            'dead_letter_queue', 'rolling_deploy', 'containment_plan', 'inference_burst' => $service && $own,
+            'access_review' => $service && !$own && count($state['players'][$opponentId]['services']) > count($state['players'][$playerId]['services']),
             default => true,
         };
         if (!$valid) {
@@ -250,6 +269,7 @@ trait GameEngineActions
         }
         $this->spendCompute($player, 1);
         array_splice($player['services'], $target['index'], 1);
+        $player['turnFlags']['bugRemoved'] = true;
         $this->event($state, 'BUG_DEBUGGED', ['playerId' => $playerId, 'targetId' => $targetId]);
     }
 
@@ -266,8 +286,15 @@ trait GameEngineActions
                 && count($owner['services']) < 5) {
                 $this->spawnToken($state, $ownerId, 'token-replica');
             }
+            if (($owner['turnFlags']['sloMonitorArmed'] ?? false) && $owner['turnFlags']['serviceCrashed'] && count($owner['services']) < 5) {
+                $this->spawnToken($state, $ownerId, 'token-replica');
+            }
             $owner['turnFlags']['serviceCrashed'] = false;
             unset($owner);
+        }
+        if ($this->hasInfrastructure($player, 'neutral-monitoring-dashboard')
+            && (($player['turnFlags']['patchedOwnService'] ?? false) || ($player['turnFlags']['bugRemoved'] ?? false))) {
+            $this->drawCards($state, $playerId, 1);
         }
         $player['storedCompute'] = $this->hasInfrastructure($player, 'data-redis-cache')
             ? min(1, $player['compute'] + $player['temporaryCompute'])
@@ -312,6 +339,8 @@ trait GameEngineActions
                 $service['sandboxed'] = false;
                 $service['sandboxUntilTurn'] = 0;
             }
+            if (($service['deadLetterUntilTurn'] ?? 0) <= $player['turnsTaken']) $service['deadLetterUntilTurn'] = 0;
+            if (($service['commandImmuneUntilTurn'] ?? 0) <= $player['turnsTaken']) $service['commandImmuneUntilTurn'] = 0;
         }
         unset($service);
         $state['turnStartedAt'] = gmdate('c');

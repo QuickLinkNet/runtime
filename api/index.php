@@ -27,6 +27,8 @@ require_once __DIR__ . '/services/IncidentService.php';
 require_once __DIR__ . '/services/FeedbackService.php';
 require_once __DIR__ . '/services/BalanceSimulator.php';
 require_once __DIR__ . '/services/BalanceLabService.php';
+require_once __DIR__ . '/services/CardDesignAuditor.php';
+require_once __DIR__ . '/services/BalanceAdvisor.php';
 require_once __DIR__ . '/services/AccountService.php';
 require_once __DIR__ . '/services/TelemetryService.php';
 require_once __DIR__ . '/services/AdminService.php';
@@ -63,7 +65,7 @@ try {
     $feedback = new FeedbackService($db);
     $botProfiles = new BotProfiles($catalog);
     $matches = new MatchService($db, $engine, $bot, $catalog, new TelemetryService($db), $botProfiles, $contracts, $mastery, $rivalries, $incidents);
-    $balanceLab = new BalanceLabService($db, new BalanceSimulator($engine, $bot, $catalog, $botProfiles));
+    $balanceLab = new BalanceLabService($db, new BalanceSimulator($engine, $bot, $catalog, $botProfiles), new BalanceAdvisor($catalog), $catalog);
     $collection = new CollectionService($db, new BoosterGenerator($catalog), $catalog, $contracts, $mastery, $rivalries, $incidents);
     $accounts = new AccountService($db);
     $adminEmails = explode(',', (string)(getenv('RUNTIME_ADMIN_EMAILS') ?: ''));
@@ -251,6 +253,12 @@ try {
             $admin->assertAllowed($isAccount ? (string)$player['account_email'] : null);
             $samples = max(2, min(100, (int)($body['matchesPerPair'] ?? 12)));
             Http::success($balanceLab->run($playerId, $samples), 201);
+        })(),
+        'adminReviewBalanceRecommendation' => (function () use ($admin, $balanceLab, $player, $playerId, $isAccount, $body): void {
+            $admin->assertAllowed($isAccount ? (string)$player['account_email'] : null);
+            $reportId = (string)($body['reportId'] ?? ''); $recommendationId = (string)($body['recommendationId'] ?? '');
+            if ($reportId === '' || $recommendationId === '') throw new ApiException('BALANCE_REVIEW_REQUIRED', 'Report und Empfehlung sind erforderlich.', 422);
+            Http::success(['reviews' => $balanceLab->review($playerId, $reportId, $recommendationId, (string)($body['status'] ?? 'open'), (string)($body['note'] ?? ''))]);
         })(),
         'createMatch' => (function () use ($matches, $accounts, $playerId, $player, $body, $isAccount): void {
             $deck = $isAccount ? ($accounts->loadout($playerId) ?? (array)($body['deck'] ?? [])) : (array)($body['deck'] ?? []);

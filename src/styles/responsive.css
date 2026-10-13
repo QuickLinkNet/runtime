@@ -12,6 +12,10 @@
   }
 }
 
+@media (max-width: 1180px) {
+  .mission-control-chip > i { display: none; }
+}
+
 @media (max-width: 980px) {
   .identity-screen { grid-template-columns: 1fr; grid-template-rows: auto auto auto auto; overflow-y: auto; }
   .identity-header > span { display: none; }
@@ -22,9 +26,8 @@
   .starter-option { min-height: 500px; }
   .mode-card.deck-mode { grid-column: auto; }
   .deck-screen { display: block; height: auto; min-height: 100dvh; overflow: visible; }
-  .deck-layout { grid-template-columns: 1fr; }
-  .catalog-grid, .deck-spotlight, .deck-sidebar { grid-column: 1; grid-row: auto; }
-  .deck-spotlight { order: -1; height: auto; }
+  .deck-main { padding-right: 0; }
+  .catalog-grid, .deck-sidebar { grid-column: 1; grid-row: auto; }
   .catalog-grid.columns-4, .catalog-grid.columns-5 { grid-template-columns: repeat(3, minmax(145px, 1fr)); }
   .catalog-grid { overflow: visible; }
   .deck-sidebar { height: auto; margin-top: 18px; overflow: visible; }
@@ -75,6 +78,10 @@
   .bot-profile-grid { grid-template-columns: 1fr; margin-top: 14px; }
   .bot-profile-card { min-height: 0; }
   .menu-header { gap: 10px; }
+  .menu-account-area { justify-content: flex-end; }
+  .mission-control-chip { grid-template-columns: 8px auto; }
+  .mission-control-copy small, .mission-control-copy b em { display: none; }
+  .mission-control-copy b { font-size: 12px; }
   .profile-chip { min-width: 0; max-width: 58vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .credits-chip { padding-inline: 9px; }
   .menu-hero { padding: 56px 0 32px; }
@@ -119,7 +126,6 @@
   .catalog-card-actions { padding-inline: 1px; font-size: 7px; }
   .copy-stepper { gap: 5px; }
   .copy-stepper button { width: 36px; height: 36px; font-size: 17px; }
-  .deck-spotlight { display: none; }
   .deck-sidebar { margin-top: 24px; padding: 15px; }
   .deck-list { max-height: 42vh; }
   .sidebar-actions { position: sticky; z-index: 4; bottom: 8px; padding: 8px; margin-inline: -8px; background: color-mix(in srgb, var(--panel) 94%, transparent); box-shadow: 0 -10px 24px rgba(0,0,0,.28); }

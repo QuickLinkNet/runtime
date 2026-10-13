@@ -18,6 +18,12 @@ const targetedEffects = new Set([
   'penetration_tester_deploy',
   'rotate_secrets',
   'model_drift',
+  'error_boundary_deploy',
+  'dead_letter_queue',
+  'rolling_deploy',
+  'access_review',
+  'containment_plan',
+  'inference_burst',
 ]);
 
 export function canPlayWithoutTarget(selection: MatchSelection, player: PlayerView, opponent?: PlayerView): boolean {
@@ -48,10 +54,12 @@ export function canTargetEntity(selection: MatchSelection, viewerId: string, ent
     'hotfix',
     'force_push',
     ...(own
-      ? ['coffee', 'web_worker_deploy', 'security_engineer_deploy', 'emergency_patch', 'feature_flag', 'retry_storm', 'rotate_secrets']
-      : ['sandbox_container_deploy', 'penetration_tester_deploy', 'model_drift']),
+      ? ['coffee', 'web_worker_deploy', 'security_engineer_deploy', 'emergency_patch', 'feature_flag', 'retry_storm', 'rotate_secrets', 'error_boundary_deploy', 'dead_letter_queue', 'rolling_deploy', 'containment_plan', 'inference_burst']
+      : ['sandbox_container_deploy', 'penetration_tester_deploy', 'model_drift', 'access_review']),
   ]);
 
+  if (effect === 'error_boundary_deploy') return own && cardById.get(entity.definitionId)?.domain === 'frontend';
+  if (effect === 'inference_burst') return own && cardById.get(entity.definitionId)?.domain === 'ai';
   return allowedEffects.has(effect)
     || (effect === 'horizontal_scaling' && own && (cardById.get(entity.definitionId)?.cost ?? 99) <= 3);
 }
@@ -96,6 +104,12 @@ export function selectionPrompt(selection: MatchSelection, player?: PlayerView):
     penetration_tester_deploy: 'Wähle einen gegnerischen Service.',
     rotate_secrets: 'Wähle einen eigenen Service.',
     model_drift: 'Wähle einen gegnerischen Service.',
+    error_boundary_deploy: 'Wähle einen eigenen Frontend-Service.',
+    dead_letter_queue: 'Wähle einen eigenen Service.',
+    rolling_deploy: 'Wähle einen eigenen Service.',
+    access_review: 'Wähle einen gegnerischen Service.',
+    containment_plan: 'Wähle einen eigenen Service.',
+    inference_burst: 'Wähle den frisch ausgespielten AI-Service.',
   };
 
   return prompts[selection.definition.effectId ?? ''] ?? 'Karte ist bereit zum Ausspielen.';

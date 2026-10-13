@@ -16,6 +16,7 @@ interface Props {
   compact?: boolean;
   detailsOnHover?: boolean;
   detailsOnTap?: boolean;
+  visualOnClick?: boolean;
   style?: CSSProperties;
   actionLabel?: string;
   combatId?: string;
@@ -35,7 +36,7 @@ function useCoarsePointer() {
   return coarse;
 }
 
-export function GameCard({ card, selected, playable, targetable, compact, detailsOnHover = true, detailsOnTap = false, style, actionLabel, combatId, displayCost, onClick }: Props) {
+export function GameCard({ card, selected, playable, targetable, compact, detailsOnHover = true, detailsOnTap = false, visualOnClick = false, style, actionLabel, combatId, displayCost, onClick }: Props) {
   const definition = cardById.get(card.definitionId);
   const entity = 'integrity' in card ? card : null;
   const integrityPulse = useValuePulse(entity?.integrity);
@@ -107,7 +108,7 @@ export function GameCard({ card, selected, playable, targetable, compact, detail
   }
 
   function handleCardClick() {
-    if (isCoarsePointer && detailsOnTap) {
+    if ((isCoarsePointer && detailsOnTap) || visualOnClick) {
       setDetailsOpen(true);
       return;
     }

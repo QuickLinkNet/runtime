@@ -78,7 +78,7 @@ export const keywordDefinitions: KeywordDefinition[] = [
     id: 'sandbox',
     label: 'SANDBOX',
     shortDescription: 'Deaktiviert einen Service vorübergehend.',
-    fullDescription: 'Ein Service in der SANDBOX kann nicht angreifen und löst keine Effekte aus. Die SANDBOX endet zu Beginn des nächsten eigenen Zuges seines Besitzers.',
+    fullDescription: 'Ein Service in der SANDBOX kann in seinem nächsten eigenen Zug nicht angreifen und löst bis dahin keine Effekte aus. Danach endet die SANDBOX.',
   },
   {
     id: 'fork',

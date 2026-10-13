@@ -17,10 +17,6 @@ function hasInfrastructure(player: PlayerView, definitionId: string) {
   return player.infrastructure.some((entity) => entity.definitionId === definitionId);
 }
 
-function countInfrastructure(player: PlayerView, definitionId: string) {
-  return player.infrastructure.filter((entity) => entity.definitionId === definitionId).length;
-}
-
 export function knownCardCost(state: GameState, card: CardInstance, definition: CardDefinition): number {
   const player = state.players[state.viewerId];
   const opponentId = state.order.find((id) => id !== state.viewerId);
@@ -41,13 +37,14 @@ export function knownCardCost(state: GameState, card: CardInstance, definition: 
   }
 
   let cost = definition.cost;
-  if (card.costModifierTurn === state.turn) cost += card.costModifier ?? 0;
+  if (card.costModifierUntilPlayed || card.costModifierTurn === state.turn) cost += card.costModifier ?? 0;
   if (definition.type === 'service' && !servicePlayed && opponent?.services.some((entity) => (
     entity.definitionId === 'security-rate-limiter' && !entity.sandboxed
   ))) cost += 1;
   if (definition.type === 'service' && definition.domain === 'frontend' && !frontendPlayed) {
-    cost = Math.max(1, cost - countInfrastructure(player, 'frontend-state-store'));
+    cost = Math.max(1, cost - (hasInfrastructure(player, 'frontend-state-store') ? 1 : 0));
   }
+  if (definition.domain === 'data' && !playedDefinitions.some((played) => played.domain === 'data') && hasInfrastructure(player, 'ai-rag-pipeline')) cost = Math.max(1, cost - 1);
   if (definition.type === 'service' && definition.domain === 'ai' && hasInfrastructure(player, 'ai-gpu-cluster')) cost -= 1;
   if (definition.type === 'command' && !commandPlayed && hasInfrastructure(player, 'neutral-ci-pipeline')) cost -= 1;
   if (definition.type === 'command' && projectManagerDiscount) cost -= 1;

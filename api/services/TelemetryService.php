@@ -24,12 +24,14 @@ final class TelemetryService
         if (!empty($state['startedAt']) && !empty($state['finishedAt'])) {
             $duration = max(0, strtotime((string)$state['finishedAt']) - strtotime((string)$state['startedAt']));
         }
-        $metrics = [];
+        $metrics = ['_context' => ['startingPlayerId' => $state['startingPlayerId'] ?? null, 'mode' => $state['mode'] ?? null, 'incidentId' => $state['incident']['id'] ?? null]];
         foreach ($state['players'] as $playerId => $player) {
             if ($player['isBot'] ?? false) continue;
             $metrics[$playerId] = [
                 'core' => max(0, (int)$player['core']),
                 'domains' => array_values((array)($player['domains'] ?? [])),
+                'initialDeckDefinitionIds' => array_values((array)($player['initialDeckDefinitionIds'] ?? [])),
+                'initialDeckFingerprint' => hash('sha256', implode('|', array_values((array)($player['initialDeckDefinitionIds'] ?? [])))),
                 'stats' => $player['matchStats'] ?? [],
             ];
         }
