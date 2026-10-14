@@ -46,7 +46,7 @@
     "ai-embedding-model", "ai-embedding-model",
     "data-data-scientist", "data-data-scientist",
     "ai-gpu-cluster", "ai-rag-pipeline",
-    "ai-model-router", "ai-model-router",
+    "ai-model-drift", "ai-model-drift",
     "ai-prompt-engineer", "ai-prompt-engineer",
     "ai-inference-burst", "ai-inference-burst"
   ]
