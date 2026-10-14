@@ -23,7 +23,11 @@ final class BalanceAdvisor
         $report['quality'] = [
             'simulationConfidence' => $report['summary']['confidence'],
             'liveConfidence' => $this->confidence((int)($live['recordedMatches'] ?? 0)),
-            'method' => 'Bots spielen alle Stack-Paarungen in beiden Sitzordnungen. Live-Signale beschreiben Nutzung, sie beweisen keine Ursache.',
+            'method' => sprintf(
+                'Kuratierte Referenz-Stacks liefern Balance-Signale. Die getrennte Coverage-Matrix prüft ausschließlich, ob %d/%d Karten erreichbar und regelkonform spielbar sind; ihre Siegquoten sind kein Balanceurteil. Live-Signale beschreiben Nutzung, sie beweisen keine Ursache.',
+                (int)($report['summary']['cardsCovered'] ?? 0),
+                (int)($report['summary']['cardsTotal'] ?? count($this->catalog->all()))
+            ),
             'nextStep' => (int)($live['recordedMatches'] ?? 0) < 40 ? 'Mindestens 40 abgeschlossene Spieler-Matches sammeln, bevor Kartenwerte geändert werden.' : 'Hypothesen zuerst als kleine Playtest-Änderung prüfen und danach erneut messen.',
         ];
         return $report;
@@ -33,11 +37,13 @@ final class BalanceAdvisor
     {
         $items = [];
         foreach ($report['archetypes'] as $row) {
+            if (($row['suite'] ?? 'reference') !== 'reference') continue;
             $interval = $row['winRateInterval']; $name = (string)$row['name'];
             if ($row['games'] >= 48 && $interval['high'] < 48) $items[] = $this->item('buff', $name, $row['confidence'], $row['games'], sprintf('Simulator: %.1f%% (95%%: %.1f–%.1f).', $row['winRate'], $interval['low'], $interval['high']), 'Teste einen kleinen Synergie- oder Konsistenz-Buff, nicht pauschal mehr Power.');
             if ($row['games'] >= 48 && $interval['low'] > 52) $items[] = $this->item('nerf', $name, $row['confidence'], $row['games'], sprintf('Simulator: %.1f%% (95%%: %.1f–%.1f).', $row['winRate'], $interval['low'], $interval['high']), 'Teste eine kleine Kosten- oder Bedingungsverschärfung an der effizientesten Kernkarte.');
         }
         foreach ($report['matchups'] as $matchup) {
+            if (($matchup['suite'] ?? 'reference') !== 'reference') continue;
             if ($matchup['left'] !== $matchup['right'] && $matchup['games'] >= 48 && $matchup['imbalance'] >= 18) $items[] = $this->item('matchup', $matchup['left'] . ' vs ' . $matchup['right'], $matchup['confidence'], $matchup['games'], sprintf('Matchup-Abstand: %.1f Punkte (%s %.1f%% / %s %.1f%%).', $matchup['imbalance'], $matchup['left'], $matchup['leftWinRate'], $matchup['right'], $matchup['rightWinRate']), 'Prüfe gezielte Antworten im unterlegenen Stack statt einen globalen Nerf.');
         }
         $first = (float)($report['summary']['firstPlayerWinRate'] ?? 50);

@@ -42,15 +42,20 @@ final class BalanceLabService
     private function hydrateLegacyReport(array $report): array
     {
         $summary = (array)($report['summary'] ?? []);
-        $summary += ['guardTerminations' => 0, 'coreTieBreaks' => 0, 'firstPlayerWinRate' => 50.0, 'confidence' => BalanceSimulator::confidence((int)($summary['simulatedMatches'] ?? 0))];
+        $summary += [
+            'guardTerminations' => 0, 'coreTieBreaks' => 0, 'firstPlayerWinRate' => 50.0,
+            'confidence' => BalanceSimulator::confidence((int)($summary['simulatedMatches'] ?? 0)),
+            'cardsCovered' => 0, 'cardsTotal' => count($this->catalog->all()), 'coveragePercent' => 0.0, 'testDecks' => 4,
+        ];
         $report['summary'] = $summary;
+        $report['coverageFactions'] ??= [];
         foreach (['archetypes', 'factions'] as $key) {
             $report[$key] ??= [];
-            foreach ($report[$key] as &$row) $row += ['confidence' => BalanceSimulator::confidence((int)($row['games'] ?? 0)), 'winRateInterval' => ['low' => 0.0, 'high' => 100.0]];
+            foreach ($report[$key] as &$row) $row += ['suite' => 'reference', 'confidence' => BalanceSimulator::confidence((int)($row['games'] ?? 0)), 'winRateInterval' => ['low' => 0.0, 'high' => 100.0]];
             unset($row);
         }
         $report['matchups'] ??= [];
-        foreach ($report['matchups'] as &$row) $row += ['leftWinRate' => BalanceSimulator::rate((int)($row['leftWins'] ?? 0), (int)($row['games'] ?? 0)), 'rightWinRate' => BalanceSimulator::rate((int)($row['rightWins'] ?? 0), (int)($row['games'] ?? 0)), 'avgTurns' => 0.0, 'imbalance' => 0.0, 'confidence' => 'low'];
+        foreach ($report['matchups'] as &$row) $row += ['suite' => 'reference', 'leftWinRate' => BalanceSimulator::rate((int)($row['leftWins'] ?? 0), (int)($row['games'] ?? 0)), 'rightWinRate' => BalanceSimulator::rate((int)($row['rightWins'] ?? 0), (int)($row['games'] ?? 0)), 'avgTurns' => 0.0, 'imbalance' => 0.0, 'confidence' => 'low'];
         unset($row);
         $report['cards'] ??= [];
         foreach ($report['cards'] as &$row) $row += ['possibleGames' => (int)($row['games'] ?? 0), 'draws' => (int)($row['games'] ?? 0), 'plays' => (int)($row['games'] ?? 0), 'playRate' => 100.0, 'playConversion' => 100.0, 'confidence' => BalanceSimulator::confidence((int)($row['games'] ?? 0))];

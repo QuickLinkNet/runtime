@@ -1,5 +1,5 @@
 import { cardById } from '../../../game/catalog';
-import type { BoardEntity, GameState, PlayerView } from '../../../game/types';
+import type { BoardEntity, CardDefinition, GameState, PlayerView } from '../../../game/types';
 import type { MatchSelection } from './types';
 
 const targetedEffects = new Set([
@@ -26,8 +26,26 @@ const targetedEffects = new Set([
   'inference_burst',
 ]);
 
+const bugCleanerEffects = new Set([
+  'rubber_duck_deploy', 'qa_engineer_deploy', 'senior_developer_deploy', 'soc_analyst_deploy',
+]);
+
+export function canPlayIntoServiceBoard(definition: CardDefinition, player: PlayerView): boolean {
+  const effect = definition.effectId ?? '';
+  const openSlots = 5 - player.services.length;
+  const requiredSlots = effect === 'react_component_deploy'
+    ? 2
+    : (definition.type === 'service' || ['component_library', 'horizontal_scaling'].includes(effect) ? 1 : 0);
+  if (requiredSlots <= openSlots) return true;
+  return definition.type === 'service'
+    && requiredSlots === 1
+    && bugCleanerEffects.has(effect)
+    && player.services.some((service) => service.definitionId === 'token-bug');
+}
+
 export function canPlayWithoutTarget(selection: MatchSelection, player: PlayerView, opponent?: PlayerView): boolean {
   if (selection?.kind !== 'card') return false;
+  if (!canPlayIntoServiceBoard(selection.definition, player)) return false;
   if (selection.definition.type === 'infrastructure' && player.infrastructure.length >= 2) return false;
   const effect = selection.definition.effectId ?? '';
   return !targetedEffects.has(effect)
@@ -38,7 +56,7 @@ export function canPlayWithoutTarget(selection: MatchSelection, player: PlayerVi
     || (effect === 'penetration_tester_deploy' && (opponent?.services.length ?? 0) === 0);
 }
 
-export function canTargetEntity(selection: MatchSelection, viewerId: string, entity: BoardEntity, ownerId: string, zone: 'services' | 'infrastructure'): boolean {
+export function canTargetEntity(selection: MatchSelection, viewerId: string, entity: BoardEntity, ownerId: string, zone: 'services' | 'infrastructure', stateTurn?: number): boolean {
   if (!selection) return false;
   const own = ownerId === viewerId;
   if (selection.kind === 'attacker') return !own;
@@ -50,7 +68,6 @@ export function canTargetEntity(selection: MatchSelection, viewerId: string, ent
     || (effect === 'terraform_apply' && own);
 
   const allowedEffects = new Set([
-    'infinite_rerender',
     'hotfix',
     'force_push',
     ...(own
@@ -59,7 +76,10 @@ export function canTargetEntity(selection: MatchSelection, viewerId: string, ent
   ]);
 
   if (effect === 'error_boundary_deploy') return own && cardById.get(entity.definitionId)?.domain === 'frontend';
-  if (effect === 'inference_burst') return own && cardById.get(entity.definitionId)?.domain === 'ai';
+  if (effect === 'inference_burst') return own
+    && cardById.get(entity.definitionId)?.domain === 'ai'
+    && entity.deployedTurn === stateTurn;
+  if (effect === 'infinite_rerender') return !own;
   return allowedEffects.has(effect)
     || (effect === 'horizontal_scaling' && own && (cardById.get(entity.definitionId)?.cost ?? 99) <= 3);
 }
@@ -89,7 +109,7 @@ export function selectionPrompt(selection: MatchSelection, player?: PlayerView):
   }
 
   const prompts: Record<string, string> = {
-    infinite_rerender: 'Wähle einen Service für die Sandbox.',
+    infinite_rerender: 'Wähle einen gegnerischen Service für die Sandbox.',
     hotfix: 'Wähle einen Service oder eine Infrastructure.',
     horizontal_scaling: 'Wähle einen eigenen günstigen Service.',
     emergency_patch: 'Wähle eine eigene Karte oder deinen Core.',

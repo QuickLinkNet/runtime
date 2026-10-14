@@ -56,10 +56,12 @@ final class BotPlayer
     private function tryPlayCard(array &$state, string $botId, string $profile = 'default'): bool
     {
         $hand = $state['players'][$botId]['hand'];
-        usort($hand, fn(array $a, array $b): int => $this->cardPriority($state, $botId, $this->catalog->get($b['definitionId']), $profile) <=> $this->cardPriority($state, $botId, $this->catalog->get($a['definitionId']), $profile));
+        usort($hand, fn(array $a, array $b): int =>
+            $this->cardPriority($state, $botId, $b, $profile) <=> $this->cardPriority($state, $botId, $a, $profile)
+        );
         foreach ($hand as $card) {
             $definition = $this->catalog->get($card['definitionId']);
-            $targetId = $this->targetFor($state, $botId, $definition);
+            $targetId = $this->targetFor($state, $botId, $definition, $profile);
             if ($targetId === false) {
                 continue;
             }
@@ -68,9 +70,23 @@ final class BotPlayer
                 if (is_string($targetId)) {
                     $action['targetId'] = $targetId;
                 }
+                if ($profile === 'balance-ai' && $definition['id'] === 'ai-inference-worker') {
+                    $available = $state['players'][$botId]['compute'] + $state['players'][$botId]['temporaryCompute'];
+                    $action['overclock'] = $available >= $this->engine->cardCost($state, $botId, $card, is_string($targetId) ? $targetId : null)
+                        + (int)($definition['overclockCost'] ?? 0);
+                }
                 $this->engine->applyAction($state, $botId, $action);
                 return true;
             } catch (ApiException) {
+                if (($action['overclock'] ?? false) === true) {
+                    unset($action['overclock']);
+                    try {
+                        $this->engine->applyAction($state, $botId, $action);
+                        return true;
+                    } catch (ApiException) {
+                        // Continue with the next legal candidate.
+                    }
+                }
                 continue;
             }
         }
@@ -171,7 +187,7 @@ final class BotPlayer
         return false;
     }
 
-    private function targetFor(array $state, string $botId, array $definition): string|false|null
+    private function targetFor(array $state, string $botId, array $definition, string $profile = 'default'): string|false|null
     {
         $own = $state['players'][$botId];
         $opponent = $state['players'][$this->opponentId($state, $botId)];
@@ -179,7 +195,8 @@ final class BotPlayer
             return $own['infrastructure'][0]['instanceId'];
         }
         return match ($definition['effectId'] ?? '') {
-            'infinite_rerender', 'force_push' => ($opponent['services'][0]['instanceId'] ?? $own['services'][0]['instanceId'] ?? false),
+            'infinite_rerender' => $this->sandboxServiceTarget($opponent) ?? false,
+            'force_push' => ($opponent['services'][0]['instanceId'] ?? $own['services'][0]['instanceId'] ?? false),
             'hotfix', 'coffee' => ($own['services'][0]['instanceId'] ?? false),
             'web_worker_deploy', 'security_engineer_deploy' => ($own['services'][0]['instanceId'] ?? null),
             'horizontal_scaling' => $this->cheapServiceTarget($own),
@@ -193,23 +210,38 @@ final class BotPlayer
             'dead_letter_queue', 'rolling_deploy', 'containment_plan' => $own['services'][0]['instanceId'] ?? false,
             'access_review' => count($opponent['services']) > count($own['services']) ? ($this->sandboxServiceTarget($opponent) ?? false) : false,
             'inference_burst' => $this->domainServiceTarget($own, 'ai', $state['turn']),
+            'model_ensemble' => $this->hasOtherDeckDomainCard($own, 'ai') ? null : false,
+            'gpu_cluster' => $profile === 'balance-ai' && $this->hasInfrastructure($own, 'ai-gpu-cluster') ? false : null,
             default => null,
         };
     }
 
-    private function cardPriority(array $state, string $botId, array $definition, string $profile): int
+    private function cardPriority(array $state, string $botId, array $card, string $profile): int
     {
+        $definition = $this->catalog->get($card['definitionId']);
         $keywords = (array)($definition['keywords'] ?? []);
         $effect = (string)($definition['effectId'] ?? '');
         $cost = (int)($definition['cost'] ?? 0);
         if ($profile === 'junior') return 40 - $cost;
+        if (in_array($profile, ['balance', 'balance-ai'], true)) {
+            $effectiveCost = $this->engine->cardCost($state, $botId, $card);
+            $priority = 100 - ($effectiveCost * 5);
+            if (($card['costModifierTurn'] ?? null) === $state['turn']) $priority += 200;
+            if (($card['costModifierUntilPlayed'] ?? false) === true) $priority += 25;
+            if ($profile === 'balance-ai') $priority += $this->aiSequencePriority($state, $botId, $definition);
+            return $priority;
+        }
         if ($profile === 'security') {
             $own = $state['players'][$botId];
+            $opponent = $state['players'][$this->opponentId($state, $botId)];
             $damaged = $own['core'] < 30 || array_filter(array_merge($own['services'], $own['infrastructure']), static fn(array $entity): bool => $entity['integrity'] < $entity['maxIntegrity']);
             $priority = $cost;
             if (in_array('FIREWALL', $keywords, true) && !$this->hasFirewall($own)) $priority += 120;
             if (in_array('PATCH', $keywords, true) && $damaged) $priority += 100;
             if (in_array($effect, ['security_engineer_deploy', 'rotate_secrets'], true)) $priority += 80;
+            if ($effect === 'containment_plan' && $own['services'] !== []) $priority += 75;
+            if ($effect === 'siem_deploy') $priority += $this->hasSandboxedService($opponent) ? 70 : 25;
+            if ($effect === 'soc_analyst_deploy' && ($own['core'] < 30 || $this->hasBug($own))) $priority += 65;
             if (in_array('SANDBOX', $keywords, true)) $priority += 55;
             if ($definition['type'] === 'infrastructure') $priority += 25;
             return $priority;
@@ -223,6 +255,24 @@ final class BotPlayer
             return $priority;
         }
         return $cost;
+    }
+
+    private function aiSequencePriority(array $state, string $botId, array $definition): int
+    {
+        $player = $state['players'][$botId];
+        $effect = (string)($definition['effectId'] ?? '');
+        $hasFreshAi = $this->domainServiceTarget($player, 'ai', $state['turn']) !== false;
+        $hasBurst = count(array_filter($player['hand'], static fn(array $card): bool => $card['definitionId'] === 'ai-inference-burst')) > 0;
+        $priority = 0;
+        if ($hasFreshAi && $hasBurst && !($player['turnFlags']['dataPlayed'] ?? false) && $definition['domain'] === 'data') $priority += 120;
+        if ($effect === 'inference_burst') $priority += ($player['turnFlags']['dataPlayed'] ?? false) ? 110 : 30;
+        if (in_array($effect, ['model_router_deploy', 'prompt_engineer_deploy'], true)) $priority += 45;
+        if ($effect === 'gpu_cluster') {
+            if ($this->hasInfrastructure($player, 'ai-gpu-cluster')) return -1000;
+            $priority += $this->countDomainServices($player, 'ai') * 25;
+        }
+        if ($effect === 'model_ensemble' && !$this->hasOtherDeckDomainCard($player, 'ai')) return -1000;
+        return $priority;
     }
 
     private function domainServiceTarget(array $player, string $domain, ?int $deployedTurn = null): string|false
@@ -278,6 +328,47 @@ final class BotPlayer
             if (!$service['sandboxed'] && in_array('FIREWALL', $this->catalog->get($service['definitionId'])['keywords'] ?? [], true)) {
                 return true;
             }
+        }
+        return false;
+    }
+
+    private function hasBug(array $player): bool
+    {
+        return count(array_filter(
+            $player['services'],
+            static fn(array $service): bool => $service['definitionId'] === 'token-bug'
+        )) > 0;
+    }
+
+    private function hasSandboxedService(array $player): bool
+    {
+        return count(array_filter(
+            $player['services'],
+            static fn(array $service): bool => ($service['sandboxed'] ?? false) === true
+        )) > 0;
+    }
+
+    private function hasInfrastructure(array $player, string $definitionId): bool
+    {
+        return count(array_filter(
+            $player['infrastructure'],
+            static fn(array $card): bool => $card['definitionId'] === $definitionId
+        )) > 0;
+    }
+
+    private function countDomainServices(array $player, string $domain): int
+    {
+        return count(array_filter(
+            $player['services'],
+            fn(array $service): bool => $this->catalog->get($service['definitionId'])['domain'] === $domain
+        ));
+    }
+
+    private function hasOtherDeckDomainCard(array $player, string $excludedDomain): bool
+    {
+        foreach ($player['hand'] as $card) {
+            $domain = (string)$this->catalog->get($card['definitionId'])['domain'];
+            if ($domain !== $excludedDomain && in_array($domain, $player['domains'], true)) return true;
         }
         return false;
     }

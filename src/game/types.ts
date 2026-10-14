@@ -36,6 +36,7 @@ export interface BoardEntity extends CardInstance {
   sandboxUntilTurn: number;
   exhausted: boolean;
   temporaryPower: number;
+  deployedTurn: number;
 }
 
 export interface PlayerView {
@@ -217,10 +218,11 @@ export interface BalanceReport {
   createdAt: string;
   simulatedMatches: number;
   report: {
-      summary: { simulatedMatches: number; matchesPerPair: number; averageTurns: number; draws: number; guardTerminations: number; coreTieBreaks: number; firstPlayerWinRate: number; confidence: BalanceConfidence };
-      archetypes: Array<{ id: string; name: string; games: number; winRate: number; avgTurns: number; confidence: BalanceConfidence; winRateInterval: BalanceInterval }>;
-      matchups: Array<{ left: string; right: string; games: number; leftWins: number; rightWins: number; draws: number; turns: number; leftWinRate: number; rightWinRate: number; avgTurns: number; imbalance: number; confidence: BalanceConfidence }>;
+      summary: { simulatedMatches: number; matchesPerPair: number; averageTurns: number; draws: number; guardTerminations: number; coreTieBreaks: number; firstPlayerWinRate: number; confidence: BalanceConfidence; cardsCovered: number; cardsTotal: number; coveragePercent: number; testDecks: number };
+      archetypes: Array<{ id: string; name: string; suite: 'reference' | 'coverage'; games: number; winRate: number; avgTurns: number; confidence: BalanceConfidence; winRateInterval: BalanceInterval }>;
+      matchups: Array<{ left: string; right: string; suite: 'reference' | 'coverage'; games: number; leftWins: number; rightWins: number; draws: number; turns: number; leftWinRate: number; rightWinRate: number; avgTurns: number; imbalance: number; confidence: BalanceConfidence }>;
       factions: Array<{ id: Domain; games: number; winRate: number; confidence: BalanceConfidence; winRateInterval: BalanceInterval }>;
+      coverageFactions: Array<{ id: Domain; games: number; winRate: number; confidence: BalanceConfidence; winRateInterval: BalanceInterval }>;
       cards: Array<{ definitionId: string; games: number; possibleGames: number; draws: number; plays: number; playRate: number; playConversion: number; impactPerGame: number; winRate: number; domain: Domain; confidence: BalanceConfidence }>;
       cardAudit: Array<{ definitionId: string; name: string; domain: Domain; type: CardType; score: number; status: 'solid' | 'watch' | 'review'; summary: string; signals: Array<{ severity: 'medium' | 'high'; text: string }>; proposals: string[] }>;
       coverage: Array<{ domain: Domain; role: string; cards: number; target: number; gap: number }>;

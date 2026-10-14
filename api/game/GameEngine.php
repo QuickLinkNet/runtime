@@ -141,6 +141,16 @@ final class GameEngine
         $this->assertInvariants($state);
     }
 
+    /** Server-authoritative cost quote used by bots and diagnostics. */
+    public function cardCost(array $state, string $playerId, array $cardInstance, ?string $targetId = null): int
+    {
+        if (!isset($state['players'][$playerId])) {
+            throw new ApiException('NOT_MATCH_PLAYER', 'Du nimmst nicht an diesem Match teil.', 403);
+        }
+        $definition = $this->catalog->get((string)$cardInstance['definitionId']);
+        return $this->effectiveCost($state, $playerId, $cardInstance, $definition, $targetId);
+    }
+
     private function checkGameOver(array &$state): void
     {
         if ($state['status'] === 'finished') {
@@ -192,6 +202,7 @@ final class GameEngine
             'commandImmuneUntilTurn' => 0,
             'exhausted' => false,
             'temporaryPower' => 0,
+            'designSystemEnhanced' => false,
         ];
     }
 
@@ -209,16 +220,20 @@ final class GameEngine
             'servicePlayed' => 0,
             'commandPlayed' => 0,
             'targetedCommandPlayed' => 0,
+            'zeroTrustTriggered' => false,
             'serviceCrashed' => false,
             'ownServiceReturned' => false,
             'dataPlayed' => false,
             'backendServiceProtected' => false,
+            'backendMessageQueueTriggered' => false,
             'eventStreamTriggered' => false,
             'patchedOwnService' => false,
             'bugRemoved' => false,
             'sloMonitorArmed' => false,
-            'projectManagerDiscount' => false,
+            'projectManagerDiscount' => 0,
+            'nextServiceDiscount' => 0,
             'infrastructureDecommissioned' => false,
+            'preConsumedBugs' => 0,
         ];
     }
 

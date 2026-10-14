@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { cardById } from '../../../game/catalog';
 import type { BoardEntity, GameAction, GameState } from '../../../game/types';
 import { knownCardCost } from '../model/cardCost';
-import { canPlayWithoutTarget, canSelectAttacker, canTargetCore, canTargetEntity, selectionPrompt } from '../model/targeting';
+import { canPlayIntoServiceBoard, canPlayWithoutTarget, canSelectAttacker, canTargetCore, canTargetEntity, selectionPrompt } from '../model/targeting';
 import type { MatchSelection } from '../model/types';
 import { animationSpeedScale, storedAnimationSpeed, type AnimationSpeed } from '../model/animationSpeed';
 import { cardPlaySfx, playSfx } from '../../../audio/sfx';
@@ -91,6 +91,13 @@ export function useMatchController({ state, pending, onAction }: UseMatchControl
       if (effectiveCost > availableCompute) {
         playSfx('ui-error');
         setInteractionNotice(`${definition.name} braucht ${effectiveCost} Compute. Du hast ${availableCompute}.`);
+        return;
+      }
+      if (!canPlayIntoServiceBoard(definition, player)) {
+        playSfx('ui-error');
+        setInteractionNotice(definition.type === 'service'
+          ? 'Kein freier Service-Slot für diese Karte.'
+          : 'Dieser Effekt benötigt einen freien Service-Slot.');
         return;
       }
       playSfx('card-select');
@@ -195,7 +202,7 @@ export function useMatchController({ state, pending, onAction }: UseMatchControl
     playWithoutTarget,
     decommission,
     canTargetEntity: (entity: BoardEntity, ownerId: string, zone: 'services' | 'infrastructure') => {
-      if (!canTargetEntity(selection, state.viewerId, entity, ownerId, zone)) return false;
+      if (!canTargetEntity(selection, state.viewerId, entity, ownerId, zone, state.turn)) return false;
       if (!state.tutorial || !selection) return true;
       const action: GameAction = selection.kind === 'attacker'
         ? { type: 'ATTACK', attackerId: selection.id, targetId: entity.instanceId }

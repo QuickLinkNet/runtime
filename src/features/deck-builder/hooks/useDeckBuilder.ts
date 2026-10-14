@@ -27,7 +27,7 @@ export function useDeckBuilder(initialDeck: string[], collection: Record<string,
       .filter((card) => ownership === 'all' || (collection?.[card.id] ?? 0) > 0)
       .filter((card) => {
         if (filter === 'neutral') return card.domain === 'neutral';
-        if (filter === 'selected') return domains.includes(card.domain);
+        if (filter === 'selected') return card.domain === 'neutral' || domains.includes(card.domain);
         return card.domain === filter && domains.includes(card.domain);
       })
       .filter((card) => typeFilter === 'all' || card.type === typeFilter)
@@ -78,7 +78,7 @@ export function useDeckBuilder(initialDeck: string[], collection: Record<string,
     }
 
     setDomains((current) => [...current, domain]);
-    setFilter(domain);
+    setFilter('selected');
     setNotice(`${domainLabels[domain]} wurde als Deck-Domain hinzugefügt.`);
   }
 

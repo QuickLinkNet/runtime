@@ -30,13 +30,20 @@ export function knownCardCost(state: GameState, card: CardInstance, definition: 
   const servicePlayed = playedDefinitions.some((played) => played.type === 'service');
   const frontendPlayed = playedDefinitions.some((played) => played.type === 'service' && played.domain === 'frontend');
   const commandPlayed = playedDefinitions.some((played) => played.type === 'command');
-  let projectManagerDiscount = false;
+  let projectManagerDiscount = 0;
+  let nextServiceDiscount = 0;
   for (const played of playedDefinitions) {
-    if (played.id === 'neutral-project-manager') projectManagerDiscount = true;
-    if (played.type === 'command') projectManagerDiscount = false;
+    if (played.type === 'command') projectManagerDiscount = 0;
+    if (played.type === 'service') nextServiceDiscount = 0;
+    if (played.id === 'neutral-project-manager') projectManagerDiscount = 2;
+    if (played.id === 'neutral-scrum-master') nextServiceDiscount = 1;
   }
 
   let cost = definition.cost;
+  if (definition.id === 'ai-gpu-cluster') {
+    const aiServices = player.services.filter((entity) => cardById.get(entity.definitionId)?.domain === 'ai').length;
+    cost = Math.max(4, cost - aiServices);
+  }
   if (card.costModifierUntilPlayed || card.costModifierTurn === state.turn) cost += card.costModifier ?? 0;
   if (definition.type === 'service' && !servicePlayed && opponent?.services.some((entity) => (
     entity.definitionId === 'security-rate-limiter' && !entity.sandboxed
@@ -47,7 +54,8 @@ export function knownCardCost(state: GameState, card: CardInstance, definition: 
   if (definition.domain === 'data' && !playedDefinitions.some((played) => played.domain === 'data') && hasInfrastructure(player, 'ai-rag-pipeline')) cost = Math.max(1, cost - 1);
   if (definition.type === 'service' && definition.domain === 'ai' && hasInfrastructure(player, 'ai-gpu-cluster')) cost -= 1;
   if (definition.type === 'command' && !commandPlayed && hasInfrastructure(player, 'neutral-ci-pipeline')) cost -= 1;
-  if (definition.type === 'command' && projectManagerDiscount) cost -= 1;
+  if (definition.type === 'command') cost -= projectManagerDiscount;
+  if (definition.type === 'service') cost -= nextServiceDiscount;
   if (state.incident?.rule === 'FIRST_SERVICE_PLUS_ONE' && definition.type === 'service' && !servicePlayed) cost += 1;
   if (state.incident?.rule === 'FIRST_COMMAND_MINUS_ONE' && definition.type === 'command' && !commandPlayed) cost -= 1;
   if (state.incident?.rule === 'FIRST_DATA_AI_SERVICE_MINUS_ONE' && definition.type === 'service' && ['data', 'ai'].includes(definition.domain) && !servicePlayed) cost -= 1;

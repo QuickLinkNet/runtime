@@ -67,7 +67,7 @@ final class CardDesignAuditor
     /** @return array<int,array{severity:string,signal:string,proposal:string}> */
     private function knownReview(string $id): array
     {
-        if (in_array($id, ['backend-circuit-breaker', 'data-event-stream', 'neutral-monitoring-dashboard', 'backend-idempotency-key', 'infrastructure-rolling-deploy', 'data-data-quality-gate', 'data-query-planner', 'data-predictive-query', 'frontend-error-boundary', 'infrastructure-service-mesh', 'security-siem', 'frontend-state-store', 'ai-vision-model'], true)) {
+        if (in_array($id, ['backend-circuit-breaker', 'data-event-stream', 'neutral-monitoring-dashboard', 'backend-idempotency-key', 'infrastructure-rolling-deploy', 'data-data-quality-gate', 'data-query-planner', 'data-predictive-query', 'frontend-error-boundary', 'infrastructure-service-mesh', 'security-siem', 'frontend-state-store', 'ai-vision-model', 'ai-model-ensemble'], true)) {
             return [];
         }
         return match ($id) {
@@ -121,11 +121,6 @@ final class CardDesignAuditor
                 'signal' => 'Service Mesh liefert nur beim Deploy einen starken, aber stark schwankenden Board-Moment und danach keinen Plan mehr.',
                 'proposal' => 'Entweder den einmaligen Effekt bewusst begrenzen oder ihm einen kleinen wiederkehrenden Service-Deploy-Payoff geben.',
             ]],
-            'security-soc-analyst' => [[
-                'severity' => 'medium',
-                'signal' => 'SOC Analyst ist gegen BUG-freie Gegner beim Deploy vollstaendig ohne Effekt.',
-                'proposal' => 'Fallback: Entferne einen gegnerischen BUG; falls keiner existiert, PATCH 2 auf einen eigenen Service.',
-            ]],
             'ai-vision-model' => [[
                 'severity' => 'medium',
                 'signal' => 'Vision Model zieht nur bei gegnerischem BUG und verliert sonst seinen gesamten Deploy-Value.',
@@ -150,11 +145,6 @@ final class CardDesignAuditor
                 'severity' => 'medium',
                 'signal' => 'Model Ensemble fordert das Offenbaren einer Data-Karte, die Engine prueft ihre Existenz aber ohne sichtbares Reveal.',
                 'proposal' => 'Reveal-Ereignis sichtbar machen oder den Text zu "Hast du eine Data-Karte auf der Hand" vereinfachen.',
-            ]],
-            'neutral-junior-developer', 'neutral-werkstudent' => [[
-                'severity' => 'medium',
-                'signal' => 'Junior Developer und Werkstudent besetzen fast dieselbe BUG-Rolle ohne unterschiedliche Entscheidung oder Synergie.',
-                'proposal' => 'Einer Karte eine eigene Nische geben, etwa BUG als Ressource verwerten statt nur erzeugen.',
             ]],
             default => [],
         };

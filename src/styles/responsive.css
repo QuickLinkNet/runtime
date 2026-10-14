@@ -32,8 +32,8 @@
   .catalog-grid { overflow: visible; }
   .deck-sidebar { height: auto; margin-top: 18px; overflow: visible; }
   .deck-list { max-height: 52vh; }
-  .catalog-toolbar { align-items: stretch; flex-direction: column; }
-  .catalog-tools { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+  .catalog-smartbar { grid-template-columns: minmax(0, 1fr) auto auto; }
+  .smart-search-field { grid-column: 1 / -1; }
   .match-screen { padding: 8px 8px calc(var(--card-h) + 18px); }
   .hand-dock { min-height: calc(var(--card-h) + 14px); grid-template-columns: 86px minmax(0, 1fr) 96px; padding-inline: 8px; }
   .hand { overflow-x: auto; overflow-y: hidden; padding-top: 12px; }
@@ -113,12 +113,13 @@
   .deck-section-heading { align-items: flex-start; }
   .domain-picker { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; scroll-snap-type: x proximity; scrollbar-width: thin; touch-action: pan-x; }
   .domain-picker button { min-height: 44px; flex: 0 0 auto; }
-  .catalog-tools { grid-template-columns: 1fr; }
-  .catalog-search, .catalog-sort select { min-width: 0; width: 100%; }
-  .catalog-search input, .catalog-sort select { height: 44px; }
-  .catalog-search > button { bottom: 10px; }
-  .catalog-filters { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; scroll-snap-type: x proximity; touch-action: pan-x; }
-  .catalog-filters button { min-height: 42px; flex: 0 0 auto; white-space: nowrap; }
+  .catalog-smartbar { grid-template-columns: minmax(0, 1fr) auto; }
+  .smart-search-field, .catalog-type-control { grid-column: 1 / -1; }
+  .catalog-type-control { overflow-x: auto; scrollbar-width: thin; touch-action: pan-x; }
+  .catalog-type-control button { min-height: 36px; flex: 1 0 auto; }
+  .filter-popover { justify-self: start; }
+  .filter-popover-trigger { min-width: 104px; justify-content: center; }
+  .filter-popover-panel { position: fixed; top: auto; right: 10px; bottom: 10px; left: 10px; width: auto; max-height: calc(100dvh - 20px); overflow-y: auto; }
   .catalog-grid-switch { display: none; }
   .catalog-grid.columns-4, .catalog-grid.columns-5 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px 6px; padding-inline: 0; }
   .catalog-card-shell { width: min(100%, 160px); padding-inline: 2px; }

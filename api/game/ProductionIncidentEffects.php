@@ -18,33 +18,101 @@ trait ProductionIncidentEffects
             'microfrontend_deploy' => $this->countDomainServices($player, 'frontend', $sourceId) > 0
                 ? $this->drawCards($state, $playerId, 1) : null,
             'feature_flag' => $this->buffEntity($state, $targetId, 2, 0, true),
-            'design_system_deploy' => $this->buffDomainServices($state, $playerId, 'frontend', 0, 1),
+            'design_system_deploy' => $this->enhanceChildComponents($state, $playerId),
             'graphql_gateway_deploy' => $this->drawFirstType($state, $playerId, 'command'),
             'retry_storm' => $this->returnServiceToHand($state, $targetId) + $this->drawCards($state, $playerId, 1),
-            'chaos_monkey_crash' => $this->drawCards($state, $playerId, 1),
+            'chaos_monkey_crash' => $state['activePlayerId'] === $playerId
+                ? $this->drawCards($state, $playerId, 1)
+                : null,
             'terraform_apply' => $this->reinforceInfrastructure($state, $targetId, 3),
             'service_mesh_deploy' => $this->grantAllServicesRedundancy($state, $playerId),
-            'data_scientist_deploy' => count($player['hand']) <= 4 ? $this->drawCards($state, $playerId, 1) : null,
-            'schema_migration' => $this->drawFirstType($state, $playerId, 'infrastructure'),
+            'data_scientist_deploy' => $this->resolveDataScientist($state, $playerId),
+            'schema_migration' => $this->drawFirstType($state, $playerId, 'infrastructure', true),
             'penetration_tester_deploy', 'model_drift' => $this->sandboxTarget($state, $targetId, $playerId),
             'rotate_secrets' => $this->grantRedundancy($state, $targetId),
-            'siem_deploy' => $this->drawCards($state, $playerId, $this->hasBug($opponent) ? 2 : 1),
-            'prompt_engineer_deploy' => $this->generateRandomCard($state, $playerId, true, false),
+            'siem_deploy' => $this->drawCards($state, $playerId, $this->hasSandboxedService($opponent) ? 3 : 2),
+            'prompt_engineer_deploy' => $this->generateRandomCard($state, $playerId, true, true),
             'rag_pipeline_deploy' => $this->drawFirstDomain($state, $playerId, 'data'),
-            'werkstudent_deploy' => $this->spawnToken($state, $playerId, 'token-bug'),
-            'product_owner_deploy' => count($player['hand']) <= 3 ? $this->drawCards($state, $playerId, 1) : null,
-            'scrum_master_deploy' => $player['turnFlags']['projectManagerDiscount'] = true,
+            'werkstudent_crash' => $this->spawnToken($state, $playerId, 'token-bug')
+                + $this->drawCards($state, $playerId, 1),
+            'product_owner_deploy' => $this->drawFirstCheapCommand($state, $playerId, 2),
+            'scrum_master_deploy' => $player['turnFlags']['nextServiceDiscount'] = 1,
             'maintenance_window' => $this->patchOwnBoard($state, $playerId, 2),
             'technical_debt' => $this->spawnBugs($state, $opponentId, 3),
             default => null,
         };
     }
 
-    private function drawFirstType(array &$state, string $playerId, string $type): int
+    private function drawFirstType(array &$state, string $playerId, string $type, bool $discountUntilPlayed = false): int
     {
         $player =& $state['players'][$playerId];
         foreach ($player['deck'] as $index => $card) {
             if ($this->catalog->get($card['definitionId'])['type'] !== $type) {
+                continue;
+            }
+            array_splice($player['deck'], $index, 1);
+            if (count($player['hand']) >= 10) {
+                $player['trash'][] = $card;
+                $this->event($state, 'CARD_OVERFLOW', ['playerId' => $playerId, 'definitionId' => $card['definitionId']]);
+            } else {
+                if ($discountUntilPlayed) {
+                    $card['costModifier'] = -1;
+                    $card['costModifierUntilPlayed'] = true;
+                }
+                $player['hand'][] = $card;
+                $this->recordHandAcquisition($player, $card['definitionId']);
+                $this->event($state, 'CARD_DRAWN', ['playerId' => $playerId, 'cardInstanceId' => $card['instanceId']]);
+            }
+            return 1;
+        }
+        return 0;
+    }
+
+    private function resolveDataScientist(array &$state, string $playerId): int
+    {
+        $player =& $state['players'][$playerId];
+        $top = array_splice($player['deck'], max(0, count($player['deck']) - 4));
+        usort($top, fn(array $left, array $right): int =>
+            $this->catalog->get($right['definitionId'])['cost'] <=> $this->catalog->get($left['definitionId'])['cost']
+        );
+
+        $selectedIndex = null;
+        foreach ($top as $index => $card) {
+            if ($this->catalog->get($card['definitionId'])['domain'] === 'data') {
+                $selectedIndex = $index;
+                break;
+            }
+        }
+        if ($selectedIndex === null) {
+            foreach ($top as $index => $card) {
+                if ($this->catalog->get($card['definitionId'])['type'] === 'command') {
+                    $selectedIndex = $index;
+                    break;
+                }
+            }
+        }
+
+        if ($selectedIndex !== null && count($player['hand']) < 10) {
+            $card = $top[$selectedIndex];
+            unset($top[$selectedIndex]);
+            $player['hand'][] = $card;
+            $this->recordHandAcquisition($player, $card['definitionId']);
+            $this->event($state, 'CARD_DRAWN', ['playerId' => $playerId, 'cardInstanceId' => $card['instanceId']]);
+            $player['deck'] = array_merge(array_values($top), $player['deck']);
+            return 1;
+        }
+
+        $player['deck'] = array_merge(array_values($top), $player['deck']);
+        return 0;
+    }
+
+    private function drawFirstCheapCommand(array &$state, string $playerId, int $maximumCost): int
+    {
+        $player =& $state['players'][$playerId];
+        for ($index = count($player['deck']) - 1; $index >= 0; $index--) {
+            $card = $player['deck'][$index];
+            $definition = $this->catalog->get($card['definitionId']);
+            if ($definition['type'] !== 'command' || (int)$definition['cost'] > $maximumCost) {
                 continue;
             }
             array_splice($player['deck'], $index, 1);
@@ -59,17 +127,6 @@ trait ProductionIncidentEffects
             return 1;
         }
         return 0;
-    }
-
-    private function buffDomainServices(array &$state, string $playerId, string $domain, int $power, int $integrity): int
-    {
-        $count = 0;
-        foreach ($state['players'][$playerId]['services'] as $service) {
-            if ($this->catalog->get($service['definitionId'])['domain'] === $domain) {
-                $count += $this->buffEntity($state, $service['instanceId'], $power, $integrity);
-            }
-        }
-        return $count;
     }
 
     private function grantFirstDomainRedundancy(array &$state, string $playerId, string $domain): int

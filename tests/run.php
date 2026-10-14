@@ -96,8 +96,13 @@ function prepareTurn(array &$state, string $playerId, int $compute = 20): void
         'servicePlayed' => 0,
         'commandPlayed' => 0,
         'targetedCommandPlayed' => 0,
+        'zeroTrustTriggered' => false,
         'serviceCrashed' => false,
-        'projectManagerDiscount' => false,
+        'bugRemoved' => false,
+        'sloMonitorArmed' => false,
+        'projectManagerDiscount' => 0,
+        'nextServiceDiscount' => 0,
+        'preConsumedBugs' => 0,
     ];
 }
 
@@ -127,9 +132,30 @@ check('Containment Plan protects a Service from enemy Commands until its next tu
     $state['players']['p1']['services'] = [entity($catalog, 'frontend-vue-widget', 'protected-service')];
     $state['players']['p1']['hand'] = [card('security-containment-plan', 'containment')];
     $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'containment', 'targetId' => 'protected-service']);
+    expect($state['players']['p1']['services'][0]['redundancy'] === true, 'Containment Plan should also grant REDUNDANCY.');
     prepareTurn($state, 'p2');
     $state['players']['p2']['hand'] = [card('neutral-force-push', 'push')];
     expectCode('COMMAND_IMMUNE', fn() => $engine->applyAction($state, 'p2', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'push', 'targetId' => 'protected-service']));
+});
+
+check('Containment Plan protects a second Service while behind on board', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['services'] = [
+        entity($catalog, 'frontend-vue-widget', 'contained-primary'),
+        entity($catalog, 'backend-queue-worker', 'contained-secondary'),
+    ];
+    $state['players']['p2']['services'] = [
+        entity($catalog, 'frontend-vue-widget', 'enemy-one'),
+        entity($catalog, 'frontend-vue-widget', 'enemy-two'),
+        entity($catalog, 'frontend-vue-widget', 'enemy-three'),
+    ];
+    $state['players']['p1']['hand'] = [card('security-containment-plan', 'containment')];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'containment', 'targetId' => 'contained-primary']);
+    foreach ($state['players']['p1']['services'] as $service) {
+        expect($service['redundancy'] === true, 'Both Services should receive REDUNDANCY while behind.');
+        expect(($service['commandImmuneUntilTurn'] ?? 0) > $state['players']['p1']['turnsTaken'], 'Both Services should receive Command protection while behind.');
+    }
 });
 
 check('Circuit Breaker protects only the first Backend service each own turn', function () use ($catalog): void {
@@ -142,6 +168,24 @@ check('Circuit Breaker protects only the first Backend service each own turn', f
     $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'backend-two']);
     expect($state['players']['p1']['services'][0]['redundancy'] === true, 'First Backend service should receive REDUNDANCY.');
     expect($state['players']['p1']['services'][1]['redundancy'] === false, 'Second Backend service must not receive REDUNDANCY in the same turn.');
+});
+
+check('Message Queue reinforces only the first Backend service each own turn', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['infrastructure'] = [entity($catalog, 'backend-message-queue', 'message-queue')];
+    $state['players']['p1']['hand'] = [
+        card('frontend-vue-widget', 'frontend-first'),
+        card('backend-legacy-php', 'backend-first'),
+        card('backend-idempotency-key', 'backend-second'),
+    ];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'frontend-first']);
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'backend-first']);
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'backend-second']);
+    $services = array_column($state['players']['p1']['services'], null, 'instanceId');
+    expect($services['frontend-first']['maxIntegrity'] === 3, 'Message Queue must not reinforce cross-domain Services.');
+    expect($services['backend-first']['maxIntegrity'] === 5, 'The first Backend Service should receive +1 maximum Integrity.');
+    expect($services['backend-second']['maxIntegrity'] === 4, 'The second Backend Service must remain unchanged.');
 });
 
 check('Event Stream draws once after a Data service each own turn', function () use ($catalog): void {
@@ -168,6 +212,108 @@ check('Monitoring Dashboard rewards repair activity at end of turn', function ()
     $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'repair', 'targetId' => 'damaged-service']);
     $engine->applyAction($state, 'p1', ['type' => 'END_TURN']);
     expect(in_array('dashboard-reward', array_column($state['players']['p1']['hand'], 'instanceId'), true), 'Dashboard should draw after a repaired service.');
+});
+
+check('BUG cleaners can deploy into a full board by consuming their BUG first', function () use ($catalog): void {
+    foreach (['neutral-rubber-duck', 'neutral-qa-engineer', 'neutral-senior-developer', 'security-soc-analyst'] as $cleanerId) {
+        [$engine, $state] = fresh($catalog);
+        prepareTurn($state, 'p1');
+        $state['players']['p1']['core'] = 29;
+        $state['players']['p1']['services'] = [
+            entity($catalog, 'frontend-vue-widget', $cleanerId . '-one'),
+            entity($catalog, 'frontend-vue-widget', $cleanerId . '-two'),
+            entity($catalog, 'frontend-vue-widget', $cleanerId . '-three'),
+            entity($catalog, 'frontend-vue-widget', $cleanerId . '-four'),
+            entity($catalog, 'token-bug', $cleanerId . '-bug'),
+        ];
+        $state['players']['p1']['hand'] = [card($cleanerId, $cleanerId . '-card')];
+        $state['players']['p1']['deck'] = [card('neutral-coffee', $cleanerId . '-draw')];
+        $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => $cleanerId . '-card']);
+        expect(count($state['players']['p1']['services']) === 5, "{$cleanerId} should replace the blocking BUG.");
+        expect(!in_array('token-bug', array_column($state['players']['p1']['services'], 'definitionId'), true), "{$cleanerId} should remove the BUG.");
+        if ($cleanerId === 'security-soc-analyst') expect($state['players']['p1']['core'] === 29, 'SOC Analyst must not apply its fallback after pre-consuming a BUG.');
+    }
+});
+
+check('QA Engineer and Senior Developer trigger Monitoring Dashboard after cleaning BUGs', function () use ($catalog): void {
+    foreach (['neutral-qa-engineer', 'neutral-senior-developer'] as $cleanerId) {
+        [$engine, $state] = fresh($catalog);
+        prepareTurn($state, 'p1');
+        $state['players']['p1']['services'] = [entity($catalog, 'token-bug', $cleanerId . '-bug')];
+        $state['players']['p1']['infrastructure'] = [entity($catalog, 'neutral-monitoring-dashboard', $cleanerId . '-dashboard')];
+        $state['players']['p1']['hand'] = [card($cleanerId, $cleanerId . '-card')];
+        $state['players']['p1']['deck'] = $cleanerId === 'neutral-qa-engineer'
+            ? [card('neutral-coffee', $cleanerId . '-dashboard-draw'), card('backend-hotfix', $cleanerId . '-effect-draw')]
+            : [card('neutral-coffee', $cleanerId . '-dashboard-draw')];
+        $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => $cleanerId . '-card']);
+        $engine->applyAction($state, 'p1', ['type' => 'END_TURN']);
+        expect(in_array($cleanerId . '-dashboard-draw', array_column($state['players']['p1']['hand'], 'instanceId'), true), "{$cleanerId} should arm Monitoring Dashboard.");
+    }
+});
+
+check('Edge Runtime requires three other Frontend services', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['services'] = [
+        entity($catalog, 'frontend-vue-widget', 'edge-one'),
+        entity($catalog, 'frontend-web-worker', 'edge-two'),
+    ];
+    $state['players']['p1']['hand'] = [card('frontend-edge-runtime', 'edge-runtime')];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'edge-runtime']);
+    expect($state['players']['p1']['services'][0]['power'] === 2 && $state['players']['p1']['services'][1]['power'] === 3, 'Two other Frontend services must not activate Edge Runtime.');
+
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['services'] = [
+        entity($catalog, 'frontend-vue-widget', 'edge-three-one'),
+        entity($catalog, 'frontend-web-worker', 'edge-three-two'),
+        entity($catalog, 'frontend-react-component', 'edge-three-three'),
+    ];
+    $state['players']['p1']['hand'] = [card('frontend-edge-runtime', 'edge-runtime-active')];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'edge-runtime-active']);
+    $buffed = array_filter($state['players']['p1']['services'], static fn(array $service): bool => ($service['temporaryPower'] ?? 0) === 2);
+    expect(count($buffed) === 2, 'Three other Frontend services should activate exactly two Edge Runtime buffs.');
+});
+
+check('Zero Trust taxes only the first enemy Command targeting its board', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1', 20);
+    $state['players']['p1']['services'] = [entity($catalog, 'frontend-vue-widget', 'zero-own-service')];
+    $state['players']['p2']['services'] = [entity($catalog, 'frontend-vue-widget', 'zero-enemy-service')];
+    $state['players']['p2']['infrastructure'] = [entity($catalog, 'security-zero-trust', 'zero-trust')];
+    $state['players']['p1']['hand'] = [
+        card('frontend-feature-flag', 'zero-own-buff'),
+        card('frontend-infinite-rerender', 'zero-enemy-command'),
+        card('backend-hotfix', 'zero-second-command'),
+    ];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'zero-own-buff', 'targetId' => 'zero-own-service']);
+    expect($state['players']['p1']['compute'] === 19 && $state['players']['p1']['turnFlags']['zeroTrustTriggered'] === false, 'Own targets must neither cost extra nor consume Zero Trust.');
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'zero-enemy-command', 'targetId' => 'zero-enemy-service']);
+    expect($state['players']['p1']['compute'] === 15 && $state['players']['p1']['turnFlags']['zeroTrustTriggered'] === true, 'First enemy-board Command should cost one extra.');
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'zero-second-command', 'targetId' => 'zero-trust']);
+    expect($state['players']['p1']['compute'] === 13, 'Later enemy-board Commands in the same turn must not be taxed again.');
+});
+
+check('SLO Monitor consumes its one crash trigger', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['hand'] = [card('infrastructure-slo-monitor', 'slo-monitor')];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'slo-monitor']);
+    $state['players']['p1']['turnFlags']['serviceCrashed'] = true;
+    $engine->applyAction($state, 'p1', ['type' => 'END_TURN']);
+    expect(count(array_filter($state['players']['p1']['services'], static fn(array $service): bool => $service['definitionId'] === 'token-replica')) === 1, 'First crash should create one Replica.');
+    $state['players']['p1']['turnFlags']['serviceCrashed'] = true;
+    $engine->applyAction($state, 'p2', ['type' => 'END_TURN']);
+    expect(count(array_filter($state['players']['p1']['services'], static fn(array $service): bool => $service['definitionId'] === 'token-replica')) === 1, 'SLO Monitor must not trigger a second time.');
+});
+
+check('Redis Cache never stores temporary BOOTSTRAP Compute', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1', 0);
+    $state['players']['p1']['temporaryCompute'] = 3;
+    $state['players']['p1']['infrastructure'] = [entity($catalog, 'data-redis-cache', 'redis-cache')];
+    $engine->applyAction($state, 'p1', ['type' => 'END_TURN']);
+    expect($state['players']['p1']['storedCompute'] === 0, 'Temporary Compute must expire instead of entering Redis Cache.');
 });
 
 check('Idempotency Key draws Backend after a returned own service', function () use ($catalog): void {
@@ -241,6 +387,213 @@ check('QA Engineer deploy removes a BUG without combat events', function () use 
     expect(!in_array('token-bug', array_column($state['players']['p1']['services'], 'definitionId'), true));
 });
 
+check('Rubber Duck converts one BUG into Power and a card', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['services'] = [entity($catalog, 'token-bug', 'duck-bug')];
+    $state['players']['p1']['hand'] = [card('neutral-rubber-duck', 'rubber-duck')];
+    $state['players']['p1']['deck'] = [card('frontend-vue-widget', 'duck-draw')];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'rubber-duck']);
+    expect(array_column($state['players']['p1']['services'], 'definitionId') === ['neutral-rubber-duck'], 'Rubber Duck should consume exactly one BUG.');
+    expect($state['players']['p1']['services'][0]['power'] === 1, 'Rubber Duck should gain +1 Power after debugging.');
+    expect(in_array('duck-draw', array_column($state['players']['p1']['hand'], 'instanceId'), true), 'Rubber Duck should draw one card after consuming a BUG.');
+    expect(($state['players']['p1']['turnFlags']['bugRemoved'] ?? false) === true, 'Removing the BUG should count as repair activity.');
+});
+
+check('Rubber Duck has no bonus without a BUG', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['hand'] = [card('neutral-rubber-duck', 'rubber-duck')];
+    $state['players']['p1']['deck'] = [card('frontend-vue-widget', 'untouched-draw')];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'rubber-duck']);
+    expect($state['players']['p1']['services'][0]['power'] === 0, 'Rubber Duck must remain harmless without a BUG.');
+    expect(array_column($state['players']['p1']['deck'], 'instanceId') === ['untouched-draw'], 'Rubber Duck must not draw without consuming a BUG.');
+});
+
+check('Werkstudent leaves a BUG and draws a card when it crashes', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['services'] = [entity($catalog, 'neutral-werkstudent', 'werkstudent')];
+    $state['players']['p2']['services'] = [entity($catalog, 'neutral-junior-developer', 'enemy-junior')];
+    $state['players']['p1']['deck'] = [card('frontend-vue-widget', 'werkstudent-draw')];
+    $engine->applyAction($state, 'p1', ['type' => 'ATTACK', 'attackerId' => 'werkstudent', 'targetId' => 'enemy-junior']);
+    expect(array_column($state['players']['p1']['services'], 'definitionId') === ['token-bug'], 'The crashed Werkstudent should leave one BUG in its freed slot.');
+    expect(in_array('werkstudent-draw', array_column($state['players']['p1']['hand'], 'instanceId'), true), 'The crashed Werkstudent should draw one card.');
+    expect(in_array('neutral-werkstudent', array_column($state['players']['p1']['trash'], 'definitionId'), true), 'The crashed Werkstudent should enter the trash.');
+});
+
+check('Chaos Monkey draws only when it crashes during its owners turn', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['services'] = [entity($catalog, 'infrastructure-chaos-monkey', 'active-chaos')];
+    $state['players']['p2']['services'] = [entity($catalog, 'backend-java-service', 'enemy-java')];
+    $state['players']['p1']['deck'] = [card('neutral-coffee', 'active-chaos-draw')];
+    $engine->applyAction($state, 'p1', ['type' => 'ATTACK', 'attackerId' => 'active-chaos', 'targetId' => 'enemy-java']);
+    expect(in_array('active-chaos-draw', array_column($state['players']['p1']['hand'], 'instanceId'), true), 'An actively traded Chaos Monkey should replace itself.');
+
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p2');
+    $state['players']['p1']['services'] = [entity($catalog, 'infrastructure-chaos-monkey', 'defending-chaos')];
+    $state['players']['p2']['services'] = [entity($catalog, 'backend-java-service', 'attacking-java')];
+    $state['players']['p1']['deck'] = [card('neutral-coffee', 'forbidden-chaos-draw')];
+    $engine->applyAction($state, 'p2', ['type' => 'ATTACK', 'attackerId' => 'attacking-java', 'targetId' => 'defending-chaos']);
+    expect(in_array('forbidden-chaos-draw', array_column($state['players']['p1']['deck'], 'instanceId'), true), 'A defending Chaos Monkey must not draw a card.');
+});
+
+check('Legacy PHP Server tutors Backend only with Backend Infrastructure', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['services'] = [entity($catalog, 'backend-legacy-php', 'legacy-without-infra')];
+    $state['players']['p2']['services'] = [entity($catalog, 'backend-java-service', 'enemy-java')];
+    $state['players']['p1']['deck'] = [card('backend-hotfix', 'blocked-backend-draw')];
+    $engine->applyAction($state, 'p1', ['type' => 'ATTACK', 'attackerId' => 'legacy-without-infra', 'targetId' => 'enemy-java']);
+    expect(in_array('blocked-backend-draw', array_column($state['players']['p1']['deck'], 'instanceId'), true), 'Legacy PHP must not tutor without Backend Infrastructure.');
+
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['services'] = [entity($catalog, 'backend-legacy-php', 'legacy-with-infra')];
+    $state['players']['p1']['infrastructure'] = [entity($catalog, 'backend-message-queue', 'backend-infra')];
+    $state['players']['p2']['services'] = [entity($catalog, 'backend-java-service', 'enemy-java')];
+    $state['players']['p1']['deck'] = [card('backend-hotfix', 'allowed-backend-draw')];
+    $engine->applyAction($state, 'p1', ['type' => 'ATTACK', 'attackerId' => 'legacy-with-infra', 'targetId' => 'enemy-java']);
+    expect(in_array('allowed-backend-draw', array_column($state['players']['p1']['hand'], 'instanceId'), true), 'Legacy PHP should tutor with Backend Infrastructure.');
+});
+
+check('SOC Analyst removes an own BUG without helping the opponent', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['core'] = 25;
+    $state['players']['p1']['services'] = [entity($catalog, 'token-bug', 'own-soc-bug')];
+    $state['players']['p2']['services'] = [entity($catalog, 'token-bug', 'enemy-soc-bug')];
+    $state['players']['p1']['hand'] = [card('security-soc-analyst', 'soc-analyst')];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'soc-analyst']);
+    expect(!in_array('own-soc-bug', array_column($state['players']['p1']['services'], 'instanceId'), true), 'SOC Analyst should remove the own BUG.');
+    expect(in_array('enemy-soc-bug', array_column($state['players']['p2']['services'], 'instanceId'), true), 'SOC Analyst must not remove an enemy BUG.');
+    expect($state['players']['p1']['core'] === 25, 'The fallback PATCH must not trigger after removing a BUG.');
+});
+
+check('SOC Analyst patches the Core when there is no own BUG', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['core'] = 25;
+    $state['players']['p1']['hand'] = [card('security-soc-analyst', 'soc-analyst')];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'soc-analyst']);
+    expect($state['players']['p1']['core'] === 27, 'SOC Analyst should PATCH 2 on the own Core as fallback.');
+});
+
+check('Data Scientist selects the most expensive Data card from the top four', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['hand'] = [card('data-data-scientist', 'data-scientist')];
+    $state['players']['p1']['deck'] = [
+        card('neutral-coffee', 'outside-window'),
+        card('data-redis-cache', 'cheap-data'),
+        card('neutral-friday-deploy', 'non-data-command'),
+        card('data-vector-database', 'expensive-data'),
+        card('neutral-old-workstation', 'non-data-service'),
+    ];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'data-scientist']);
+    expect(in_array('expensive-data', array_column($state['players']['p1']['hand'], 'instanceId'), true), 'Data Scientist should select the most expensive available Data card.');
+    expect(in_array('cheap-data', array_column($state['players']['p1']['deck'], 'instanceId'), true), 'Unselected Data cards must remain in the deck.');
+});
+
+check('Data Scientist falls back to the most expensive Command when no Data card is found', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['hand'] = [card('data-data-scientist', 'data-scientist')];
+    $state['players']['p1']['deck'] = [
+        card('frontend-vue-widget', 'outside-window'),
+        card('neutral-coffee', 'cheap-command'),
+        card('neutral-force-push', 'expensive-command'),
+        card('backend-api-gateway', 'non-command'),
+        card('frontend-web-worker', 'non-command-two'),
+    ];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'data-scientist']);
+    expect(in_array('expensive-command', array_column($state['players']['p1']['hand'], 'instanceId'), true), 'Data Scientist should fall back to the most expensive Command.');
+    expect(in_array('cheap-command', array_column($state['players']['p1']['deck'], 'instanceId'), true), 'The cheaper fallback Command must remain in the deck.');
+});
+
+check('Schema Migration discounts the Infrastructure it draws until played', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['hand'] = [card('data-schema-migration', 'schema-migration')];
+    $state['players']['p1']['deck'] = [card('data-event-stream', 'drawn-infrastructure')];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'schema-migration']);
+    $drawn = $state['players']['p1']['hand'][0] ?? [];
+    expect(($drawn['instanceId'] ?? '') === 'drawn-infrastructure', 'Schema Migration should draw the Infrastructure.');
+    expect(($drawn['costModifier'] ?? 0) === -1 && ($drawn['costModifierUntilPlayed'] ?? false), 'The drawn Infrastructure should keep a one-point discount until played.');
+});
+
+check('Data Quality Gate discounts only its selected card for the current turn', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['hand'] = [
+        card('data-data-quality-gate', 'quality-gate'),
+        card('frontend-vue-widget', 'filtered-hand-card'),
+    ];
+    $state['players']['p1']['deck'] = [
+        card('frontend-web-worker', 'outside-window'),
+        card('neutral-coffee', 'cheap-command'),
+        card('neutral-force-push', 'selected-command'),
+        card('frontend-vue-widget', 'ignored-service'),
+        card('backend-hotfix', 'other-command'),
+    ];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'quality-gate']);
+    $selected = current(array_filter($state['players']['p1']['hand'], static fn(array $card): bool => $card['instanceId'] === 'selected-command'));
+    expect(is_array($selected), 'Data Quality Gate should select the most expensive eligible card.');
+    expect(($selected['costModifier'] ?? 0) === -1 && ($selected['costModifierTurn'] ?? null) === $state['turn'], 'The selected card should be discounted only for the current turn.');
+});
+
+check('Product Owner draws the top cheap Command and skips expensive Commands', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['hand'] = [card('neutral-product-owner', 'product-owner')];
+    $state['players']['p1']['deck'] = [
+        card('neutral-coffee', 'lower-cheap-command'),
+        card('backend-hotfix', 'top-cheap-command'),
+        card('neutral-force-push', 'expensive-command'),
+    ];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'product-owner']);
+    expect(in_array('top-cheap-command', array_column($state['players']['p1']['hand'], 'instanceId'), true), 'Product Owner should draw the first affordable Command from the top.');
+    expect(in_array('expensive-command', array_column($state['players']['p1']['deck'], 'instanceId'), true), 'Product Owner must skip expensive Commands without removing them.');
+});
+
+check('Project Manager discounts exactly the next Command by two', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['hand'] = [
+        card('neutral-project-manager', 'project-manager'),
+        card('data-select-all', 'first-command'),
+        card('data-select-all', 'second-command'),
+    ];
+    $state['players']['p1']['deck'] = [
+        card('neutral-coffee', 'draw-one'),
+        card('neutral-coffee', 'draw-two'),
+        card('neutral-coffee', 'draw-three'),
+        card('neutral-coffee', 'draw-four'),
+    ];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'project-manager']);
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'first-command']);
+    expect($state['players']['p1']['compute'] === 15, 'The first Command should cost one after the two-point discount.');
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'second-command']);
+    expect($state['players']['p1']['compute'] === 12, 'The second Command should use its full base cost.');
+});
+
+check('Scrum Master discounts exactly the next Service by one', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['hand'] = [
+        card('neutral-scrum-master', 'scrum-master'),
+        card('data-query-engine', 'discounted-service'),
+        card('neutral-old-workstation', 'full-price-service'),
+    ];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'scrum-master']);
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'discounted-service']);
+    expect($state['players']['p1']['compute'] === 15, 'The next Service should receive the Scrum Master discount.');
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'full-price-service']);
+    expect($state['players']['p1']['compute'] === 13, 'Only one Service should be discounted.');
+});
+
 check('Production Incident typed draw finds a Command', function () use ($catalog): void {
     [$engine, $state] = fresh($catalog);
     prepareTurn($state, 'p1');
@@ -266,17 +619,64 @@ check('Production Incident target rules reject enemy Feature Flag', function () 
     ]));
 });
 
-check('Design System reinforces only Frontend services', function () use ($catalog): void {
+check('Design System reinforces only Child Components and does not stack', function () use ($catalog): void {
     [$engine, $state] = fresh($catalog);
     prepareTurn($state, 'p1');
     $state['players']['p1']['services'] = [
+        entity($catalog, 'token-child-component', 'child-component'),
         entity($catalog, 'frontend-vue-widget', 'frontend-service'),
         entity($catalog, 'backend-queue-worker', 'backend-service'),
     ];
-    $state['players']['p1']['hand'] = [card('frontend-design-system', 'design-system')];
+    $state['players']['p1']['hand'] = [
+        card('frontend-design-system', 'design-system-one'),
+        card('frontend-design-system', 'design-system-two'),
+    ];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'design-system-one']);
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'design-system-two']);
+    expect($state['players']['p1']['services'][0]['power'] === 2 && $state['players']['p1']['services'][0]['maxIntegrity'] === 2, 'Existing Child Component should receive +1/+1 exactly once.');
+    expect($state['players']['p1']['services'][1]['maxIntegrity'] === 3, 'Normal Frontend services should no longer receive the Component bonus.');
+    expect($state['players']['p1']['services'][2]['maxIntegrity'] === 3, 'Other domains must remain unchanged.');
+});
+
+check('Design System reinforces future Child Components', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['hand'] = [
+        card('frontend-design-system', 'design-system'),
+        card('frontend-react-component', 'react-component'),
+    ];
     $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'design-system']);
-    expect($state['players']['p1']['services'][0]['maxIntegrity'] === 4);
-    expect($state['players']['p1']['services'][1]['maxIntegrity'] === 3);
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'react-component']);
+    $child = current(array_filter($state['players']['p1']['services'], static fn(array $service): bool => $service['definitionId'] === 'token-child-component'));
+    expect(is_array($child) && $child['power'] === 2 && $child['integrity'] === 2, 'Future Child Components should enter as 2/2.');
+});
+
+check('Infinite Re-Render converts a wide Frontend board into a Child Component', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['services'] = [
+        entity($catalog, 'frontend-vue-widget', 'frontend-one'),
+        entity($catalog, 'frontend-web-worker', 'frontend-two'),
+    ];
+    $state['players']['p2']['services'] = [entity($catalog, 'backend-queue-worker', 'rerender-target')];
+    $state['players']['p1']['hand'] = [card('frontend-infinite-rerender', 'rerender')];
+    $state['players']['p1']['deck'] = [card('neutral-coffee', 'must-not-draw')];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'rerender', 'targetId' => 'rerender-target']);
+    expect($state['players']['p2']['services'][0]['sandboxed'] === true, 'Infinite Re-Render should SANDBOX the enemy target.');
+    expect(in_array('token-child-component', array_column($state['players']['p1']['services'], 'definitionId'), true), 'A wide Frontend board should create a Child Component.');
+    expect(in_array('must-not-draw', array_column($state['players']['p1']['deck'], 'instanceId'), true), 'Infinite Re-Render should no longer provide generic card draw.');
+});
+
+check('Infinite Re-Render cannot target an own Service', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['services'] = [entity($catalog, 'frontend-vue-widget', 'own-rerender-target')];
+    $state['players']['p1']['hand'] = [card('frontend-infinite-rerender', 'rerender')];
+    expectCode('INVALID_TARGET', fn() => $engine->applyAction($state, 'p1', [
+        'type' => 'PLAY_CARD',
+        'cardInstanceId' => 'rerender',
+        'targetId' => 'own-rerender-target',
+    ]));
 });
 
 check('Technical Debt fills only available enemy service slots', function () use ($catalog): void {
@@ -298,6 +698,15 @@ check('Every playable card has a booster rarity', function () use ($catalog): vo
     $generator = new BoosterGenerator($catalog);
     foreach ($catalog->all() as $card) {
         expect(in_array($generator->rarityFor($card['id']), ['common', 'uncommon', 'rare', 'legendary'], true));
+    }
+});
+
+check('Card design audit clears all resolved redesign findings', function () use ($catalog): void {
+    $rows = (new CardDesignAuditor($catalog))->audit();
+    $byId = [];
+    foreach ($rows as $row) $byId[$row['definitionId']] = $row;
+    foreach (['neutral-werkstudent', 'security-soc-analyst', 'security-siem', 'security-containment-plan', 'frontend-infinite-rerender', 'frontend-design-system', 'ai-model-router', 'ai-model-ensemble', 'ai-prompt-engineer', 'ai-llm-agent'] as $definitionId) {
+        expect(($byId[$definitionId]['status'] ?? '') === 'solid', "Resolved card {$definitionId} should no longer remain in the design-review queue.");
     }
 });
 
@@ -449,17 +858,122 @@ check('Vision Model has a durable fallback without an enemy BUG', function () us
     expect($vision['integrity'] === 5 && $vision['maxIntegrity'] === 5, 'Vision Model should become 4/5 without an enemy BUG.');
 });
 
+check('Model Router generates a Command from the non-AI Deck domain', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['domains'] = ['data', 'ai'];
+    $state['players']['p1']['hand'] = [card('ai-model-router', 'model-router')];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'model-router']);
+    expect(count($state['players']['p1']['hand']) === 1, 'Model Router should generate exactly one card.');
+    $generated = $state['players']['p1']['hand'][0];
+    $definition = $catalog->get($generated['definitionId']);
+    expect($definition['domain'] === 'data' && $definition['type'] === 'command', 'Model Router should route to a Data Command in a Data/AI deck.');
+    expect(($generated['costModifier'] ?? 0) === -1 && ($generated['costModifierTurn'] ?? null) === $state['turn'], 'Model Router should discount its generated Command for this turn.');
+});
+
+check('Model Ensemble discounts the AI Service it tutors until played', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['domains'] = ['backend', 'ai'];
+    $state['players']['p1']['hand'] = [
+        card('ai-model-ensemble', 'model-ensemble'),
+        card('backend-hotfix', 'other-domain-proof'),
+    ];
+    $state['players']['p1']['deck'] = [card('ai-inference-worker', 'tutored-ai-service')];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'model-ensemble']);
+    $tutored = current(array_filter($state['players']['p1']['hand'], static fn(array $card): bool => $card['instanceId'] === 'tutored-ai-service'));
+    expect(is_array($tutored), 'Model Ensemble should tutor the first AI Service.');
+    expect(($tutored['costModifier'] ?? 0) === -1 && ($tutored['costModifierUntilPlayed'] ?? false), 'The tutored AI Service should keep its discount until played.');
+});
+
+check('Model Ensemble remains inert without another Deck-domain card', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['domains'] = ['backend', 'ai'];
+    $state['players']['p1']['hand'] = [card('ai-model-ensemble', 'model-ensemble')];
+    $state['players']['p1']['deck'] = [card('ai-inference-worker', 'must-remain-in-deck')];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'model-ensemble']);
+    expect(in_array('must-remain-in-deck', array_column($state['players']['p1']['deck'], 'instanceId'), true), 'Model Ensemble must still require another-domain setup.');
+});
+
+check('GPU Cluster rewards an existing AI board but never costs less than four', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1', 4);
+    $state['players']['p1']['services'] = [
+        entity($catalog, 'ai-model-router', 'ai-service-one'),
+        entity($catalog, 'ai-inference-worker', 'ai-service-two'),
+        entity($catalog, 'ai-vision-model', 'ai-service-three'),
+    ];
+    $state['players']['p1']['hand'] = [card('ai-gpu-cluster', 'gpu-cluster')];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'gpu-cluster']);
+    expect($state['players']['p1']['compute'] === 0, 'Three AI Services should reduce GPU Cluster to its minimum cost of four.');
+
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1', 4);
+    $state['players']['p1']['services'] = [entity($catalog, 'ai-model-router', 'single-ai-service')];
+    $state['players']['p1']['hand'] = [card('ai-gpu-cluster', 'gpu-cluster')];
+    expectCode('INSUFFICIENT_COMPUTE', fn() => $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'gpu-cluster']));
+});
+
+check('Prompt Engineer generates one discounted Command from the Deck domains', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['domains'] = ['data', 'ai'];
+    $state['players']['p1']['hand'] = [card('ai-prompt-engineer', 'prompt-engineer')];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'prompt-engineer']);
+    expect(count($state['players']['p1']['hand']) === 1, 'Prompt Engineer should generate exactly one card.');
+    $generated = $state['players']['p1']['hand'][0];
+    $definition = $catalog->get($generated['definitionId']);
+    expect(in_array($definition['domain'], ['data', 'ai'], true) && $definition['type'] === 'command', 'Prompt Engineer should generate a legal Deck-domain Command.');
+    expect(($generated['costModifier'] ?? 0) === -1 && ($generated['costModifierTurn'] ?? null) === $state['turn'], 'Prompt Engineer should discount the generated Command for this turn.');
+});
+
+check('LLM Agent generates one discounted Command per Deck domain', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['domains'] = ['data', 'ai'];
+    $state['players']['p1']['hand'] = [card('ai-llm-agent', 'llm-agent')];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'llm-agent']);
+    expect(count($state['players']['p1']['hand']) === 2, 'LLM Agent should generate two options.');
+    $domains = [];
+    foreach ($state['players']['p1']['hand'] as $generated) {
+        $definition = $catalog->get($generated['definitionId']);
+        expect($definition['type'] === 'command', 'Every LLM Agent option must be a Command.');
+        expect(($generated['costModifier'] ?? 0) === -1 && ($generated['costModifierTurn'] ?? null) === $state['turn'], 'Every LLM Agent option should be discounted for this turn.');
+        $domains[] = $definition['domain'];
+    }
+    sort($domains, SORT_STRING);
+    expect($domains === ['ai', 'data'], 'LLM Agent should generate exactly one option from each Deck domain.');
+});
+
 check('SIEM and Service Mesh resolve as Commands without occupying Infrastructure slots', function () use ($catalog): void {
     [$engine, $state] = fresh($catalog);
     prepareTurn($state, 'p1');
     $state['players']['p1']['services'] = [entity($catalog, 'frontend-vue-widget', 'mesh-target')];
     $state['players']['p1']['hand'] = [card('security-siem', 'siem'), card('infrastructure-service-mesh', 'mesh')];
-    $state['players']['p1']['deck'] = [card('neutral-coffee', 'siem-draw')];
+    $state['players']['p1']['deck'] = [card('neutral-coffee', 'siem-draw-one'), card('neutral-coffee', 'siem-draw-two')];
     $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'siem']);
     $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'mesh']);
     expect($state['players']['p1']['infrastructure'] === [], 'Commands must not occupy Infrastructure slots.');
     expect($state['players']['p1']['services'][0]['redundancy'] === true, 'Service Mesh should grant REDUNDANCY to all current Services.');
-    expect(in_array('siem-draw', array_column($state['players']['p1']['hand'], 'instanceId'), true), 'SIEM should always draw at least one card.');
+    expect(in_array('siem-draw-one', array_column($state['players']['p1']['hand'], 'instanceId'), true), 'SIEM should always draw its first card.');
+    expect(in_array('siem-draw-two', array_column($state['players']['p1']['hand'], 'instanceId'), true), 'SIEM should always draw its second card.');
+});
+
+check('SIEM draws a third card from a sandboxed opponent', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $sandboxed = entity($catalog, 'frontend-vue-widget', 'sandboxed-signal');
+    $sandboxed['sandboxed'] = true;
+    $state['players']['p2']['services'] = [$sandboxed];
+    $state['players']['p1']['hand'] = [card('security-siem', 'siem')];
+    $state['players']['p1']['deck'] = [
+        card('neutral-coffee', 'siem-one'),
+        card('neutral-coffee', 'siem-two'),
+        card('neutral-coffee', 'siem-three'),
+    ];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'siem']);
+    expect(count($state['players']['p1']['hand']) === 3, 'SIEM should draw three cards when it detects a sandboxed opponent.');
 });
 
 check('Generated cards count as hand opportunities in telemetry', function () use ($catalog): void {
@@ -479,6 +993,55 @@ check('Service board limit is enforced', function () use ($catalog): void {
     for ($i = 0; $i < 5; $i++) $state['players']['p1']['services'][] = entity($catalog, 'frontend-vue-widget', "slot{$i}");
     $state['players']['p1']['hand'] = [card('frontend-vue-widget', 'sixth')];
     expectCode('SERVICE_SLOTS_FULL', fn() => $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'sixth']));
+});
+
+check('Token and FORK cards require enough free Service slots', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['services'] = [];
+    for ($index = 0; $index < 4; $index++) $state['players']['p1']['services'][] = entity($catalog, 'frontend-vue-widget', "react-slot-{$index}");
+    $state['players']['p1']['hand'] = [card('frontend-react-component', 'react-without-child-slot')];
+    expectCode('SERVICE_SLOTS_FULL', fn() => $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'react-without-child-slot']));
+
+    $state['players']['p1']['services'][] = entity($catalog, 'frontend-vue-widget', 'last-service-slot');
+    $state['players']['p1']['hand'] = [
+        card('frontend-component-library', 'library-without-slot'),
+        card('infrastructure-horizontal-scaling', 'fork-without-slot'),
+    ];
+    expectCode('SERVICE_TOKEN_SLOT_REQUIRED', fn() => $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'library-without-slot']));
+    expectCode('SERVICE_TOKEN_SLOT_REQUIRED', fn() => $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'fork-without-slot', 'targetId' => 'react-slot-0']));
+});
+
+check('Infinite Re-Render keeps its SANDBOX value on a full board without creating a token', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $state['players']['p1']['services'] = [];
+    for ($index = 0; $index < 5; $index++) $state['players']['p1']['services'][] = entity($catalog, 'frontend-vue-widget', "rerender-slot-{$index}");
+    $state['players']['p2']['services'] = [entity($catalog, 'backend-queue-worker', 'rerender-target')];
+    $state['players']['p1']['hand'] = [card('frontend-infinite-rerender', 'rerender-full-board')];
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'rerender-full-board', 'targetId' => 'rerender-target']);
+    expect(count($state['players']['p1']['services']) === 5, 'Full board must not silently exceed its slot limit.');
+    expect($state['players']['p2']['services'][0]['sandboxed'] === true, 'Infinite Re-Render should still apply SANDBOX.');
+});
+
+check('Inference Burst accepts only a freshly deployed own AI Service', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1');
+    $oldAi = entity($catalog, 'ai-inference-worker', 'old-ai');
+    $oldAi['deployedTurn'] = $state['turn'] - 1;
+    $freshFrontend = entity($catalog, 'frontend-vue-widget', 'fresh-frontend');
+    $freshFrontend['deployedTurn'] = $state['turn'];
+    $state['players']['p1']['services'] = [$oldAi, $freshFrontend];
+    $state['players']['p1']['hand'] = [card('ai-inference-burst', 'invalid-burst')];
+    expectCode('INVALID_TARGET', fn() => $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'invalid-burst', 'targetId' => 'old-ai']));
+    expectCode('INVALID_TARGET', fn() => $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'invalid-burst', 'targetId' => 'fresh-frontend']));
+
+    $freshAi = entity($catalog, 'ai-inference-worker', 'fresh-ai', false);
+    $freshAi['deployedTurn'] = $state['turn'];
+    $state['players']['p1']['services'][] = $freshAi;
+    $engine->applyAction($state, 'p1', ['type' => 'PLAY_CARD', 'cardInstanceId' => 'invalid-burst', 'targetId' => 'fresh-ai']);
+    $ready = current(array_filter($state['players']['p1']['services'], static fn(array $service): bool => $service['instanceId'] === 'fresh-ai'));
+    expect($ready['exhausted'] === false, 'Valid fresh AI Service should become ready.');
 });
 
 check('Full Infrastructure board requires a replacement target', function () use ($catalog): void {
@@ -752,6 +1315,12 @@ check('Bot profiles provide three valid and distinct training opponents', functi
         expect(count($catalog->validateDeck($profile['deck'])) === 2);
     }
     expect($all['junior']['name'] !== $all['security']['name'] && $all['security']['name'] !== $all['chaos']['name']);
+    foreach (['security-soc-analyst', 'security-siem', 'security-containment-plan'] as $securityCard) {
+        expect(count(array_filter($all['security']['deck'], static fn(string $id): bool => $id === $securityCard)) === 2, "Security Auditor should run two copies of {$securityCard}.");
+    }
+    foreach (['frontend-infinite-rerender', 'frontend-design-system'] as $frontendCard) {
+        expect(count(array_filter($all['junior']['deck'], static fn(string $id): bool => $id === $frontendCard)) === 2, "Junior Bot should exercise two copies of {$frontendCard}.");
+    }
 });
 
 check('Security Auditor prioritizes a FIREWALL deployment', function () use ($catalog): void {
@@ -774,12 +1343,55 @@ check('Chaos Engineer prioritizes BUG generation', function () use ($catalog): v
     expect(count(array_filter($state['players']['p2']['services'], static fn(array $service): bool => $service['definitionId'] === 'token-bug')) === 3);
 });
 
+check('Balance AI spends an expiring discounted card before cheaper base-cost cards', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1', 3);
+    $state['players']['p1']['isBot'] = true;
+    $state['players']['p1']['botProfile'] = 'balance-ai';
+    $discounted = card('neutral-force-push', 'discounted-command');
+    $discounted['costModifier'] = -1;
+    $discounted['costModifierTurn'] = $state['turn'];
+    $state['players']['p1']['hand'] = [$discounted, card('neutral-stack-overflow', 'cheap-command')];
+    $state['players']['p2']['services'] = [entity($catalog, 'frontend-vue-widget', 'force-push-target')];
+    (new BotPlayer($engine, $catalog))->playTurn($state, 'p1');
+    expect(in_array('force-push-target', array_column($state['players']['p2']['hand'], 'instanceId'), true), 'The expiring discount should be converted into tempo before other plays consume Compute.');
+    expect(in_array('cheap-command', array_column($state['players']['p1']['hand'], 'instanceId'), true), 'The cheaper base-cost card should wait when the discounted play consumes all Compute.');
+});
+
+check('Balance AI skips a Model Ensemble with no other-domain setup', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1', 3);
+    $state['players']['p1']['isBot'] = true;
+    $state['players']['p1']['botProfile'] = 'balance-ai';
+    $state['players']['p1']['domains'] = ['backend', 'ai'];
+    $state['players']['p1']['hand'] = [card('ai-model-ensemble', 'empty-ensemble')];
+    (new BotPlayer($engine, $catalog))->playTurn($state, 'p1');
+    expect(in_array('empty-ensemble', array_column($state['players']['p1']['hand'], 'instanceId'), true), 'The balance bot must not spend Model Ensemble as a no-op.');
+});
+
+check('Balance AI uses OVERCLOCK when the full Inference Worker cost is available', function () use ($catalog): void {
+    [$engine, $state] = fresh($catalog);
+    prepareTurn($state, 'p1', 5);
+    $state['players']['p1']['isBot'] = true;
+    $state['players']['p1']['botProfile'] = 'balance-ai';
+    $state['players']['p1']['hand'] = [card('ai-inference-worker', 'overclocked-worker')];
+    (new BotPlayer($engine, $catalog))->playTurn($state, 'p1');
+    $worker = current(array_filter($state['players']['p1']['services'], static fn(array $service): bool => $service['instanceId'] === 'overclocked-worker'));
+    expect(is_array($worker) && $worker['power'] === 6, 'The balance AI should test the OVERCLOCK line instead of always deploying the base body.');
+});
+
 check('Balance simulator produces a matchup report without mutating live matches', function () use ($catalog): void {
     $engine = new GameEngine($catalog);
     $bot = new BotPlayer($engine, $catalog);
     $report = (new BalanceSimulator($engine, $bot, $catalog, new BotProfiles($catalog)))->run(2);
-    expect($report['summary']['simulatedMatches'] === 32, 'Expected every ordered archetype pairing to be simulated twice.');
-    expect(count($report['archetypes']) === 4, 'Expected four balance archetypes.');
+    expect($report['summary']['simulatedMatches'] === 260, 'Expected reference and coverage suites to run every unordered pairing twice.');
+    expect(count($report['archetypes']) === 19, 'Expected four reference decks and fifteen faction-matrix decks.');
+    expect($report['summary']['cardsCovered'] === 90, 'Every playable card must occur in a simulated deck.');
+    expect($report['summary']['cardsTotal'] === 90 && $report['summary']['coveragePercent'] === 100.0, 'Expected complete card coverage.');
+    expect(count($report['cards']) === 90, 'The report must retain telemetry for every playable card.');
+    expect(count(array_filter($report['cards'], static fn(array $row): bool => $row['possibleGames'] <= 0)) === 0, 'Every playable card needs simulation samples.');
+    expect(count($report['factions']) === 6, 'Curated reference matches should expose six faction signals.');
+    expect(count($report['coverageFactions']) === 6, 'Coverage runs should remain available as separate technical signals.');
     expect($report['summary']['firstPlayerWinRate'] >= 0, 'Expected start-player telemetry.');
     expect($report['cards'][0]['playRate'] >= 0, 'Expected card usage telemetry.');
     $enriched = (new BalanceAdvisor($catalog))->enrich($report, ['recordedMatches' => 0, 'factions' => [], 'cards' => [], 'feedback' => ['responses' => 0, 'easy' => 0, 'fair' => 0, 'hard' => 0, 'coverage' => 0]]);

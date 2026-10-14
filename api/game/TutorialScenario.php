@@ -160,7 +160,8 @@ final class TutorialScenario
             'commandPlayed' => 0,
             'targetedCommandPlayed' => 0,
             'serviceCrashed' => false,
-            'projectManagerDiscount' => false,
+            'projectManagerDiscount' => 0,
+            'nextServiceDiscount' => 0,
         ];
     }
 

@@ -4,6 +4,7 @@ import { cardById } from '../../../game/catalog';
 import type { GameState } from '../../../game/types';
 import type { MatchSelection } from '../model/types';
 import { knownCardCost } from '../model/cardCost';
+import { canPlayIntoServiceBoard } from '../model/targeting';
 import { tutorialAllowsAction, tutorialAllowsCard } from '../../tutorial/tutorialSteps';
 
 interface HandDockProps {
@@ -34,6 +35,7 @@ export function HandDock({ state, player, selection, myTurn, pending, onSelectCa
           const definition = cardById.get(card.definitionId);
           const effectiveCost = definition ? knownCardCost(state, card, definition) : 99;
           const affordable = effectiveCost <= availableCompute;
+          const boardSpaceAvailable = definition ? canPlayIntoServiceBoard(definition, player) : false;
           const tutorialPlayable = !state.tutorial || tutorialAllowsCard(state, card.definitionId);
           const center = (player.hand.length - 1) / 2;
           const distance = index - center;
@@ -48,7 +50,7 @@ export function HandDock({ state, player, selection, myTurn, pending, onSelectCa
               key={card.instanceId}
               card={card}
               selected={selection?.kind === 'card' && selection.id === card.instanceId}
-              playable={myTurn && affordable && tutorialPlayable}
+              playable={myTurn && affordable && boardSpaceAvailable && tutorialPlayable}
               displayCost={effectiveCost}
               style={handStyle}
               actionLabel="Karte auswählen"

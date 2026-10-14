@@ -8,15 +8,15 @@ final class BalanceSimulator
 
     public function run(int $matchesPerPair): array
     {
-        $matchesPerPair = max(2, min(100, $matchesPerPair));
+        $matchesPerPair = max(2, min(12, $matchesPerPair));
         $archetypes = $this->archetypes();
         $records = array_fill_keys(array_column($archetypes, 'id'), ['games' => 0, 'wins' => 0, 'turns' => 0]);
-        $matchups = []; $factions = []; $cards = [];
+        $matchups = []; $referenceFactions = []; $coverageFactions = []; $cards = [];
         $totalTurns = 0; $totalGames = 0; $draws = 0; $firstPlayerGames = 0; $firstPlayerWins = 0; $guardTerminations = 0; $coreTieBreaks = 0;
 
-        foreach ($archetypes as $left) foreach ($archetypes as $right) {
+        foreach ($this->pairings($archetypes) as [$left, $right]) {
             $key = $left['id'] . '__vs__' . $right['id'];
-            $matchups[$key] = ['left' => $left['id'], 'right' => $right['id'], 'games' => 0, 'leftWins' => 0, 'rightWins' => 0, 'draws' => 0, 'turns' => 0];
+            $matchups[$key] = ['left' => $left['id'], 'right' => $right['id'], 'suite' => $left['suite'], 'games' => 0, 'leftWins' => 0, 'rightWins' => 0, 'draws' => 0, 'turns' => 0];
             for ($round = 0; $round < $matchesPerPair; $round++) {
                 $result = $this->match($left, $right, $round, $round % 2 === 0 ? 'left' : 'right');
                 $totalGames++; $totalTurns += $result['turns'];
@@ -27,10 +27,13 @@ final class BalanceSimulator
                     $side = $entry['side']; $archetype = $entry['archetype']; $won = $result['winner'] === $side;
                     $records[$archetype['id']]['games']++; $records[$archetype['id']]['turns'] += $result['turns'];
                     if ($won) { $records[$archetype['id']]['wins']++; $matchups[$key][$side . 'Wins']++; }
+                    if ($archetype['suite'] === 'reference') $factionBucket =& $referenceFactions;
+                    else $factionBucket =& $coverageFactions;
                     foreach ($this->domains($archetype['deck']) as $domain) {
-                        $factions[$domain] ??= ['games' => 0, 'wins' => 0];
-                        $factions[$domain]['games']++; if ($won) $factions[$domain]['wins']++;
+                        $factionBucket[$domain] ??= ['games' => 0, 'wins' => 0];
+                        $factionBucket[$domain]['games']++; if ($won) $factionBucket[$domain]['wins']++;
                     }
+                    unset($factionBucket);
                     $this->recordCards($cards, $archetype['deck'], $result['draws'][$side], $result['plays'][$side], $result['impact'][$side], $won);
                 }
                 if ($result['winner'] === null) { $draws++; $matchups[$key]['draws']++; }
@@ -41,7 +44,9 @@ final class BalanceSimulator
 
         $archetypeRows = array_map(fn(array $archetype): array => $this->archetypeRow($archetype, $records[$archetype['id']]), $archetypes);
         $factionRows = [];
-        foreach ($factions as $domain => $data) $factionRows[] = $this->rateRow(['id' => $domain] + $data);
+        foreach ($referenceFactions as $domain => $data) $factionRows[] = $this->rateRow(['id' => $domain] + $data);
+        $coverageFactionRows = [];
+        foreach ($coverageFactions as $domain => $data) $coverageFactionRows[] = $this->rateRow(['id' => $domain] + $data);
         $cardRows = $this->cardRows($cards);
         $matchupRows = $this->normalizeMatchups($matchups);
         foreach ($matchupRows as &$row) {
@@ -53,29 +58,122 @@ final class BalanceSimulator
         }
         unset($row);
         usort($factionRows, static fn(array $a, array $b): int => $a['winRate'] <=> $b['winRate']);
+        usort($coverageFactionRows, static fn(array $a, array $b): int => $a['winRate'] <=> $b['winRate']);
         usort($cardRows, static fn(array $a, array $b): int => $b['impactPerGame'] <=> $a['impactPerGame']);
 
+        $playableCards = $this->catalog->all();
+        $coveredCards = array_values(array_intersect(array_column($playableCards, 'id'), array_keys($cards)));
         return [
             'summary' => [
                 'simulatedMatches' => $totalGames, 'matchesPerPair' => $matchesPerPair,
                 'averageTurns' => self::average($totalTurns, $totalGames), 'draws' => $draws, 'guardTerminations' => $guardTerminations, 'coreTieBreaks' => $coreTieBreaks,
                 'firstPlayerWinRate' => self::rate($firstPlayerWins, $firstPlayerGames),
                 'confidence' => self::confidence($totalGames),
+                'cardsCovered' => count($coveredCards), 'cardsTotal' => count($playableCards),
+                'coveragePercent' => self::rate(count($coveredCards), count($playableCards)),
+                'testDecks' => count($archetypes),
             ],
             'archetypes' => $archetypeRows, 'matchups' => array_values($matchupRows), 'factions' => $factionRows,
-            'cards' => array_slice($cardRows, 0, 30), 'recommendations' => [],
+            'coverageFactions' => $coverageFactionRows,
+            'cards' => $cardRows, 'recommendations' => [],
         ];
     }
 
     private function archetypes(): array
     {
-        return [
+        $reference = [
             // A common bot profile isolates deck strength from bot intelligence.
-            ['id' => 'frontend-backend', 'name' => 'Interface & API', 'deck' => $this->catalog->starterDeck('frontend-backend'), 'profile' => 'junior'],
-            ['id' => 'infrastructure-security', 'name' => 'Fortress Stack', 'deck' => $this->catalog->starterDeck('infrastructure-security'), 'profile' => 'junior'],
-            ['id' => 'data-ai', 'name' => 'Model Pipeline', 'deck' => $this->catalog->starterDeck('data-ai'), 'profile' => 'junior'],
-            ['id' => 'chaos', 'name' => 'Chaos Engineer', 'deck' => (array)$this->profiles->get('chaos')['deck'], 'profile' => 'junior'],
+            ['id' => 'frontend-backend', 'name' => 'Interface & API', 'deck' => $this->catalog->starterDeck('frontend-backend'), 'profile' => 'balance', 'suite' => 'reference'],
+            ['id' => 'infrastructure-security', 'name' => 'Fortress Stack', 'deck' => $this->catalog->starterDeck('infrastructure-security'), 'profile' => 'balance', 'suite' => 'reference'],
+            ['id' => 'data-ai', 'name' => 'Model Pipeline', 'deck' => $this->catalog->starterDeck('data-ai'), 'profile' => 'balance-ai', 'suite' => 'reference'],
+            ['id' => 'chaos', 'name' => 'Chaos Engineer', 'deck' => (array)$this->profiles->get('chaos')['deck'], 'profile' => 'balance', 'suite' => 'reference'],
         ];
+        return array_merge($reference, $this->coverageArchetypes());
+    }
+
+    /**
+     * Every pair contains all twelve cards of both domains once. Six balanced
+     * neutral slots complete a legal 30-card deck. Across the full matrix this
+     * makes every playable definition observable without inventing test-only cards.
+     */
+    private function coverageArchetypes(): array
+    {
+        $domainNames = [
+            'frontend' => 'Frontend', 'backend' => 'Backend', 'infrastructure' => 'DevOps',
+            'data' => 'Data', 'security' => 'Security', 'ai' => 'AI',
+        ];
+        $cardsByDomain = [];
+        $neutral = [];
+        foreach ($this->catalog->all() as $card) {
+            if ($card['domain'] === 'neutral') $neutral[] = $card;
+            else $cardsByDomain[$card['domain']][] = $card;
+        }
+        $neutralUsage = array_fill_keys(array_column($neutral, 'id'), 0);
+        $domains = array_keys($domainNames);
+        $archetypes = [];
+        $pairIndex = 0;
+        for ($left = 0; $left < count($domains); $left++) {
+            for ($right = $left + 1; $right < count($domains); $right++) {
+                $leftDomain = $domains[$left]; $rightDomain = $domains[$right];
+                $domainCards = array_merge($cardsByDomain[$leftDomain] ?? [], $cardsByDomain[$rightDomain] ?? []);
+                $deck = array_column($domainCards, 'id');
+                $infrastructureCount = count(array_filter($domainCards, static fn(array $card): bool => $card['type'] === 'infrastructure'));
+                foreach ($this->neutralCardsForDeck($neutral, $neutralUsage, CardCatalog::MAX_INFRASTRUCTURE_PER_DECK - $infrastructureCount, $pairIndex) as $id) {
+                    $deck[] = $id;
+                    $neutralUsage[$id]++;
+                }
+                $this->catalog->validateDeck($deck);
+                $archetypes[] = [
+                    'id' => 'matrix-' . $leftDomain . '-' . $rightDomain,
+                    'name' => 'Matrix · ' . $domainNames[$leftDomain] . ' + ' . $domainNames[$rightDomain],
+                    'deck' => $deck,
+                    'profile' => in_array('ai', [$leftDomain, $rightDomain], true) ? 'balance-ai' : 'balance',
+                    'suite' => 'coverage',
+                ];
+                $pairIndex++;
+            }
+        }
+        return $archetypes;
+    }
+
+    /** @return array<int,string> */
+    private function neutralCardsForDeck(array $neutral, array $usage, int $infrastructureCapacity, int $pairIndex): array
+    {
+        $selected = [];
+        $neutralCount = count($neutral);
+        $neutralOrder = array_flip(array_column($neutral, 'id'));
+        $selectedInfrastructure = 0;
+        while (count($selected) < 6) {
+            $candidates = array_values(array_filter($neutral, static function (array $card) use ($selected, $infrastructureCapacity, $selectedInfrastructure): bool {
+                if (in_array($card['id'], $selected, true)) return false;
+                if ($card['type'] !== 'infrastructure') return true;
+                return $selectedInfrastructure < $infrastructureCapacity;
+            }));
+            usort($candidates, static function (array $a, array $b) use ($usage, $neutralOrder, $neutralCount, $pairIndex): int {
+                $byUsage = $usage[$a['id']] <=> $usage[$b['id']];
+                if ($byUsage !== 0) return $byUsage;
+                $aIndex = $neutralOrder[$a['id']]; $bIndex = $neutralOrder[$b['id']];
+                $offset = ($pairIndex * 6) % max(1, $neutralCount);
+                return (($aIndex - $offset + $neutralCount) % $neutralCount) <=> (($bIndex - $offset + $neutralCount) % $neutralCount);
+            });
+            if ($candidates === []) throw new RuntimeException('Could not build legal neutral coverage slots.');
+            $selected[] = (string)$candidates[0]['id'];
+            if ($candidates[0]['type'] === 'infrastructure') $selectedInfrastructure++;
+        }
+        return $selected;
+    }
+
+    /** Only compare decks inside the same suite; reference and coverage data serve different questions. */
+    private function pairings(array $archetypes): array
+    {
+        $pairings = [];
+        foreach (['reference', 'coverage'] as $suite) {
+            $items = array_values(array_filter($archetypes, static fn(array $item): bool => $item['suite'] === $suite));
+            for ($left = 0; $left < count($items); $left++) {
+                for ($right = $left; $right < count($items); $right++) $pairings[] = [$items[$left], $items[$right]];
+            }
+        }
+        return $pairings;
     }
 
     private function match(array $left, array $right, int $round, string $wantedFirst): array
@@ -141,7 +239,7 @@ final class BalanceSimulator
         foreach ($matchups as $row) {
             $ids = [(string)$row['left'], (string)$row['right']]; sort($ids, SORT_STRING);
             $key = $ids[0] . '__vs__' . $ids[1];
-            $normalized[$key] ??= ['left' => $ids[0], 'right' => $ids[1], 'games' => 0, 'leftWins' => 0, 'rightWins' => 0, 'draws' => 0, 'turns' => 0];
+            $normalized[$key] ??= ['left' => $ids[0], 'right' => $ids[1], 'suite' => (string)($row['suite'] ?? 'reference'), 'games' => 0, 'leftWins' => 0, 'rightWins' => 0, 'draws' => 0, 'turns' => 0];
             $swapped = $row['left'] !== $ids[0];
             $normalized[$key]['games'] += $row['games']; $normalized[$key]['draws'] += $row['draws']; $normalized[$key]['turns'] += $row['turns'];
             $normalized[$key]['leftWins'] += $swapped ? $row['rightWins'] : $row['leftWins'];
@@ -152,7 +250,7 @@ final class BalanceSimulator
 
     private function archetypeRow(array $archetype, array $data): array
     {
-        return ['id' => $archetype['id'], 'name' => $archetype['name'], 'games' => $data['games'], 'winRate' => self::rate($data['wins'], $data['games']), 'avgTurns' => self::average($data['turns'], $data['games']), 'confidence' => self::confidence($data['games']), 'winRateInterval' => self::wilson($data['wins'], $data['games'])];
+        return ['id' => $archetype['id'], 'name' => $archetype['name'], 'suite' => $archetype['suite'], 'games' => $data['games'], 'winRate' => self::rate($data['wins'], $data['games']), 'avgTurns' => self::average($data['turns'], $data['games']), 'confidence' => self::confidence($data['games']), 'winRateInterval' => self::wilson($data['wins'], $data['games'])];
     }
 
     private function rateRow(array $data): array { return ['id' => $data['id'], 'games' => $data['games'], 'winRate' => self::rate($data['wins'], $data['games']), 'confidence' => self::confidence($data['games']), 'winRateInterval' => self::wilson($data['wins'], $data['games'])]; }

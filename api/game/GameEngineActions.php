@@ -61,8 +61,17 @@ trait GameEngineActions
         }
         $cardInstance = $player['hand'][$handIndex];
         $definition = $this->catalog->get($cardInstance['definitionId']);
-        if ($definition['type'] === 'service' && count($player['services']) >= 5) {
-            throw new ApiException('SERVICE_SLOTS_FULL', 'Alle Service-Slots sind belegt.');
+        $openServiceSlots = 5 - count($player['services']);
+        $requiredServiceSlots = $this->requiredServiceSlots($definition);
+        $canCleanBugForSlot = $definition['type'] === 'service'
+            && $requiredServiceSlots === 1
+            && $this->isBugCleaner($definition)
+            && $this->hasBug($player);
+        if ($requiredServiceSlots > $openServiceSlots && !$canCleanBugForSlot) {
+            throw new ApiException(
+                $definition['type'] === 'service' ? 'SERVICE_SLOTS_FULL' : 'SERVICE_TOKEN_SLOT_REQUIRED',
+                $definition['type'] === 'service' ? 'Alle Service-Slots sind belegt.' : 'Für diesen Effekt muss ein Service-Slot frei sein.'
+            );
         }
         $infrastructureReplacement = null;
         if ($definition['type'] === 'infrastructure' && count($player['infrastructure']) >= 2) {
@@ -73,6 +82,7 @@ trait GameEngineActions
                 throw new ApiException('INFRASTRUCTURE_REPLACEMENT_REQUIRED', 'Wähle eine eigene Infrastructure, die ersetzt werden soll.');
             }
         }
+        $zeroTrustTaxed = $this->zeroTrustApplies($state, $playerId, $definition, $targetId);
         $cost = $this->effectiveCost($state, $playerId, $cardInstance, $definition, $targetId);
         if ($overclock && isset($definition['overclockCost'])) {
             $cost += (int)$definition['overclockCost'];
@@ -89,14 +99,21 @@ trait GameEngineActions
             }
         }
         $this->validatePlayTarget($state, $playerId, $definition, $targetId);
+        if ($canCleanBugForSlot) {
+            $this->consumeBugsForDeploy($state, $playerId, $definition);
+        }
         $this->spendCompute($player, $cost);
         array_splice($player['hand'], $handIndex, 1);
+        if ($definition['type'] === 'service') {
+            $player['turnFlags']['nextServiceDiscount'] = 0;
+        }
 
         $this->event($state, 'CARD_PLAYED', [
             'playerId' => $playerId,
             'cardInstanceId' => $instanceId,
             'definitionId' => $definition['id'],
             'cost' => $cost,
+            'targetId' => $targetId,
         ]);
         $this->ensureMatchStats($player);
         $player['matchStats']['cardsPlayed']++;
@@ -112,9 +129,12 @@ trait GameEngineActions
             }
             $player['turnFlags']['commandPlayed']++;
             $player['matchStats']['commandsPlayed']++;
-            $player['turnFlags']['projectManagerDiscount'] = false;
+            $player['turnFlags']['projectManagerDiscount'] = 0;
             if ($targetId !== null) {
                 $player['turnFlags']['targetedCommandPlayed']++;
+            }
+            if ($zeroTrustTaxed) {
+                $player['turnFlags']['zeroTrustTriggered'] = true;
             }
             $this->applyEventStream($state, $playerId, $definition);
             return;
@@ -130,7 +150,7 @@ trait GameEngineActions
             if ($definition['domain'] === 'frontend') {
                 $player['turnFlags']['frontendPlayed']++;
             }
-            $this->applyMessageQueue($player, $entity['instanceId']);
+            $this->applyMessageQueue($player, $entity['instanceId'], $definition);
             if ($overclock && $definition['id'] === 'ai-inference-worker') {
                 $this->buffEntity($state, $entity['instanceId'], 3, 0, false);
             }
@@ -169,7 +189,7 @@ trait GameEngineActions
         $board = $target !== null && in_array($target['zone'], ['services', 'infrastructure'], true);
         $opponentId = $this->opponentId($state, $playerId);
         $valid = match ($effect) {
-            'infinite_rerender' => $service,
+            'infinite_rerender' => $service && !$own,
             'hotfix' => $board,
             'horizontal_scaling' => $service && $own && $this->catalog->get($target['entity']['definitionId'])['cost'] <= 3,
             'emergency_patch' => $own && ($board || $target['zone'] === 'core'),
@@ -183,7 +203,10 @@ trait GameEngineActions
             'penetration_tester_deploy' => $state['players'][$opponentId]['services'] === [] || ($service && !$own),
             'model_drift' => $service && !$own,
             'error_boundary_deploy' => $service && $own && $this->catalog->get($target['entity']['definitionId'])['domain'] === 'frontend',
-            'dead_letter_queue', 'rolling_deploy', 'containment_plan', 'inference_burst' => $service && $own,
+            'dead_letter_queue', 'rolling_deploy', 'containment_plan' => $service && $own,
+            'inference_burst' => $service && $own
+                && $this->catalog->get($target['entity']['definitionId'])['domain'] === 'ai'
+                && (int)($target['entity']['deployedTurn'] ?? 0) === (int)$state['turn'],
             'access_review' => $service && !$own && count($state['players'][$opponentId]['services']) > count($state['players'][$playerId]['services']),
             default => true,
         };
@@ -286,8 +309,9 @@ trait GameEngineActions
                 && count($owner['services']) < 5) {
                 $this->spawnToken($state, $ownerId, 'token-replica');
             }
-            if (($owner['turnFlags']['sloMonitorArmed'] ?? false) && $owner['turnFlags']['serviceCrashed'] && count($owner['services']) < 5) {
-                $this->spawnToken($state, $ownerId, 'token-replica');
+            if (($owner['turnFlags']['sloMonitorArmed'] ?? false) && $owner['turnFlags']['serviceCrashed']) {
+                $owner['turnFlags']['sloMonitorArmed'] = false;
+                if (count($owner['services']) < 5) $this->spawnToken($state, $ownerId, 'token-replica');
             }
             $owner['turnFlags']['serviceCrashed'] = false;
             unset($owner);
@@ -297,7 +321,7 @@ trait GameEngineActions
             $this->drawCards($state, $playerId, 1);
         }
         $player['storedCompute'] = $this->hasInfrastructure($player, 'data-redis-cache')
-            ? min(1, $player['compute'] + $player['temporaryCompute'])
+            ? min(1, $player['compute'])
             : 0;
         foreach ($player['services'] as &$service) {
             if (($service['temporaryPower'] ?? 0) > 0) {

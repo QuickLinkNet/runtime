@@ -251,7 +251,7 @@ try {
         })(),
         'adminRunBalanceSimulation' => (function () use ($admin, $balanceLab, $player, $playerId, $isAccount, $body): void {
             $admin->assertAllowed($isAccount ? (string)$player['account_email'] : null);
-            $samples = max(2, min(100, (int)($body['matchesPerPair'] ?? 12)));
+            $samples = max(2, min(12, (int)($body['matchesPerPair'] ?? 6)));
             Http::success($balanceLab->run($playerId, $samples), 201);
         })(),
         'adminReviewBalanceRecommendation' => (function () use ($admin, $balanceLab, $player, $playerId, $isAccount, $body): void {

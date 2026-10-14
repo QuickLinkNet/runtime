@@ -114,10 +114,56 @@ trait GameEngineQueries
         return false;
     }
 
+    private function handHasOtherDeckDomain(array $player, string $excludedDomain): bool
+    {
+        foreach ($player['hand'] as $card) {
+            $domain = (string)$this->catalog->get($card['definitionId'])['domain'];
+            if ($domain !== $excludedDomain && in_array($domain, $player['domains'], true)) return true;
+        }
+        return false;
+    }
+
     private function hasBug(array $player): bool
     {
         foreach ($player['services'] as $service) {
             if ($service['definitionId'] === 'token-bug') {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private function isBugCleaner(array $definition): bool
+    {
+        return in_array((string)($definition['effectId'] ?? ''), [
+            'rubber_duck_deploy', 'qa_engineer_deploy', 'senior_developer_deploy', 'soc_analyst_deploy',
+        ], true);
+    }
+
+    private function requiredServiceSlots(array $definition): int
+    {
+        $effect = (string)($definition['effectId'] ?? '');
+        if ($effect === 'react_component_deploy') return 2;
+        if (in_array($effect, ['component_library', 'horizontal_scaling'], true)) return 1;
+        return ($definition['type'] ?? '') === 'service' ? 1 : 0;
+    }
+
+    private function zeroTrustApplies(array $state, string $playerId, array $definition, ?string $targetId): bool
+    {
+        if (($definition['type'] ?? '') !== 'command' || $targetId === null
+            || ($state['players'][$playerId]['turnFlags']['zeroTrustTriggered'] ?? false)) return false;
+        $opponentId = $this->opponentId($state, $playerId);
+        if (!$this->hasInfrastructure($state['players'][$opponentId], 'security-zero-trust')) return false;
+        $target = $this->locateTarget($state, $targetId);
+        return $target !== null
+            && $target['ownerId'] === $opponentId
+            && in_array($target['zone'], ['services', 'infrastructure'], true);
+    }
+
+    private function hasSandboxedService(array $player): bool
+    {
+        foreach ($player['services'] as $service) {
+            if (($service['sandboxed'] ?? false) === true) {
                 return true;
             }
         }
