@@ -1,4 +1,5 @@
 import type { AnimationSpeed } from '../model/animationSpeed';
+import { useI18n } from '../../../i18n';
 
 interface AnimationSpeedControlProps {
   value: AnimationSpeed;
@@ -6,13 +7,14 @@ interface AnimationSpeedControlProps {
 }
 
 export function AnimationSpeedControl({ value, onChange }: AnimationSpeedControlProps) {
+  const { t } = useI18n();
   return (
     <label className="animation-speed-control">
-      <span>Animation</span>
+      <span>{t('match.animation')}</span>
       <select value={value} onChange={(event) => onChange(event.target.value as AnimationSpeed)}>
-        <option value="slow">Langsam</option>
-        <option value="normal">Normal</option>
-        <option value="fast">Schnell</option>
+        <option value="slow">{t('match.animation.slow')}</option>
+        <option value="normal">{t('match.animation.normal')}</option>
+        <option value="fast">{t('match.animation.fast')}</option>
       </select>
     </label>
   );

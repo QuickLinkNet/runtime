@@ -1,6 +1,6 @@
 # Projektstand RUNTIME
 
-Stand: 8. Oktober 2026
+Stand: 15. Oktober 2026
 
 Diese Datei ist der kurze, verbindliche Übergabepunkt für die weitere Entwicklung. Detailregeln stehen in den jeweils verlinkten Fachdokumenten.
 
@@ -10,8 +10,9 @@ Diese Datei ist der kurze, verbindliche Übergabepunkt für die weitere Entwickl
 - serverautoritative PHP-Rules-Engine mit MySQL-Persistenz
 - Singleplayer gegen Server-Bot und private Multiplayer-Räume
 - drei gültige Starter-Decks und frei konfigurierbarer Deck Builder
-- 72 spielbare Karten plus 4 erzeugte Token-Karten
-- vollständige Artwork-Zuordnung für die 48 Basiskarten und 4 Tokens; 24 Set-2-Artworks stehen in der Produktionswarteschlange
+- 90 spielbare Karten plus 4 erzeugte Token-Karten
+- vollständige Artwork-Zuordnung für alle 90 spielbaren Karten und 4 Tokens
+- reaktive Internationalisierung der Oberfläche, Karten, Fraktionen, Botprofile und API-Fehler für Deutsch, Englisch und Niederländisch
 - responsiver Deck Builder mit kompaktem 5er- und großem 4er-Raster
 - große Kartenansicht, Artwork-Lightbox und mobile Vollkartenansicht
 - responsive Match-Ansicht für Desktop, Tablet und Smartphone
@@ -34,7 +35,7 @@ Diese Datei ist der kurze, verbindliche Übergabepunkt für die weitere Entwickl
 - neue Seltenheitsrahmen auf allen Kartenansichten: Common grün, Uncommon blau, Rare violett, Legendary gold
 - achtteiliges, serverautoritatives Tutorial mit geführten Aktionen, responsivem Coach, Wiederholungsmodus und einmaliger Booster-Belohnung
 
-- Set 2 „Production Incident“ mit 24 neuen, spielbaren Karten und gekapselten Servereffekten
+- Erweiterungspool mit 24 „Production Incident“- und 18 „System Upgrade“-Karten sowie gekapselten Servereffekten
 - explizite, erweiterungssichere 30-Karten-Starterdecks in gemeinsamer Konfiguration
 - optionaler Account-Flow: Gast spielen ohne Zwang, registrieren/anmelden/verknüpfen für persistente eigene Stacks, Sammlung und Booster
 - Match-Abschluss mit serverseitigen Ergebnissen, Stats, Rewards und sicherem Rematch-/Deck-Flow
@@ -49,17 +50,19 @@ Diese Datei ist der kurze, verbindliche Übergabepunkt für die weitere Entwickl
 - `npm run build` kompiliert TypeScript und erstellt den Production-Build.
 - `npm run test:php` prüft die Regeln, Tutorialabläufe, Booster-Garantien und Sicherheitsgrenzen der Engine.
 - `npm run test:api` prüft gegen eine lokale Test-API den HTTP-Flow und den idempotenten Replay-Schutz.
+- `npm run test:i18n` prüft die drei Sprachkataloge, statische und dynamische Schlüssel sowie alle 94 Kartendefinitionen.
 - Sichtbare Änderungen werden zusätzlich in Desktop- und Mobile-Viewports geprüft.
 - TS-, TSX- und CSS-Dateien sollen nach Möglichkeit unter 500 Zeilen bleiben.
-- Letzte vollständige Prüfung am 5. Oktober 2026: Production-Build, 39 PHP-Tests, Booster-API, Desktop-/Mobile-UI und PWA-Prüfung erfolgreich.
+- Letzte lokale Prüfung am 15. Oktober 2026: Production-Build, TypeScript, 105 PHP-Tests, i18n-Prüfung und PWA-Prüfung erfolgreich; der öffentliche Identitäts-/Account-Einstieg wurde auf Desktop und Smartphone in mehreren Sprachen visuell geprüft.
+- Der HTTP-Integrationstest bleibt einer lokalen Wegwerf-Testdatenbank vorbehalten und wurde in dieser Bestandsaufnahme nicht erneut ausgeführt.
 - Live geprüft: Manifest, Service Worker und Android-Icons liefern auf `runtime.red-it.org` HTTP 200.
 
 ## Nächste sinnvolle Ausbaustufe
 
-1. **Set-2-Artworks:** die 24 Motive aus der Artwork-Queue einzeln erstellen und abnehmen.
-2. **Audio:** Pack-Riss, Reveal-Stufen und Legendary-Stinger sowie Match-Sounds mit Lautstärkereglern.
+1. **Internationalisierung abnehmen:** Hauptansichten in `de`, `en` und `nl` auf Desktop und Smartphone visuell prüfen und anschließend veröffentlichen.
+2. **Audio:** Pack-Riss, Reveal-Stufen und Legendary-Stinger sowie weitere Match-Sounds ergänzen.
 3. **Bot-Ausbau:** später Principal Architect mit Komboplanung und weiteren klaren Deck-Archetypen.
-4. **Balancing & Härtung:** abgeschlossen: Telemetrie, HTTP-Integrationstest, Wiederverbindung und Replay-Schutz bei parallelen/erneuten Aktionen.
+4. **Balancing beobachten:** GraphQL Gateway, Queue Worker und Legacy PHP anhand realer Matchdaten erneut bewerten.
 
 ## Danach
 
@@ -74,6 +77,7 @@ Diese Datei ist der kurze, verbindliche Übergabepunkt für die weitere Entwickl
 
 - [Architektur](architecture.md)
 - [Frontend-Architektur](frontend-architecture.md)
+- [Internationalisierung](internationalization.md)
 - [Spielregeln](game-rules.md)
 - [Kartensystem](card-system.md)
 - [Artwork-Liste](card-artwork-list.md)

@@ -1,6 +1,7 @@
 import { GameCard } from '../../cards';
 import { EmptySlot } from '../../../ui/atoms';
 import type { BoardEntity, GameState } from '../../../game/types';
+import { useI18n } from '../../../i18n';
 
 interface BoardRowProps {
   entities: GameState['players'][string]['services'];
@@ -13,8 +14,9 @@ interface BoardRowProps {
 }
 
 export function BoardRow({ entities, kind, targetable, onTarget, onSelect, selectedId, targetActionLabel }: BoardRowProps) {
+  const { t } = useI18n();
   const slots = kind === 'service' ? 5 : 2;
-  const label = kind === 'service' ? 'Services' : 'Infrastructure';
+  const label = kind === 'service' ? t('common.services') : t('common.infrastructure');
 
   return (
     <div className={`board-row ${kind === 'infrastructure' ? 'infra-row' : ''}`} aria-label={label}>
@@ -38,7 +40,7 @@ export function BoardRow({ entities, kind, targetable, onTarget, onSelect, selec
             selected={selectedId === entity.instanceId}
             targetable={validTarget}
             combatId={entity.instanceId}
-            actionLabel={validTarget ? (targetActionLabel ?? 'Als Ziel wählen') : 'Service auswählen'}
+            actionLabel={validTarget ? (targetActionLabel ?? t('match.chooseTarget')) : t('match.selectService')}
             onClick={cardAction}
           />
         );

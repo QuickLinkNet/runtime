@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
-import { cardById, domainLabels } from '../../../game/catalog';
+import { cardById } from '../../../game/catalog';
 import { cardArtworkById } from '../../../game/cardArtwork';
 import { rarityForCard } from '../../../game/cardRarity';
 import type { BoardEntity, CardInstance } from '../../../game/types';
 import { useValuePulse } from '../../../ui/hooks/useValuePulse';
 import { CardDetailModal, CardDetailPanel } from './CardDetails';
 import { KeywordText } from './KeywordText';
+import { useI18n } from '../../../i18n';
 
 interface Props {
   card: CardInstance | BoardEntity;
@@ -37,6 +38,7 @@ function useCoarsePointer() {
 }
 
 export function GameCard({ card, selected, playable, targetable, compact, detailsOnHover = true, detailsOnTap = false, visualOnClick = false, style, actionLabel, combatId, displayCost, onClick }: Props) {
+  const { t } = useI18n();
   const definition = cardById.get(card.definitionId);
   const entity = 'integrity' in card ? card : null;
   const integrityPulse = useValuePulse(entity?.integrity);
@@ -134,7 +136,7 @@ export function GameCard({ card, selected, playable, targetable, compact, detail
         onBlur={detailsOnHover ? scheduleHidePreview : undefined}
         type="button"
         aria-pressed={selected}
-        aria-label={`${definition.name}${rarity ? `, ${rarity}` : ''}. ${isCoarsePointer && detailsOnTap ? 'Antippen für Details.' : `${actionLabel ? `${actionLabel}. ` : ''}${detailsOnHover && !isCoarsePointer ? 'Details beim Darüberfahren.' : 'Karte anzeigen.'}`}`}
+        aria-label={`${definition.name}${rarity ? `, ${t(`rarity.${rarity}`)}` : ''}. ${isCoarsePointer && detailsOnTap ? t('card.tapDetails') : `${actionLabel ? `${actionLabel}. ` : ''}${detailsOnHover && !isCoarsePointer ? t('card.hoverDetails') : t('card.show')}`}`}
       >
         {artwork && <span className="card-artwork" style={{ backgroundImage: `url(${artwork})` }} aria-hidden="true" />}
         <span className={`card-cost ${shownCost < definition.cost ? 'is-discounted' : ''} ${shownCost > definition.cost ? 'is-increased' : ''}`} aria-label={`${shownCost} Compute`}>{shownCost}</span>
@@ -142,29 +144,29 @@ export function GameCard({ card, selected, playable, targetable, compact, detail
         <span className="card-classification">
           <span className={`card-type-badge type-${visualType}`} aria-hidden="true" />
           <span className="card-classification-label">
-            <span className="card-domain">{domainLabels[definition.domain]}</span>
+            <span className="card-domain">{t(`domain.${definition.domain}`)}</span>
             <i aria-hidden="true">·</i>
-            <span className="card-type">{visualType}</span>
+            <span className="card-type">{definition.token ? t('domain.token') : t(`type.${definition.type}`)}</span>
           </span>
         </span>
         <span className="card-text"><KeywordText text={definition.text} /></span>
-        {entity?.redundancy && <span className="card-status">REDUNDANCY</span>}
-        {entity?.sandboxed && <span className="card-status">SANDBOX</span>}
+        {entity?.redundancy && <span className="card-status">{t('keyword.redundancy.label')}</span>}
+        {entity?.sandboxed && <span className="card-status">{t('keyword.sandbox.label')}</span>}
         {(definition.type === 'service' || definition.type === 'infrastructure') && (
           <span className="card-stats">
             {definition.type === 'service' && (
-              <span className="card-stat card-stat-power" title="Power">
+              <span className="card-stat card-stat-power" title={t('common.power')}>
                 <b>{entity?.power ?? definition.power}</b>
-                <small>Power</small>
+                <small>{t('common.power')}</small>
               </span>
             )}
-            <span className="card-stat card-stat-integrity" title="Integrity">
+            <span className="card-stat card-stat-integrity" title={t('common.integrity')}>
               <b>{entity ? `${entity.integrity}/${entity.maxIntegrity}` : `${definition.integrity}/${definition.integrity}`}</b>
-              <small>Integrity</small>
+              <small>{t('common.integrity')}</small>
             </span>
           </span>
         )}
-        <span className="card-detail-hint">{isCoarsePointer ? 'Tippen: Details' : 'Hover: Details'}</span>
+        <span className="card-detail-hint">{isCoarsePointer ? t('card.tapHint') : t('card.hoverHint')}</span>
       </button>
 
       {hoverStyle && createPortal(
@@ -183,8 +185,8 @@ export function GameCard({ card, selected, playable, targetable, compact, detail
         <div className="card-visual-backdrop" role="presentation" onMouseDown={(event) => {
           if (event.currentTarget === event.target) setDetailsOpen(false);
         }}>
-          <div className="card-visual-dialog" role="dialog" aria-modal="true" aria-label={`Kartenansicht: ${definition.name}`}>
-            <button className="card-visual-close" type="button" onClick={() => setDetailsOpen(false)} aria-label="Kartenansicht schließen">×</button>
+          <div className="card-visual-dialog" role="dialog" aria-modal="true" aria-label={t('card.viewDialog', { name: definition.name })}>
+            <button className="card-visual-close" type="button" onClick={() => setDetailsOpen(false)} aria-label={t('card.closeView')}>×</button>
             <div className="card-visual-stage">
               <GameCard card={card} detailsOnHover={false} onClick={() => undefined} />
             </div>

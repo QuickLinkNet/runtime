@@ -1,9 +1,13 @@
 import { useMemo, useState } from 'react';
-import { cardById, domainLabels, makeStarterDeck, playableCards, starterNames, validateDeck } from '../../../game/catalog';
+import { cardById, makeStarterDeck, playableCards, starterNames } from '../../../game/catalog';
 import type { Domain } from '../../../game/types';
-import { analyzeDeck, compareCards, domainOrder, domainsInDeck, maxCopiesFor, techDomains, type CatalogFilter, type CatalogTypeFilter, type DeckEntry, type SortMode } from '../model/deckBuilder';
+import { useI18n } from '../../../i18n';
+import { analyzeDeck, compareCards, domainOrder, domainsInDeck, localizedDeckValidation, maxCopiesFor, techDomains, type CatalogFilter, type CatalogTypeFilter, type DeckEntry, type SortMode } from '../model/deckBuilder';
+
+interface DeckNotice { key: string; values?: Record<string, string | number> }
 
 export function useDeckBuilder(initialDeck: string[], collection: Record<string, number> | null) {
+  const { locale, t } = useI18n();
   const [deck, setDeck] = useState([...initialDeck]);
   const [domains, setDomains] = useState<Domain[]>(() => domainsInDeck(initialDeck));
   const [filter, setFilter] = useState<CatalogFilter>('selected');
@@ -11,7 +15,7 @@ export function useDeckBuilder(initialDeck: string[], collection: Record<string,
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortMode>('cost-asc');
   const [starterKey, setStarterKey] = useState('frontend-backend');
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<DeckNotice | null>(null);
   const [ownership, setOwnership] = useState<'all' | 'owned'>('all');
   const [collectionMode, setCollectionMode] = useState(false);
 
@@ -22,7 +26,7 @@ export function useDeckBuilder(initialDeck: string[], collection: Record<string,
   }, [deck]);
 
   const visibleCards = useMemo(() => {
-    const normalizedQuery = query.trim().toLocaleLowerCase('de');
+    const normalizedQuery = query.trim().toLocaleLowerCase(locale);
     return playableCards
       .filter((card) => ownership === 'all' || (collection?.[card.id] ?? 0) > 0)
       .filter((card) => {
@@ -31,18 +35,18 @@ export function useDeckBuilder(initialDeck: string[], collection: Record<string,
         return card.domain === filter && domains.includes(card.domain);
       })
       .filter((card) => typeFilter === 'all' || card.type === typeFilter)
-      .filter((card) => normalizedQuery === '' || [card.name, card.text, card.type, domainLabels[card.domain]]
-        .some((value) => value.toLocaleLowerCase('de').includes(normalizedQuery)))
-      .sort(compareCards(sort));
-  }, [collection, domains, filter, ownership, query, sort, typeFilter]);
+      .filter((card) => normalizedQuery === '' || [card.name, card.text, t(`type.${card.type}`), t(`domain.${card.domain}`)]
+        .some((value) => value.toLocaleLowerCase(locale).includes(normalizedQuery)))
+      .sort(compareCards(sort, locale));
+  }, [collection, domains, filter, locale, ownership, query, sort, t, typeFilter]);
 
   const deckEntries = useMemo<DeckEntry[]>(() => [...counts.entries()]
     .map(([id, count]) => ({ card: cardById.get(id), count }))
     .filter((entry): entry is DeckEntry => Boolean(entry.card))
     .sort((left, right) => {
       const domainDifference = domainOrder.indexOf(left.card.domain) - domainOrder.indexOf(right.card.domain);
-      return domainDifference || left.card.cost - right.card.cost || left.card.name.localeCompare(right.card.name, 'de');
-    }), [counts]);
+      return domainDifference || left.card.cost - right.card.cost || left.card.name.localeCompare(right.card.name, locale);
+    }), [counts, locale]);
 
   const domainCounts = useMemo(() => new Map<Domain, number>(domainOrder.map((domain) => [
     domain,
@@ -52,12 +56,12 @@ export function useDeckBuilder(initialDeck: string[], collection: Record<string,
   const collectionValidation = useMemo(() => {
     if (!collectionMode || !collection) return null;
     for (const [id, amount] of counts.entries()) {
-      if (amount > (collection[id] ?? 0)) return `Collection Mode: Dir fehlt eine Kopie von ${cardById.get(id)?.name ?? 'dieser Karte'}.`;
+      if (amount > (collection[id] ?? 0)) return t('deck.notice.collectionMissing', { name: cardById.get(id)?.name ?? t('deck.notice.thisCard') });
     }
     return null;
-  }, [collection, collectionMode, counts]);
-  const validation = validateDeck(deck) ?? collectionValidation;
-  const health = useMemo(() => analyzeDeck(deck), [deck]);
+  }, [collection, collectionMode, counts, locale, t]);
+  const validation = useMemo(() => localizedDeckValidation(deck), [deck, locale]) ?? collectionValidation;
+  const health = useMemo(() => analyzeDeck(deck), [deck, locale]);
   const dirty = deck.join('|') !== initialDeck.join('|');
 
   function toggleDomain(domain: Domain) {
@@ -67,31 +71,31 @@ export function useDeckBuilder(initialDeck: string[], collection: Record<string,
       setDeck((current) => current.filter((id) => cardById.get(id)?.domain !== domain));
       if (filter === domain) setFilter('selected');
       setNotice(removedCards > 0
-        ? `${domainLabels[domain]} entfernt – ${removedCards} Karten wurden aus dem Deck genommen.`
-        : `${domainLabels[domain]} wurde abgewählt.`);
+        ? { key: 'deck.notice.domainRemovedCards', values: { domain: t(`domain.${domain}`), count: removedCards } }
+        : { key: 'deck.notice.domainDeselected', values: { domain: t(`domain.${domain}`) } });
       return;
     }
 
     if (domains.length >= 2) {
-      setNotice('Ein Deck kann genau zwei Tech-Domains enthalten. Wähle zuerst eine aktive Domain ab.');
+      setNotice({ key: 'deck.notice.maxDomains' });
       return;
     }
 
     setDomains((current) => [...current, domain]);
     setFilter('selected');
-    setNotice(`${domainLabels[domain]} wurde als Deck-Domain hinzugefügt.`);
+    setNotice({ key: 'deck.notice.domainAdded', values: { domain: t(`domain.${domain}`) } });
   }
 
   function addCard(id: string) {
     const card = cardById.get(id);
     if (!card || deck.length >= 30 || (counts.get(id) ?? 0) >= maxCopiesFor(card)) return;
     if (card.type === 'infrastructure' && health.infrastructure >= 4) {
-      setNotice('Maximal vier Infrastructure-Karten pro Deck – damit deine Hand spielbar bleibt.');
+      setNotice({ key: 'deck.notice.maxInfrastructure' });
       return;
     }
     if (card.domain !== 'neutral' && !domains.includes(card.domain)) return;
     if (collectionMode && (collection?.[id] ?? 0) <= (counts.get(id) ?? 0)) {
-      setNotice('Collection Mode: Diese Kopie ist nicht in deiner Sammlung verfügbar.');
+      setNotice({ key: 'deck.notice.copyUnavailable' });
       return;
     }
     setDeck((current) => [...current, id]);
@@ -111,12 +115,12 @@ export function useDeckBuilder(initialDeck: string[], collection: Record<string,
     setDomains(domainsInDeck(nextDeck));
     setFilter('selected');
     setQuery('');
-    setNotice(`${starterNames[starterKey]} wurde geladen.`);
+    setNotice({ key: 'deck.notice.starterLoaded', values: { name: starterNames[starterKey] } });
   }
 
   function clearDeck() {
     setDeck([]);
-    setNotice('Deck wurde geleert.');
+    setNotice({ key: 'deck.notice.cleared' });
   }
 
   return {
@@ -127,7 +131,7 @@ export function useDeckBuilder(initialDeck: string[], collection: Record<string,
     query,
     sort,
     starterKey,
-    notice,
+    notice: notice ? t(notice.key, notice.values) : null,
     ownership,
     collectionMode,
     counts,

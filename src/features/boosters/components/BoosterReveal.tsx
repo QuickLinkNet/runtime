@@ -1,6 +1,6 @@
 import type { BoosterCard } from '../../../game/types';
-import { rarityLabels } from '../../../game/cardRarity';
 import { GameCard } from '../../cards';
+import { useI18n } from '../../../i18n';
 
 interface BoosterRevealProps {
   cards: BoosterCard[];
@@ -9,8 +9,9 @@ interface BoosterRevealProps {
 }
 
 export function BoosterReveal({ cards, revealed, onReveal }: BoosterRevealProps) {
+  const { t } = useI18n();
   return (
-    <section className="booster-reveal" aria-label="Booster-Inhalt">
+    <section className="booster-reveal" aria-label={t('booster.reveal.contentAria')}>
       {cards.map((card, index) => {
         const isRevealed = index < revealed;
         return (
@@ -19,13 +20,13 @@ export function BoosterReveal({ cards, revealed, onReveal }: BoosterRevealProps)
               <>
                 <GameCard card={{ instanceId: `booster-${index}`, definitionId: card.definitionId }} detailsOnHover={false} detailsOnTap />
                 <footer>
-                  <b>{rarityLabels[card.rarity]}</b>
-                  <span>{card.salvaged ? `+${card.salvageValue ?? 0} Komponenten` : card.isNew ? 'NEU' : `Besitz ${card.previousQuantity + 1}`}</span>
+                  <b>{t(`rarity.${card.rarity}`)}</b>
+                  <span>{card.salvaged ? t('booster.reveal.components', { count: card.salvageValue ?? 0 }) : card.isNew ? t('booster.reveal.new') : t('booster.reveal.owned', { count: card.previousQuantity + 1 })}</span>
                 </footer>
               </>
             ) : (
-              <button className="booster-card-back" type="button" disabled={index !== revealed} onClick={() => onReveal(index)} aria-label={`Karte ${index + 1} aufdecken`}>
-                <span>R_</span><small>{index === revealed ? 'AUFDECKEN' : 'VERSCHLÜSSELT'}</small>
+              <button className="booster-card-back" type="button" disabled={index !== revealed} onClick={() => onReveal(index)} aria-label={t('booster.reveal.cardAria', { number: index + 1 })}>
+                <span>R_</span><small>{t(index === revealed ? 'booster.reveal.reveal' : 'booster.reveal.encrypted')}</small>
               </button>
             )}
           </article>

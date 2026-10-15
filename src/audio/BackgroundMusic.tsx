@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useI18n } from '../i18n';
 import { configureSfx, playSfx, storedSfxEnabled, storedSfxVolume } from './sfx';
 
 const enabledStorageKey = 'runtime.music.enabled';
@@ -18,6 +19,7 @@ function storedVolume() {
 }
 
 export function BackgroundMusic() {
+  const { t } = useI18n();
   const audioRef = useRef<HTMLAudioElement>(null);
   const duckTimer = useRef<number | null>(null);
   const [enabled, setEnabled] = useState(storedEnabled);
@@ -117,7 +119,7 @@ export function BackgroundMusic() {
   }
 
   return (
-    <aside className={`music-control ${playing ? 'is-playing' : ''} ${sfxEnabled ? 'is-sfx-enabled' : ''}`} aria-label="Audiosteuerung">
+    <aside className={`music-control ${playing ? 'is-playing' : ''} ${sfxEnabled ? 'is-sfx-enabled' : ''}`} aria-label={t('audio.controls')}>
       <audio
         ref={audioRef}
         src="/audio/runtime-boot-sequence.mp3"
@@ -131,18 +133,18 @@ export function BackgroundMusic() {
           className="music-toggle"
           type="button"
           aria-pressed={playing}
-          aria-label={playing ? 'Hintergrundmusik pausieren' : 'Hintergrundmusik abspielen'}
+          aria-label={t(playing ? 'audio.music.pause' : 'audio.music.play')}
           title="RUNTIME // Boot Sequence"
           onClick={toggle}
         >
           <span className="music-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4Z"/><path className="music-wave" d="M16 9c1.4 1.7 1.4 4.3 0 6M19 6c3.2 3.3 3.2 8.7 0 12"/><path className="music-muted" d="m16 9 5 6M21 9l-5 6"/></svg>
           </span>
-          <span className="music-label">MUSIC</span>
+          <span className="music-label">{t('audio.music.label')}</span>
         </button>
         <label className="music-volume">
-          <span className="sr-only">Musiklautstärke</span>
-          <input type="range" min="0" max="1" step="0.05" value={volume} aria-label={`Musiklautstärke ${Math.round(volume * 100)} Prozent`} onChange={(event) => updateVolume(Number(event.target.value))} />
+          <span className="sr-only">{t('audio.music.volume')}</span>
+          <input type="range" min="0" max="1" step="0.05" value={volume} aria-label={t('audio.music.volumePercent', { value: Math.round(volume * 100) })} onChange={(event) => updateVolume(Number(event.target.value))} />
         </label>
       </span>
       <i className="audio-divider" aria-hidden="true" />
@@ -151,18 +153,18 @@ export function BackgroundMusic() {
           className="music-toggle sfx-toggle"
           type="button"
           aria-pressed={sfxEnabled}
-          aria-label={sfxEnabled ? 'Soundeffekte ausschalten' : 'Soundeffekte einschalten'}
-          title="RUNTIME Soundeffekte"
+          aria-label={t(sfxEnabled ? 'audio.sfx.disable' : 'audio.sfx.enable')}
+          title={t('audio.sfx.title')}
           onClick={toggleSfx}
         >
           <span className="music-icon sfx-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24"><path d="M3 14h2V9H3v5Zm4 4h2V5H7v13Zm4-2h2V7h-2v9Zm4 4h2V3h-2v17Zm4-7h2v-3h-2v3Z"/></svg>
           </span>
-          <span className="music-label">SFX</span>
+          <span className="music-label">{t('audio.sfx.label')}</span>
         </button>
         <label className="music-volume">
-          <span className="sr-only">Effektlautstärke</span>
-          <input type="range" min="0" max="1" step="0.05" value={sfxVolume} aria-label={`Effektlautstärke ${Math.round(sfxVolume * 100)} Prozent`} onChange={(event) => updateSfxVolume(Number(event.target.value))} />
+          <span className="sr-only">{t('audio.sfx.volume')}</span>
+          <input type="range" min="0" max="1" step="0.05" value={sfxVolume} aria-label={t('audio.sfx.volumePercent', { value: Math.round(sfxVolume * 100) })} onChange={(event) => updateSfxVolume(Number(event.target.value))} />
         </label>
       </span>
     </aside>

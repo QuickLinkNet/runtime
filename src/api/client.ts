@@ -1,5 +1,7 @@
 import type { AdminOverview, AdminPlayerDetail, AdminPlayerSummary, BalanceReport, BoosterOpening, CollectionSnapshot, DeckSlotsSnapshot, GameAction, GameState, MatchPayload, PlayerIdentity } from '../game/types';
 import type { BotProfileKey } from '../game/botProfiles';
+import { localizedApiError } from '../i18n/apiErrors';
+import { getActiveLocale } from '../i18n/runtime';
 
 interface ApiSuccess<T> { success: true; data: T }
 interface ApiFailure { success: false; error: { code: string; message: string } }
@@ -23,10 +25,12 @@ export function hasToken(): boolean {
 }
 
 async function request<T>(action: string, init?: RequestInit, query = ''): Promise<T> {
+  const locale = getActiveLocale();
   const response = await fetch(`${apiEndpoint}?action=${encodeURIComponent(action)}${query}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
+      'Accept-Language': locale,
       ...(playerToken ? { 'X-Player-Token': playerToken } : {}),
       ...init?.headers,
     },
@@ -35,12 +39,22 @@ async function request<T>(action: string, init?: RequestInit, query = ''): Promi
   if (!contentType.includes('application/json')) {
     await response.text();
     const detail = response.status === 404
-      ? 'Die PHP-API wurde nicht gefunden. Starte sie in einem zweiten Terminal mit „npm run dev:api“.'
-      : `Die API hat keine gültige JSON-Antwort geliefert (HTTP ${response.status}).`;
+      ? {
+          de: 'Die PHP-API wurde nicht gefunden. Starte sie in einem zweiten Terminal mit „npm run dev:api“.',
+          en: 'The PHP API was not found. Start it in a second terminal with “npm run dev:api”.',
+          nl: 'De PHP-API is niet gevonden. Start die in een tweede terminal met ‘npm run dev:api’.',
+        }[locale]
+      : {
+          de: `Die API hat keine gültige JSON-Antwort geliefert (HTTP ${response.status}).`,
+          en: `The API did not return valid JSON (HTTP ${response.status}).`,
+          nl: `De API gaf geen geldige JSON terug (HTTP ${response.status}).`,
+        }[locale];
     throw new ApiError('INVALID_API_RESPONSE', detail, response.status || 500);
   }
   const payload = await response.json() as ApiSuccess<T> | ApiFailure;
-  if (!payload.success) throw new ApiError(payload.error.code, payload.error.message, response.status);
+  if (!payload.success) {
+    throw new ApiError(payload.error.code, localizedApiError(payload.error.code, payload.error.message, locale), response.status);
+  }
   return payload.data;
 }
 

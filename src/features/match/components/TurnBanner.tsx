@@ -1,4 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react';
+import { useI18n } from '../../../i18n';
 
 interface TurnBannerProps {
   turn: number;
@@ -8,6 +9,7 @@ interface TurnBannerProps {
 }
 
 export function TurnBanner({ turn, myTurn, opponentName, animationScale }: TurnBannerProps) {
+  const { t } = useI18n();
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
@@ -19,9 +21,9 @@ export function TurnBanner({ turn, myTurn, opponentName, animationScale }: TurnB
   if (!visible) return null;
   return (
     <div className={`turn-banner ${myTurn ? 'is-yours' : 'is-opponent'}`} role="status" aria-live="assertive" style={{ '--motion-scale': animationScale } as CSSProperties}>
-      <small>ZUG {turn}</small>
-      <b>{myTurn ? 'DEIN ZUG' : `${opponentName} IST AM ZUG`}</b>
-      <span>{myTurn ? 'Compute bereit. Plane deinen Deploy.' : 'Gegnerische Aktionen werden verarbeitet.'}</span>
+      <small>{t('match.banner.turn', { turn })}</small>
+      <b>{myTurn ? t('match.top.yourTurn') : t('match.top.opponentTurn', { name: opponentName })}</b>
+      <span>{myTurn ? t('match.banner.ready') : t('match.banner.processing')}</span>
     </div>
   );
 }

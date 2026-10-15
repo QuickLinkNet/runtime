@@ -1,19 +1,22 @@
 import type { TutorialProgress } from '../../game/types';
 import { Button } from '../../ui/atoms';
+import { useI18n } from '../../i18n';
 
 export function TutorialResult({ tutorial, onExit }: { tutorial: TutorialProgress; onExit: () => void }) {
+  const { t } = useI18n();
+  const [titleFirst, titleSecond] = t('tutorial.result.title').split('|');
   return (
     <main className="tutorial-result">
       <div className="tutorial-result-scan" aria-hidden="true" />
-      <span className="eyebrow">TRAINING COMPLETE · 08/08</span>
-      <h1>READY FOR<br /><em>PRODUCTION.</em></h1>
-      <p>Du hast Services deployed, Infrastructure verwaltet, BUGs debuggt und den gegnerischen Core heruntergefahren.</p>
+      <span className="eyebrow">{t('tutorial.result.eyebrow')}</span>
+      <h1>{titleFirst}<br /><em>{titleSecond}</em></h1>
+      <p>{t('tutorial.result.description')}</p>
       <div className="tutorial-reward">
-        <span>ABSCHLUSSBONUS</span>
-        <strong>{tutorial.rewardGranted ? '+1 Booster' : 'Tutorial abgeschlossen'}</strong>
-        <small>{tutorial.rewardGranted ? 'Dein Booster wartet im Lab.' : 'Die einmalige Belohnung wurde bereits abgeholt.'}</small>
+        <span>{t('tutorial.result.bonus')}</span>
+        <strong>{tutorial.rewardGranted ? t('tutorial.result.booster') : t('tutorial.result.completed')}</strong>
+        <small>{tutorial.rewardGranted ? t('tutorial.result.boosterWaiting') : t('tutorial.result.rewardClaimed')}</small>
       </div>
-      <Button variant="primary" onClick={onExit}>Zur Kommandozentrale <span aria-hidden="true">→</span></Button>
+      <Button variant="primary" onClick={onExit}>{t('tutorial.result.back')} <span aria-hidden="true">→</span></Button>
     </main>
   );
 }

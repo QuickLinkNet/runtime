@@ -1,4 +1,4 @@
-.music-control { position: fixed; z-index: 220; top: 18px; left: clamp(190px, 16vw, 286px); display: flex; height: 38px; align-items: center; gap: 5px; border: 1px solid rgba(126,151,137,.36); border-radius: 999px; padding: 4px 9px 4px 5px; color: var(--muted); background: rgba(9,15,12,.82); box-shadow: 0 8px 28px rgba(0,0,0,.28), inset 0 1px rgba(255,255,255,.03); opacity: .72; backdrop-filter: blur(12px); transition: border-color .18s, opacity .18s, background .18s; }
+.music-control { display: flex; height: 38px; align-items: center; gap: 5px; border: 1px solid rgba(126,151,137,.36); border-radius: 999px; padding: 4px 9px 4px 5px; color: var(--muted); background: rgba(9,15,12,.82); box-shadow: 0 8px 28px rgba(0,0,0,.28), inset 0 1px rgba(255,255,255,.03); opacity: .72; backdrop-filter: blur(12px); transition: border-color .18s, opacity .18s, background .18s; }
 .music-control:hover, .music-control:focus-within, .music-control.is-playing { border-color: rgba(185,244,74,.48); opacity: 1; }
 .audio-channel { display: flex; align-items: center; gap: 4px; }
 .audio-divider { width: 1px; height: 20px; margin-inline: 2px; background: rgba(126,151,137,.25); }
@@ -17,14 +17,7 @@
 .music-volume input { width: 72px; height: 18px; margin: 0; accent-color: var(--accent); cursor: pointer; }
 
 @media (max-width: 680px) {
-  .music-control { top: 12px; right: 12px; bottom: auto; left: auto; height: 36px; padding-right: 8px; }
+  .music-control { height: 36px; padding-right: 8px; }
   .music-label { display: none; }
   .music-volume input { width: 54px; }
-  body:has(.menu-screen) .music-control { top: 68px; }
-  body:has(.match-screen) .music-control { top: auto; bottom: calc(var(--match-mobile-hand-dock-height) + 10px); }
-  body:has(.mulligan-screen) .music-control { top: 12px; right: 12px; bottom: auto; }
-}
-
-@media (max-width: 380px) {
-  body:has(.identity-screen) .music-control { top: 60px; }
 }

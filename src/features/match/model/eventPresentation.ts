@@ -1,5 +1,6 @@
 import { cardById } from '../../../game/catalog';
 import type { GameEvent, PlayerView } from '../../../game/types';
+import { t } from '../../../i18n';
 
 export type EventTone = 'neutral' | 'action' | 'positive' | 'danger';
 
@@ -9,34 +10,14 @@ export interface EventPresentation {
   tone: EventTone;
 }
 
-const fallbackLabels: Record<string, string> = {
-  MULLIGAN_STARTED: 'Startkarten werden gewählt',
-  MULLIGAN_COMPLETED: 'Startkarten bestätigt',
-  CARD_DRAWN: 'Karte gezogen',
-  CARD_OVERFLOW: 'Hand voll – Karte verworfen',
-  CARD_GENERATED: 'Karte erzeugt',
-  CARD_PLAYED: 'Karte ausgespielt',
-  SERVICE_DEPLOYED: 'Service bereitgestellt',
-  ATTACK_STARTED: 'Angriff gestartet',
-  DAMAGE_DEALT: 'Schaden verursacht',
-  SERVICE_CRASHED: 'Service abgestürzt',
-  INFRASTRUCTURE_DESTROYED: 'Infrastructure zerstört',
-  INFRASTRUCTURE_REPLACED: 'Infrastructure ersetzt',
-  INFRASTRUCTURE_DECOMMISSIONED: 'Infrastructure dekommissioniert',
-  REDUNDANCY_TRIGGERED: 'Redundancy ausgelöst',
-  SERVICE_SANDBOXED: 'Service isoliert',
-  SERVICE_FORKED: 'Service kopiert',
-  TOKEN_CREATED: 'Token erzeugt',
-  BUG_CREATED: 'BUG erzeugt',
-  BUG_DEBUGGED: 'BUG entfernt',
-  TURN_STARTED: 'Neuer Zug',
-  TURN_ENDED: 'Zug beendet',
-  TURN_TIMEOUT: 'Zeit abgelaufen',
-  MEMORY_LEAK: 'Memory Leak',
-  PATCH_APPLIED: 'Patch angewendet',
-  FRIDAY_DEPLOY_RESOLVED: 'Friday Deploy ausgeführt',
-  GAME_OVER: 'Match beendet',
-};
+const knownEventTypes = new Set([
+  'MULLIGAN_STARTED', 'MULLIGAN_COMPLETED', 'CARD_DRAWN', 'CARD_OVERFLOW', 'CARD_GENERATED',
+  'CARD_PLAYED', 'SERVICE_DEPLOYED', 'ATTACK_STARTED', 'DAMAGE_DEALT', 'SERVICE_CRASHED',
+  'INFRASTRUCTURE_DESTROYED', 'INFRASTRUCTURE_REPLACED', 'INFRASTRUCTURE_DECOMMISSIONED',
+  'REDUNDANCY_TRIGGERED', 'SERVICE_SANDBOXED', 'SERVICE_FORKED', 'TOKEN_CREATED', 'BUG_CREATED',
+  'BUG_DEBUGGED', 'BUGS_CLEANED_FOR_DEPLOY', 'TURN_STARTED', 'TURN_ENDED', 'TURN_TIMEOUT', 'MEMORY_LEAK', 'PATCH_APPLIED',
+  'FRIDAY_DEPLOY_RESOLVED', 'GAME_OVER',
+]);
 
 function toneFor(type: string): EventTone {
   if (['DAMAGE_DEALT', 'SERVICE_CRASHED', 'INFRASTRUCTURE_DESTROYED', 'MEMORY_LEAK', 'TURN_TIMEOUT', 'CARD_OVERFLOW'].includes(type)) return 'danger';
@@ -49,22 +30,22 @@ export function presentEvent(event: GameEvent, players: Record<string, PlayerVie
   const playerName = event.playerId ? players[event.playerId]?.name : undefined;
   const cardName = event.definitionId ? cardById.get(event.definitionId)?.name : undefined;
   const amount = event.amount ?? event.prevented;
-  const base = fallbackLabels[event.type] ?? event.type.replaceAll('_', ' ').toLowerCase();
+  const base = knownEventTypes.has(event.type) ? t(`match.event.${event.type}`) : event.type.replaceAll('_', ' ').toLowerCase();
 
   if (event.type === 'CARD_PLAYED' && cardName) {
-    return { label: cardName, detail: `${playerName ?? 'Spieler'} · ${event.cost ?? '?'} Compute`, tone: 'action' };
+    return { label: cardName, detail: t('match.event.playedDetail', { player: playerName ?? t('match.event.player'), cost: event.cost ?? '?' }), tone: 'action' };
   }
   if (event.type === 'DAMAGE_DEALT' && amount !== undefined) {
-    return { label: `${amount} Schaden`, detail: 'Treffer bestätigt', tone: 'danger' };
+    return { label: t('match.event.damage', { amount }), detail: t('match.event.hitConfirmed'), tone: 'danger' };
   }
   if (event.type === 'PATCH_APPLIED' && amount !== undefined) {
-    return { label: `Patch +${amount}`, detail: 'Integrity wiederhergestellt', tone: 'positive' };
+    return { label: t('match.event.patch', { amount }), detail: t('match.event.integrityRestored'), tone: 'positive' };
   }
   if (event.type === 'MEMORY_LEAK' && amount !== undefined) {
-    return { label: `Memory Leak −${amount}`, detail: playerName, tone: 'danger' };
+    return { label: t('match.event.memoryLeak', { amount }), detail: playerName, tone: 'danger' };
   }
   if (event.type === 'TURN_STARTED') {
-    return { label: `Zug ${event.turn ?? ''}`.trim(), detail: playerName, tone: 'neutral' };
+    return { label: t('match.event.turn', { turn: event.turn ?? '' }).trim(), detail: playerName, tone: 'neutral' };
   }
 
   return { label: base, detail: playerName, tone: toneFor(event.type) };

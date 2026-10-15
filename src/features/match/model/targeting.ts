@@ -1,6 +1,7 @@
 import { cardById } from '../../../game/catalog';
 import type { BoardEntity, CardDefinition, GameState, PlayerView } from '../../../game/types';
 import type { MatchSelection } from './types';
+import { t } from '../../../i18n';
 
 const targetedEffects = new Set([
   'infinite_rerender',
@@ -102,35 +103,20 @@ export function canSelectAttacker(entity: BoardEntity): boolean {
 }
 
 export function selectionPrompt(selection: MatchSelection, player?: PlayerView): string {
-  if (selection?.kind === 'attacker') return 'Wähle einen gegnerischen Service oder den Core.';
+  if (selection?.kind === 'attacker') return t('match.prompt.attacker');
   if (selection?.kind !== 'card') return '';
   if (selection.definition.type === 'infrastructure' && (player?.infrastructure.length ?? 0) >= 2) {
-    return '2/2 Slots belegt. Wähle die eigene Infrastructure, die in den Trash wandert.';
+    return t('match.prompt.replaceInfrastructure');
   }
 
-  const prompts: Record<string, string> = {
-    infinite_rerender: 'Wähle einen gegnerischen Service für die Sandbox.',
-    hotfix: 'Wähle einen Service oder eine Infrastructure.',
-    horizontal_scaling: 'Wähle einen eigenen günstigen Service.',
-    emergency_patch: 'Wähle eine eigene Karte oder deinen Core.',
-    coffee: 'Wähle einen eigenen Service.',
-    force_push: 'Wähle einen Service.',
-    web_worker_deploy: 'Optional: Wähle einen eigenen Service.',
-    security_engineer_deploy: 'Optional: Wähle einen eigenen Service.',
-    sandbox_container_deploy: 'Wähle einen gegnerischen Service.',
-    feature_flag: 'Wähle einen eigenen Service.',
-    retry_storm: 'Wähle einen eigenen Service.',
-    terraform_apply: 'Wähle eine eigene Infrastructure.',
-    penetration_tester_deploy: 'Wähle einen gegnerischen Service.',
-    rotate_secrets: 'Wähle einen eigenen Service.',
-    model_drift: 'Wähle einen gegnerischen Service.',
-    error_boundary_deploy: 'Wähle einen eigenen Frontend-Service.',
-    dead_letter_queue: 'Wähle einen eigenen Service.',
-    rolling_deploy: 'Wähle einen eigenen Service.',
-    access_review: 'Wähle einen gegnerischen Service.',
-    containment_plan: 'Wähle einen eigenen Service.',
-    inference_burst: 'Wähle den frisch ausgespielten AI-Service.',
-  };
+  const promptKeys = new Set([
+    'infinite_rerender', 'hotfix', 'horizontal_scaling', 'emergency_patch', 'coffee', 'force_push',
+    'web_worker_deploy', 'security_engineer_deploy', 'sandbox_container_deploy', 'feature_flag',
+    'retry_storm', 'terraform_apply', 'penetration_tester_deploy', 'rotate_secrets', 'model_drift',
+    'error_boundary_deploy', 'dead_letter_queue', 'rolling_deploy', 'access_review', 'containment_plan',
+    'inference_burst',
+  ]);
 
-  return prompts[selection.definition.effectId ?? ''] ?? 'Karte ist bereit zum Ausspielen.';
+  const effect = selection.definition.effectId ?? '';
+  return promptKeys.has(effect) ? t(`match.prompt.${effect}`) : t('match.prompt.ready');
 }

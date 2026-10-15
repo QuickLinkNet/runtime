@@ -1,6 +1,6 @@
 # RUNTIME
 
-RUNTIME ist ein serverautoritatives, rundenbasiertes Tech-Kartenspiel für zwei Spieler. Der aktuelle Pool enthält 72 Karten, drei Starter-Decks, einen Deck Builder, ein achtteiliges interaktives Tutorial, einen regelbasierten Server-Bot und private Multiplayer-Räume mit Polling und Reconnect.
+RUNTIME ist ein serverautoritatives, rundenbasiertes Tech-Kartenspiel für zwei Spieler. Der aktuelle Pool enthält 90 spielbare Karten plus 4 erzeugte Tokens, drei Starter-Decks, einen Deck Builder, ein achtteiliges interaktives Tutorial, mehrere serverseitige Bot-Profile und private Multiplayer-Räume mit Polling und Reconnect. Die Oberfläche und alle Karten sind auf Deutsch, Englisch und Niederländisch verfügbar.
 
 ## Voraussetzungen
 
@@ -45,6 +45,14 @@ npm run test:php
 ```
 
 Der Testlauf deckt Match-Start, Mulligan, Compute, Limits, Combat, Keywords, Crash-Effekte, Memory Leak, Game Over, private Views, Bot-Aktionen und Sicherheitsgrenzen ab.
+
+Die Vollständigkeit der Übersetzungen wird separat geprüft:
+
+```text
+npm run test:i18n
+```
+
+Der i18n-Test kontrolliert die Nachrichten für `de`, `en` und `nl`, statische und dynamische Schlüsselverwendungen, sichtbare JSX-Literale sowie die Übersetzungen aller 94 Kartendefinitionen.
 
 ## Production / Shared Hosting
 
@@ -97,4 +105,4 @@ RUNTIME_ADMIN_EMAILS=du@beispiel.de,kollege@beispiel.de
 
 Nur angemeldete Accounts mit einer dieser E-Mail-Adressen sehen und nutzen den Admin-Zugang. Die Variable wird nie an den Browser ausgeliefert.
 
-Weitere Informationen: [Aktueller Projektstand](docs/project-status.md), [Architektur](docs/architecture.md), [Frontend-Struktur](docs/frontend-architecture.md), [Spielregeln](docs/game-rules.md), [API](docs/api.md), [Kartensystem](docs/card-system.md), [Zukunftsideen](docs/future-ideas.md).
+Weitere Informationen: [Aktueller Projektstand](docs/project-status.md), [Architektur](docs/architecture.md), [Frontend-Struktur](docs/frontend-architecture.md), [Internationalisierung](docs/internationalization.md), [Spielregeln](docs/game-rules.md), [API](docs/api.md), [Kartensystem](docs/card-system.md), [Zukunftsideen](docs/future-ideas.md).

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { api, setToken } from '../api/client';
 import type { PlayerIdentity } from '../game/types';
+import { useI18n } from '../i18n';
 import { cacheIdentity } from '../pwa/identityCache';
 import { Button } from '../ui/atoms';
 
@@ -11,13 +12,8 @@ interface IdentityPageProps {
   onLoggedIn: (player: PlayerIdentity) => void;
 }
 
-const copy: Record<AccessMode, { label: string; title: string; body: string; action: string }> = {
-  guest: { label: 'PLAY IMMEDIATELY', title: 'Ohne Anmeldung starten', body: 'Ein Name genügt. Die drei freien Starter-Stacks stehen sofort bereit.', action: 'Als Gast deployen' },
-  login: { label: 'ACCOUNT ACCESS', title: 'Willkommen zurück', body: 'Hole deinen gespeicherten Stack und deine Sammlung auf dieses Gerät.', action: 'Einloggen' },
-  register: { label: 'CREATE ACCOUNT', title: 'Stack dauerhaft sichern', body: 'Starte direkt mit einem Account und nimm Sammlung, Booster und eigene Decks überallhin mit.', action: 'Account erstellen' },
-};
-
 export function IdentityPage({ onCreated, onLoggedIn }: IdentityPageProps) {
+  const { t } = useI18n();
   const [mode, setMode] = useState<AccessMode>('guest');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -25,7 +21,12 @@ export function IdentityPage({ onCreated, onLoggedIn }: IdentityPageProps) {
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
-  const current = copy[mode];
+  const current = {
+    label: t(`identity.${mode}.label`),
+    title: t(`identity.${mode}.title`),
+    body: t(`identity.${mode}.body`),
+    action: t(`identity.${mode}.action`),
+  };
 
   function changeMode(next: AccessMode) {
     setMode(next);
@@ -34,7 +35,7 @@ export function IdentityPage({ onCreated, onLoggedIn }: IdentityPageProps) {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (mode === 'register' && password !== confirm) { setError('Die Passwörter stimmen nicht überein.'); return; }
+    if (mode === 'register' && password !== confirm) { setError(t('account.error.passwordMismatch')); return; }
     setPending(true);
     setError('');
     try {
@@ -48,7 +49,7 @@ export function IdentityPage({ onCreated, onLoggedIn }: IdentityPageProps) {
       if (mode === 'guest') onCreated(result.player);
       else onLoggedIn(result.player);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Verbindung fehlgeschlagen.');
+      setError(reason instanceof Error ? reason.message : t('identity.error.connection'));
       setPending(false);
     }
   }
@@ -61,26 +62,26 @@ export function IdentityPage({ onCreated, onLoggedIn }: IdentityPageProps) {
 
   return (
     <main className="screen identity-screen">
-      <header className="identity-header"><div className="brand-small">RUNTIME<span>_</span></div><span><i /> SYSTEM ONLINE · BUILD 1.0</span></header>
-      <section className="identity-hero"><span className="eyebrow">TACTICAL TECH CARD GAME</span><h1><span>Deploy.</span><span>Defend.</span><em>Debug.</em></h1><p>Baue deinen Stack, sichere den Core und bring das System deines Gegners zum Absturz.</p><div className="identity-specs" aria-label="Spielmerkmale"><span><b>30</b> CORE INTEGRITY</span><span><b>02</b> TECH DOMAINS</span><span><b>1V1</b> RUNTIME DUEL</span></div></section>
+      <header className="identity-header"><div className="brand-small">RUNTIME<span>_</span></div><span><i /> {t('identity.systemOnline')}</span></header>
+      <section className="identity-hero"><span className="eyebrow">{t('identity.heroEyebrow')}</span><h1><span>{t('identity.heroDeploy')}</span><span>{t('identity.heroDefend')}</span><em>{t('identity.heroDebug')}</em></h1><p>{t('identity.heroBody')}</p><div className="identity-specs" aria-label={t('identity.features')}><span><b>30</b> {t('identity.coreIntegrity')}</span><span><b>02</b> {t('identity.techDomains')}</span><span><b>1V1</b> {t('identity.runtimeDuel')}</span></div></section>
       <section className="identity-access-card">
-        <div className="identity-access-topline"><span>{mode === 'guest' ? 'GUEST_SESSION' : mode === 'login' ? 'ACCOUNT_LOGIN' : 'ACCOUNT_REGISTER'}</span><b>01</b></div>
+        <div className="identity-access-topline"><span>{t(`identity.${mode}.code`)}</span><b>01</b></div>
         <span className="eyebrow">{current.label}</span><h2>{current.title}</h2><p>{current.body}</p>
         <form onSubmit={submit}>
-          {mode !== 'login' && <><label htmlFor="player-name">Wie heißt dein System?</label><input id="player-name" autoFocus maxLength={24} autoComplete="nickname" value={name} onChange={(event) => setName(event.target.value)} placeholder="Spielername" /></>}
-          {mode !== 'guest' && <><label htmlFor="account-email">E-Mail</label><input id="account-email" autoFocus={mode === 'login'} type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@beispiel.de" /><label htmlFor="account-password">Passwort</label><input id="account-password" type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Mindestens 8 Zeichen" /></>}
-          {mode === 'register' && <><label htmlFor="account-confirm">Passwort wiederholen</label><input id="account-confirm" type="password" autoComplete="new-password" value={confirm} onChange={(event) => setConfirm(event.target.value)} placeholder="Passwort wiederholen" /></>}
-          <Button variant="primary" type="submit" disabled={pending || !valid}>{pending ? 'Verbinde …' : <>{current.action} <span aria-hidden="true">→</span></>}</Button>
+          {mode !== 'login' && <><label htmlFor="player-name">{t('identity.playerNameLabel')}</label><input id="player-name" autoFocus maxLength={24} autoComplete="nickname" value={name} onChange={(event) => setName(event.target.value)} placeholder={t('identity.playerNamePlaceholder')} /></>}
+          {mode !== 'guest' && <><label htmlFor="account-email">{t('account.email')}</label><input id="account-email" autoFocus={mode === 'login'} type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder={t('account.emailPlaceholder')} /><label htmlFor="account-password">{t('account.password')}</label><input id="account-password" type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={t('account.passwordPlaceholder')} /></>}
+          {mode === 'register' && <><label htmlFor="account-confirm">{t('account.confirmPassword')}</label><input id="account-confirm" type="password" autoComplete="new-password" value={confirm} onChange={(event) => setConfirm(event.target.value)} placeholder={t('account.confirmPlaceholder')} /></>}
+          <Button variant="primary" type="submit" disabled={pending || !valid}>{pending ? t('identity.connecting') : <>{current.action} <span aria-hidden="true">→</span></>}</Button>
           {error && <span className="form-error">{error}</span>}
         </form>
         <div className="identity-account-switches">
-          {mode !== 'register' && <button type="button" onClick={() => changeMode('register')}>Neuen Account erstellen</button>}
-          {mode !== 'login' && <button type="button" onClick={() => changeMode('login')}>Bereits einen Account? Einloggen</button>}
-          {mode !== 'guest' && <button type="button" onClick={() => changeMode('guest')}>Ohne Account als Gast spielen</button>}
+          {mode !== 'register' && <button type="button" onClick={() => changeMode('register')}>{t('identity.switch.register')}</button>}
+          {mode !== 'login' && <button type="button" onClick={() => changeMode('login')}>{t('identity.switch.login')}</button>}
+          {mode !== 'guest' && <button type="button" onClick={() => changeMode('guest')}>{t('identity.switch.guest')}</button>}
         </div>
-        <small>{mode === 'guest' ? 'Gastmodus: freie Starter-Stacks, ohne E-Mail. Account später freiwillig verknüpfen.' : 'Kostenloser Account. Kein Marketing – nur dein sicher gespeicherter Spielstand.'}</small>
+        <small>{t(mode === 'guest' ? 'identity.guestNote' : 'identity.accountNote')}</small>
       </section>
-      <footer className="identity-footer"><span>SERVER AUTHORITATIVE</span><span>NO PAY TO WIN · JUST BETTER DEPLOYS</span></footer>
+      <footer className="identity-footer"><span>{t('identity.serverAuthoritative')}</span><span>{t('identity.noPayToWin')}</span></footer>
     </main>
   );
 }

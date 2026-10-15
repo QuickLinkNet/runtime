@@ -1,5 +1,6 @@
 import type { GameEvent, PlayerView } from '../../../game/types';
 import { presentEvent } from '../model/eventPresentation';
+import { useI18n } from '../../../i18n';
 
 interface MatchEventFeedProps {
   events: GameEvent[];
@@ -7,9 +8,10 @@ interface MatchEventFeedProps {
 }
 
 export function MatchEventFeed({ events, players }: MatchEventFeedProps) {
+  const { t } = useI18n();
   return (
-    <div className="event-feed" aria-live="polite" aria-label="Letzte Spielereignisse">
-      {events.length === 0 && <span className="event-chip tone-neutral">Match bereit</span>}
+    <div className="event-feed" aria-live="polite" aria-label={t('match.events.aria')}>
+      {events.length === 0 && <span className="event-chip tone-neutral">{t('match.events.ready')}</span>}
       {events.map((event, index) => {
         const presentation = presentEvent(event, players);
         return (

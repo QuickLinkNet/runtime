@@ -19,6 +19,7 @@ import { playSfx } from '../../audio/sfx';
 import { TutorialCoach } from '../tutorial/TutorialCoach';
 import { TutorialResult } from '../tutorial/TutorialResult';
 import { tutorialSteps } from '../tutorial/tutorialSteps';
+import { useI18n } from '../../i18n';
 
 interface MatchBoardProps {
   state: GameState;
@@ -31,6 +32,7 @@ interface MatchBoardProps {
 }
 
 export function MatchBoard({ state, pending, syncStatus, onAction, onRematch, onDeck, onExit }: MatchBoardProps) {
+  const { t } = useI18n();
   useMatchSounds(state);
   const interactionPending = pending || syncStatus !== 'connected';
   const match = useMatchController({ state, pending: interactionPending, onAction });
@@ -90,7 +92,7 @@ export function MatchBoard({ state, pending, syncStatus, onAction, onRematch, on
           onOpenGlossary={() => match.setGlossaryOpen(true)}
           onExit={onExit}
         />
-        {state.incident && <aside className="match-incident"><span>WEEKLY INCIDENT</span><b>{state.incident.name}</b><small>{state.incident.description}</small></aside>}
+        {state.incident && <aside className="match-incident"><span>{t('match.incident.eyebrow')}</span><b>{t(`match.incident.${state.incident.id}.name`)}</b><small>{t(`match.incident.${state.incident.id}.description`)}</small></aside>}
 
         <TurnBanner turn={state.turn} myTurn={match.myTurn} opponentName={opponent.name} animationScale={match.animationScale} />
         {state.tutorial && (
@@ -106,7 +108,7 @@ export function MatchBoard({ state, pending, syncStatus, onAction, onRematch, on
 
         {match.showCardTip && state.mode !== 'tutorial' && <CardHelpTip onClose={() => match.setShowCardTip(false)} />}
 
-        <section className="board" aria-label="Spielfeld">
+        <section className="board" aria-label={t('match.board')}>
           <div className="player-zone enemy-zone">
             <PlayerStrip
               player={opponent}

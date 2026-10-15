@@ -1,3 +1,5 @@
+import { useI18n } from '../../i18n';
+
 interface CoreIndicatorProps {
   value: number;
   targetable: boolean;
@@ -6,15 +8,16 @@ interface CoreIndicatorProps {
 }
 
 export function CoreIndicator({ value, targetable, combatId, onClick }: CoreIndicatorProps) {
+  const { t } = useI18n();
   return (
     <button
       className={`core ${targetable ? 'is-targetable' : ''}`}
       data-combat-id={combatId}
       onClick={onClick}
       type="button"
-      aria-label={`Core Integrity ${value}${targetable ? ', als Ziel wählen' : ''}`}
+      aria-label={t(targetable ? 'ui.core.targetable' : 'ui.core.label', { value })}
     >
-      <span>CORE</span>
+      <span>{t('common.core')}</span>
       <b>{value}</b>
     </button>
   );

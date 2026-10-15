@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { cardById } from '../../../game/catalog';
 import type { CardInstance, GameState } from '../../../game/types';
 import { GameCard } from '../../cards';
+import { useI18n } from '../../../i18n';
 
 interface CombatRect {
   left: number;
@@ -39,6 +40,7 @@ function animationStyle(delay: number): CSSProperties {
 }
 
 export function CombatFeedbackLayer({ state, animationScale }: { state: GameState; animationScale: number }) {
+  const { t } = useI18n();
   const seenEventIdsRef = useRef(new Set(state.events.map((event) => event.id)));
   const positionsRef = useRef(new Map<string, CombatRect>());
   const entitiesRef = useRef(new Map<string, EntityMeta>());
@@ -71,7 +73,7 @@ export function CombatFeedbackLayer({ state, animationScale }: { state: GameStat
 
       if (event.type === 'REDUNDANCY_TRIGGERED' && event.targetId) {
         const target = positionsRef.current.get(event.targetId);
-        if (target) created.push({ id: `block-${event.id}`, kind: 'impact', target, label: 'BLOCK', blocked: true, delay: Math.max(0, attackDelay - (560 * animationScale)) });
+        if (target) created.push({ id: `block-${event.id}`, kind: 'impact', target, label: t('match.block'), blocked: true, delay: Math.max(0, attackDelay - (560 * animationScale)) });
         continue;
       }
 
@@ -119,7 +121,7 @@ export function CombatFeedbackLayer({ state, animationScale }: { state: GameStat
         entitiesRef.current.set(entity.instanceId, { definitionId: entity.definitionId });
       }
     }
-  }, [animationScale, state]);
+  }, [animationScale, state, t]);
 
   useLayoutEffect(() => () => {
     for (const timer of timersRef.current) window.clearTimeout(timer);

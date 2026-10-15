@@ -1,3 +1,5 @@
+import { useI18n } from '../../i18n';
+
 interface PlayerSummaryProps {
   playerId?: string;
   deckCount: number;
@@ -35,14 +37,15 @@ function PileIcon({ kind }: { kind: PileKind }) {
 }
 
 export function PlayerSummary({ playerId, deckCount, handCount, trashCount }: PlayerSummaryProps) {
+  const { t } = useI18n();
   const piles: Array<{ kind: PileKind; label: string; value: number }> = [
-    { kind: 'deck', label: 'Deck', value: deckCount },
-    { kind: 'hand', label: 'Hand', value: handCount },
-    { kind: 'trash', label: 'Trash', value: trashCount },
+    { kind: 'deck', label: t('ui.pile.deck'), value: deckCount },
+    { kind: 'hand', label: t('ui.pile.hand'), value: handCount },
+    { kind: 'trash', label: t('ui.pile.trash'), value: trashCount },
   ];
 
   return (
-    <div className="pile-stats" aria-label="Kartenübersicht">
+    <div className="pile-stats" aria-label={t('ui.pile.overview')}>
       {piles.map(({ kind, label, value }) => (
         <span
           className={`pile-stat pile-stat-${kind}`}

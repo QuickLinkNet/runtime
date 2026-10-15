@@ -1,4 +1,5 @@
 import type { GameAction, GameState, TutorialStepKey } from '../../game/types';
+import { t } from '../../i18n';
 
 export type TutorialFocus = 'hand' | 'infrastructure' | 'enemy-core' | 'debug' | 'own-services' | 'enemy-services';
 
@@ -11,71 +12,26 @@ export interface TutorialStepDefinition {
   focus: TutorialFocus;
 }
 
+function localizedStep(key: TutorialStepKey, focus: TutorialFocus): TutorialStepDefinition {
+  return {
+    get eyebrow() { return t(`tutorial.${key}.eyebrow`); },
+    get title() { return t(`tutorial.${key}.title`); },
+    get instruction() { return t(`tutorial.${key}.instruction`); },
+    get objective() { return t(`tutorial.${key}.objective`); },
+    get success() { return t(`tutorial.${key}.success`); },
+    focus,
+  };
+}
+
 export const tutorialSteps: Record<TutorialStepKey, TutorialStepDefinition> = {
-  'deploy-service': {
-    eyebrow: '01 · COMPUTE & DEPLOY',
-    title: 'Bring einen Service online',
-    instruction: 'Compute ist deine Ressource. Die Zahl links oben auf einer Karte zeigt ihre Kosten.',
-    objective: 'Spiele React Component aus deiner Hand.',
-    success: 'Service deployed. Der DEPLOY-Effekt hat zusätzlich eine Child Component erzeugt.',
-    focus: 'hand',
-  },
-  'deploy-infrastructure': {
-    eyebrow: '02 · INFRASTRUCTURE',
-    title: 'Baue das Fundament',
-    instruction: 'Infrastructure belegt eigene Slots und verändert dauerhaft, wie dein Stack arbeitet.',
-    objective: 'Spiele State Store aus deiner Hand.',
-    success: 'State Store ist aktiv. Infrastructure greift nicht an, verstärkt aber deine Strategie.',
-    focus: 'hand',
-  },
-  'attack-core': {
-    eyebrow: '03 · COMBAT',
-    title: 'Greife den Core an',
-    instruction: 'Bereite Services greifen einmal pro Zug an. Wähle zuerst deinen Service und danach das Ziel.',
-    objective: 'Wähle React Component und greife den gegnerischen Core an.',
-    success: 'Treffer bestätigt. Fällt ein Core auf 0, endet das Match.',
-    focus: 'enemy-core',
-  },
-  'debug-bug': {
-    eyebrow: '04 · BUG & DEBUG',
-    title: 'Bereinige dein System',
-    instruction: 'BUGs blockieren Service-Slots. DEBUG entfernt einen eigenen BUG für 1 Compute.',
-    objective: 'Nutze die Schaltfläche DEBUG.',
-    success: 'BUG entfernt. Dein Service-Slot ist wieder frei.',
-    focus: 'debug',
-  },
-  'patch-service': {
-    eyebrow: '05 · PATCH',
-    title: 'Repariere einen Service',
-    instruction: 'PATCH stellt Integrity wieder her, aber niemals über das aufgedruckte Maximum hinaus.',
-    objective: 'Spiele Emergency Patch auf den beschädigten Docker Container.',
-    success: 'Integrity wiederhergestellt. Beschädigte Services bleiben damit länger online.',
-    focus: 'own-services',
-  },
-  'crash-service': {
-    eyebrow: '06 · CRASH',
-    title: 'Nimm einen Service vom Board',
-    instruction: 'Services fügen sich im Kampf gleichzeitig Schaden zu. Bei 0 Integrity crashen sie.',
-    objective: 'Greife den Junior Developer mit Chaos Monkey an.',
-    success: 'Der gegnerische Service ist gecrasht und in den Trash gewandert.',
-    focus: 'enemy-services',
-  },
-  'replace-infrastructure': {
-    eyebrow: '07 · SLOT MANAGEMENT',
-    title: 'Ersetze Infrastructure',
-    instruction: 'Du hast nur zwei Infrastructure-Slots. Eine neue Karte darf eine bestehende ersetzen.',
-    objective: 'Spiele CI Pipeline und wähle eine deiner beiden Infrastructure-Karten zum Ersetzen.',
-    success: 'Infrastructure ausgetauscht. So passt du deinen Stack auch im laufenden Match an.',
-    focus: 'infrastructure',
-  },
-  'final-deploy': {
-    eyebrow: '08 · PRODUCTION DEPLOY',
-    title: 'Bring das System zu Fall',
-    instruction: 'Der gegnerische Core hat exakt 7 Integrity. Deine drei Services liefern zusammen 7 Power.',
-    objective: 'Greife mit allen drei Services den gegnerischen Core an.',
-    success: 'Production erfolgreich. Du bist bereit für dein erstes echtes Match.',
-    focus: 'enemy-core',
-  },
+  'deploy-service': localizedStep('deploy-service', 'hand'),
+  'deploy-infrastructure': localizedStep('deploy-infrastructure', 'hand'),
+  'attack-core': localizedStep('attack-core', 'enemy-core'),
+  'debug-bug': localizedStep('debug-bug', 'debug'),
+  'patch-service': localizedStep('patch-service', 'own-services'),
+  'crash-service': localizedStep('crash-service', 'enemy-services'),
+  'replace-infrastructure': localizedStep('replace-infrastructure', 'infrastructure'),
+  'final-deploy': localizedStep('final-deploy', 'enemy-core'),
 };
 
 function definitionForInstance(state: GameState, instanceId: string): string | null {

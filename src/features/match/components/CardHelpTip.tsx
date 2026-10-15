@@ -1,15 +1,18 @@
+import { useI18n } from '../../../i18n';
+
 interface CardHelpTipProps {
   onClose: () => void;
 }
 
 export function CardHelpTip({ onClose }: CardHelpTipProps) {
+  const { t } = useI18n();
   return (
     <aside className="card-help-tip" role="status">
       <div>
-        <b>Tipp</b>
-        <span>Fahre mit der Maus über eine Karte oder tippe sie an, um Details und Begriffserklärungen zu sehen.</span>
+        <b>{t('match.tip')}</b>
+        <span>{t('match.tip.text')}</span>
       </div>
-      <button type="button" onClick={onClose} aria-label="Tipp schließen">×</button>
+      <button type="button" onClick={onClose} aria-label={t('match.tip.close')}>×</button>
     </aside>
   );
 }

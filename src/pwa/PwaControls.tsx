@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useI18n } from '../i18n';
 import { PWA_UPDATE_EVENT } from './registerServiceWorker';
 
 interface InstallPromptEvent extends Event {
@@ -16,6 +17,7 @@ function isIos(): boolean {
 }
 
 export function PwaControls() {
+  const { t } = useI18n();
   const [online, setOnline] = useState(navigator.onLine);
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
   const [update, setUpdate] = useState<ServiceWorkerRegistration | null>(null);
@@ -72,26 +74,26 @@ export function PwaControls() {
     <div className="pwa-controls" aria-live="polite">
       {!online && (
         <div className="pwa-notice is-offline">
-          <span><i />Offline – dein laufendes Match bleibt erhalten.</span>
+          <span><i />{t('pwa.offline')}</span>
         </div>
       )}
       {update && (
         <div className="pwa-notice is-update">
-          <span>Eine neue RUNTIME-Version ist bereit.</span>
-          <button type="button" onClick={activateUpdate}>Jetzt aktualisieren</button>
+          <span>{t('pwa.updateReady')}</span>
+          <button type="button" onClick={activateUpdate}>{t('pwa.updateNow')}</button>
         </div>
       )}
       {!standalone && installPrompt && (
         <div className="pwa-notice is-install">
-          <span>RUNTIME als App installieren.</span>
-          <button type="button" onClick={() => void install()}>Installieren</button>
-          <button className="pwa-dismiss" type="button" onClick={() => setInstallPrompt(null)} aria-label="Installationshinweis schließen">×</button>
+          <span>{t('pwa.installPrompt')}</span>
+          <button type="button" onClick={() => void install()}>{t('pwa.install')}</button>
+          <button className="pwa-dismiss" type="button" onClick={() => setInstallPrompt(null)} aria-label={t('pwa.dismissInstall')}>×</button>
         </div>
       )}
       {showIosInstall && (
         <div className="pwa-notice is-install">
-          <span>{showIosHelp ? 'In Safari: Teilen → Zum Home-Bildschirm.' : 'RUNTIME als App nutzen.'}</span>
-          <button type="button" onClick={() => setShowIosHelp((visible) => !visible)}>{showIosHelp ? 'Schließen' : 'Installieren'}</button>
+          <span>{t(showIosHelp ? 'pwa.iosHelp' : 'pwa.useAsApp')}</span>
+          <button type="button" onClick={() => setShowIosHelp((visible) => !visible)}>{t(showIosHelp ? 'common.close' : 'pwa.install')}</button>
         </div>
       )}
     </div>

@@ -3,6 +3,7 @@ import { api } from '../api/client';
 import { cardById } from '../game/catalog';
 import type { AdminOverview, AdminPlayerDetail, AdminPlayerSummary } from '../game/types';
 import { Button } from '../ui/atoms';
+import { useI18n } from '../i18n';
 import { BalanceLab } from '../features/balance/BalanceLab';
 import type { BalanceReport } from '../game/types';
 
@@ -10,19 +11,13 @@ interface AdminPageProps {
   onBack: () => void;
 }
 
-function date(value: string) {
-  const parsed = new Date(value.replace(' ', 'T') + 'Z');
-  return Number.isNaN(parsed.valueOf()) ? value : new Intl.DateTimeFormat('de-DE', { dateStyle: 'short', timeStyle: 'short' }).format(parsed);
-}
-
-function auditLabel(action: string) {
-  if (action === 'player_progression_updated') return 'Credits/Packs geändert';
-  if (action === 'all_collections_reset') return 'Alle Sammlungen zurückgesetzt';
-  if (action === 'guest_players_deleted') return 'Gastprofile gelöscht';
-  return action;
-}
-
 export function AdminPage({ onBack }: AdminPageProps) {
+  const { t, locale } = useI18n();
+  const date = (value: string) => {
+    const parsed = new Date(value.replace(' ', 'T') + 'Z');
+    return Number.isNaN(parsed.valueOf()) ? value : new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(parsed);
+  };
+  const auditLabel = (action: string) => ['player_progression_updated', 'all_collections_reset', 'guest_players_deleted'].includes(action) ? t(`admin.audit.${action}`) : action;
   const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [players, setPlayers] = useState<AdminPlayerSummary[]>([]);
   const [selected, setSelected] = useState<AdminPlayerDetail | null>(null);
@@ -50,7 +45,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
       setPlayers(nextPlayers.players);
       setBalanceReport(nextBalance.report);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Admin-Daten konnten nicht geladen werden.');
+      setError(reason instanceof Error ? reason.message : t('admin.error.load'));
     } finally {
       setPending(false);
     }
@@ -69,7 +64,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
       setComponents(String(detail.player.components));
       setNotice(null);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Spieler konnte nicht geladen werden.');
+      setError(reason instanceof Error ? reason.message : t('admin.error.player'));
     } finally {
       setPending(false);
     }
@@ -81,7 +76,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
     const nextBoosters = Number(boosters);
     const nextComponents = Number(components);
     if (!Number.isSafeInteger(nextCredits) || nextCredits < 0 || !Number.isSafeInteger(nextBoosters) || nextBoosters < 0 || !Number.isSafeInteger(nextComponents) || nextComponents < 0) {
-      setError('Credits und Packs müssen ganze, nichtnegative Zahlen sein.');
+      setError(t('admin.error.numbers'));
       return;
     }
     setPending(true);
@@ -89,10 +84,10 @@ export function AdminPage({ onBack }: AdminPageProps) {
     try {
       const detail = await api.adminUpdatePlayer(selected.player.id, nextCredits, nextBoosters, nextComponents);
       setSelected(detail);
-      setNotice('Spielerfortschritt gespeichert und protokolliert.');
+      setNotice(t('admin.notice.saved'));
       await load();
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Spielerfortschritt konnte nicht gespeichert werden.');
+      setError(reason instanceof Error ? reason.message : t('admin.error.save'));
     } finally {
       setPending(false);
     }
@@ -104,14 +99,14 @@ export function AdminPage({ onBack }: AdminPageProps) {
     setError(null);
     try {
       const result = await api.adminResetCollections();
-      setNotice(`${result.deletedCopies} Kartenkopien wurden aus allen Sammlungen entfernt.`);
+      setNotice(t('admin.notice.copiesDeleted', { count: result.deletedCopies }));
       setResetArmed(false);
       setResetAccepted(false);
       setResetPhrase('');
       if (selected) await selectPlayer(selected.player.id);
       await load();
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Sammlungen konnten nicht zurückgesetzt werden.');
+      setError(reason instanceof Error ? reason.message : t('admin.error.reset'));
     } finally {
       setPending(false);
     }
@@ -123,14 +118,14 @@ export function AdminPage({ onBack }: AdminPageProps) {
     setError(null);
     try {
       const result = await api.adminDeleteGuestPlayers();
-      setNotice(`${result.deletedPlayers} Gastprofile und ${result.deletedOwnedMatches} zugehörige Matches wurden gelöscht.`);
+      setNotice(t('admin.notice.guestsDeleted', { players: result.deletedPlayers, matches: result.deletedOwnedMatches }));
       setGuestDeleteArmed(false);
       setGuestDeleteAccepted(false);
       setGuestDeletePhrase('');
       setSelected(null);
       await load();
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Gastprofile konnten nicht gelöscht werden.');
+      setError(reason instanceof Error ? reason.message : t('admin.error.deleteGuests'));
     } finally {
       setPending(false);
     }
@@ -142,9 +137,9 @@ export function AdminPage({ onBack }: AdminPageProps) {
     try {
       const report = await api.adminRunBalanceSimulation(matchesPerPair);
       setBalanceReport(report);
-      setNotice(`${report.simulatedMatches} Bot-Matches analysiert. Keine Kartenwerte wurden automatisch verändert.`);
+      setNotice(t('admin.notice.simulated', { count: report.simulatedMatches }));
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Balance-Simulation konnte nicht gestartet werden.');
+      setError(reason instanceof Error ? reason.message : t('admin.error.simulation'));
     } finally {
       setPending(false);
     }
@@ -156,64 +151,64 @@ export function AdminPage({ onBack }: AdminPageProps) {
     try {
       const result = await api.adminReviewBalanceRecommendation(balanceReport.id, recommendationId, status);
       setBalanceReport({ ...balanceReport, reviews: result.reviews });
-      setNotice(status === 'accepted' ? 'Für den Playtest vorgemerkt. Noch keine Karte wurde verändert.' : 'Balance-Hypothese verworfen.');
+      setNotice(t(status === 'accepted' ? 'admin.notice.accepted' : 'admin.notice.dismissed'));
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Balance-Review konnte nicht gespeichert werden.');
+      setError(reason instanceof Error ? reason.message : t('admin.error.review'));
     } finally { setPending(false); }
   }
 
   return (
     <main className="admin-screen">
       <header className="admin-header">
-        <div><span className="eyebrow">RESTRICTED OPERATIONS</span><h1>Admin Console</h1><p>Spieler, Fortschritt und Economy serverseitig verwalten.</p></div>
-        <Button onClick={onBack}>← Menü</Button>
+        <div><span className="eyebrow">{t('admin.eyebrow')}</span><h1>{t('admin.title')}</h1><p>{t('admin.intro')}</p></div>
+        <Button onClick={onBack}>← {t('account.menu')}</Button>
       </header>
 
       {error && <p className="admin-message is-error">{error}</p>}
       {notice && <p className="admin-message is-ok">{notice}</p>}
 
-      <section className="admin-overview" aria-label="Systemübersicht">
-        <article><span>SPIELER</span><b>{overview?.summary.players ?? '–'}</b><small>{overview?.summary.accounts ?? 0} Accounts</small></article>
-        <article><span>CREDITS</span><b>{overview?.summary.credits ?? '–'}</b><small>im Umlauf</small></article>
-        <article><span>UNGEÖFFNET</span><b>{overview?.summary.unopenedBoosters ?? '–'}</b><small>Booster</small></article>
-        <article><span>KARTEN</span><b>{overview?.summary.collectedCards ?? '–'}</b><small>Sammlungskopien</small></article>
+      <section className="admin-overview" aria-label={t('admin.overviewAria')}>
+        <article><span>{t('admin.players')}</span><b>{overview?.summary.players ?? '–'}</b><small>{t('admin.accounts', { count: overview?.summary.accounts ?? 0 })}</small></article>
+        <article><span>{t('common.credits')}</span><b>{overview?.summary.credits ?? '–'}</b><small>{t('admin.inCirculation')}</small></article>
+        <article><span>{t('admin.unopened')}</span><b>{overview?.summary.unopenedBoosters ?? '–'}</b><small>{t('common.booster')}</small></article>
+        <article><span>{t('common.cards').toUpperCase()}</span><b>{overview?.summary.collectedCards ?? '–'}</b><small>{t('admin.collectionCopies')}</small></article>
       </section>
 
       <BalanceLab report={balanceReport} pending={pending} onRun={(matchesPerPair) => void runBalanceSimulation(matchesPerPair)} onReview={(recommendationId, status) => void reviewBalanceRecommendation(recommendationId, status)} />
 
       <section className="admin-workspace">
         <div className="admin-players">
-          <header><div><span className="eyebrow">PLAYER DIRECTORY</span><h2>Spieler</h2></div><form onSubmit={(event) => { event.preventDefault(); void load(query); }}><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name oder E-Mail" /><Button disabled={pending}>Suchen</Button></form></header>
+          <header><div><span className="eyebrow">{t('admin.playerDirectory')}</span><h2>{t('admin.playersTitle')}</h2></div><form onSubmit={(event) => { event.preventDefault(); void load(query); }}><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('admin.searchPlaceholder')} /><Button disabled={pending}>{t('common.search')}</Button></form></header>
           <div className="admin-player-list">
             {players.map((player) => <button key={player.id} type="button" className={selected?.player.id === player.id ? 'active' : ''} onClick={() => void selectPlayer(player.id)}>
-              <span><b>{player.name}</b><small>{player.account_email ?? 'Gastprofil'} · zuletzt {date(player.last_seen_at)}</small></span>
+              <span><b>{player.name}</b><small>{player.account_email ?? t('admin.guestProfile')} · {t('admin.lastSeen', { date: date(player.last_seen_at) })}</small></span>
               <i>{player.credits} C · {player.boosterBalance} P</i>
             </button>)}
-            {!pending && players.length === 0 && <p>Keine Spieler gefunden.</p>}
+            {!pending && players.length === 0 && <p>{t('admin.noPlayers')}</p>}
           </div>
         </div>
 
         <aside className="admin-detail">
-          {!selected ? <div className="admin-empty"><b>Spieler auswählen</b><span>Details, Karten und Economy-Steuerung erscheinen hier.</span></div> : <>
-            <header><div><span className="eyebrow">PLAYER DETAIL</span><h2>{selected.player.name}</h2><p>{selected.player.account_email ?? 'Gastprofil'} · seit {date(selected.player.created_at)}</p></div></header>
-            <dl className="admin-player-stats"><div><dt>MATCHES</dt><dd>{selected.player.matchesPlayed}</dd></div><div><dt>SIEGE</dt><dd>{selected.player.wins}</dd></div><div><dt>KARTEN</dt><dd>{selected.cards.reduce((total, card) => total + Number(card.quantity), 0)}</dd></div><div><dt>GEÖFFNET</dt><dd>{selected.player.totalBoostersOpened}</dd></div></dl>
-            <div className="admin-progression"><span className="eyebrow">ECONOMY CONTROL</span><label>Credits<input type="number" min="0" max="1000000" value={credits} onChange={(event) => setCredits(event.target.value)} /></label><label>Ungeöffnete Packs<input type="number" min="0" max="10000" value={boosters} onChange={(event) => setBoosters(event.target.value)} /></label><Button variant="primary" disabled={pending} onClick={() => void savePlayer()}>Fortschritt speichern</Button></div>
-            <div className="admin-collection"><span className="eyebrow">SAMMLUNG · {selected.cards.length} TYPEN</span>{selected.cards.length ? <ul>{selected.cards.map((card) => <li key={card.definitionId}><span>{cardById.get(card.definitionId)?.name ?? card.definitionId}</span><b>×{card.quantity}</b></li>)}</ul> : <p>Noch keine Karten.</p>}</div>
+          {!selected ? <div className="admin-empty"><b>{t('admin.selectPlayer')}</b><span>{t('admin.selectPlayerHint')}</span></div> : <>
+            <header><div><span className="eyebrow">{t('admin.playerDetail')}</span><h2>{selected.player.name}</h2><p>{selected.player.account_email ?? t('admin.guestProfile')} · {t('admin.since', { date: date(selected.player.created_at) })}</p></div></header>
+            <dl className="admin-player-stats"><div><dt>{t('admin.matches')}</dt><dd>{selected.player.matchesPlayed}</dd></div><div><dt>{t('admin.wins')}</dt><dd>{selected.player.wins}</dd></div><div><dt>{t('common.cards').toUpperCase()}</dt><dd>{selected.cards.reduce((total, card) => total + Number(card.quantity), 0)}</dd></div><div><dt>{t('admin.opened')}</dt><dd>{selected.player.totalBoostersOpened}</dd></div></dl>
+            <div className="admin-progression"><span className="eyebrow">{t('admin.economyControl')}</span><label>{t('common.credits')}<input type="number" min="0" max="1000000" value={credits} onChange={(event) => setCredits(event.target.value)} /></label><label>{t('admin.unopenedPacks')}<input type="number" min="0" max="10000" value={boosters} onChange={(event) => setBoosters(event.target.value)} /></label><Button variant="primary" disabled={pending} onClick={() => void savePlayer()}>{t('admin.saveProgress')}</Button></div>
+            <div className="admin-collection"><span className="eyebrow">{t('admin.collectionTypes', { count: selected.cards.length })}</span>{selected.cards.length ? <ul>{selected.cards.map((card) => <li key={card.definitionId}><span>{cardById.get(card.definitionId)?.name ?? card.definitionId}</span><b>×{card.quantity}</b></li>)}</ul> : <p>{t('admin.noCards')}</p>}</div>
           </>}
         </aside>
       </section>
 
       <section className="admin-danger">
-        <div><span className="eyebrow">IRREVERSIBLE OPERATION</span><h2>Erworbene Karten zurücksetzen</h2><p>Entfernt Erweiterungskarten aller Spieler. Das permanente Basis-Set, Credits, Packs, Accounts und Decks bleiben erhalten.</p></div>
-        {!resetArmed ? <Button variant="secondary" onClick={() => setResetArmed(true)}>Reset vorbereiten</Button> : <div className="admin-reset-confirm"><label><input type="checkbox" checked={resetAccepted} onChange={(event) => setResetAccepted(event.target.checked)} /> Ich verstehe, dass alle Kartenkopien gelöscht werden.</label><label>Tippe <b>RESET ALL</b><input value={resetPhrase} onChange={(event) => setResetPhrase(event.target.value)} autoComplete="off" /></label><Button variant="primary" disabled={!resetAccepted || resetPhrase !== 'RESET ALL' || pending} onClick={() => void resetCollections()}>Endgültig zurücksetzen</Button><Button variant="ghost" onClick={() => { setResetArmed(false); setResetAccepted(false); setResetPhrase(''); }}>Abbrechen</Button></div>}
+        <div><span className="eyebrow">{t('admin.irreversible')}</span><h2>{t('admin.resetCardsTitle')}</h2><p>{t('admin.resetCardsBody')}</p></div>
+        {!resetArmed ? <Button variant="secondary" onClick={() => setResetArmed(true)}>{t('admin.prepareReset')}</Button> : <div className="admin-reset-confirm"><label><input type="checkbox" checked={resetAccepted} onChange={(event) => setResetAccepted(event.target.checked)} /> {t('admin.confirmDeleteCopies')}</label><label>{t('admin.typePhrase')} <b>RESET ALL</b><input value={resetPhrase} onChange={(event) => setResetPhrase(event.target.value)} autoComplete="off" /></label><Button variant="primary" disabled={!resetAccepted || resetPhrase !== 'RESET ALL' || pending} onClick={() => void resetCollections()}>{t('admin.finalReset')}</Button><Button variant="ghost" onClick={() => { setResetArmed(false); setResetAccepted(false); setResetPhrase(''); }}>{t('common.cancel')}</Button></div>}
       </section>
 
       <section className="admin-danger admin-danger-guests">
-        <div><span className="eyebrow">GUEST CLEANUP</span><h2>Alle nicht registrierten Spieler löschen</h2><p>Entfernt ausschließlich Gastprofile. Ihre eigenen Matches werden mit entfernt; bei fremden Matches verschwinden nur die Gast-Teilnahmen.</p></div>
-        {!guestDeleteArmed ? <Button variant="secondary" onClick={() => setGuestDeleteArmed(true)}>Gastprofile bereinigen</Button> : <div className="admin-reset-confirm"><label><input type="checkbox" checked={guestDeleteAccepted} onChange={(event) => setGuestDeleteAccepted(event.target.checked)} /> Ich verstehe, dass Gastprofile endgültig gelöscht werden.</label><label>Tippe <b>DELETE GUESTS</b><input value={guestDeletePhrase} onChange={(event) => setGuestDeletePhrase(event.target.value)} autoComplete="off" /></label><Button variant="primary" disabled={!guestDeleteAccepted || guestDeletePhrase !== 'DELETE GUESTS' || pending} onClick={() => void deleteGuestPlayers()}>Gastprofile endgültig löschen</Button><Button variant="ghost" onClick={() => { setGuestDeleteArmed(false); setGuestDeleteAccepted(false); setGuestDeletePhrase(''); }}>Abbrechen</Button></div>}
+        <div><span className="eyebrow">{t('admin.guestCleanup')}</span><h2>{t('admin.deleteGuestsTitle')}</h2><p>{t('admin.deleteGuestsBody')}</p></div>
+        {!guestDeleteArmed ? <Button variant="secondary" onClick={() => setGuestDeleteArmed(true)}>{t('admin.cleanGuests')}</Button> : <div className="admin-reset-confirm"><label><input type="checkbox" checked={guestDeleteAccepted} onChange={(event) => setGuestDeleteAccepted(event.target.checked)} /> {t('admin.confirmDeleteGuests')}</label><label>{t('admin.typePhrase')} <b>DELETE GUESTS</b><input value={guestDeletePhrase} onChange={(event) => setGuestDeletePhrase(event.target.value)} autoComplete="off" /></label><Button variant="primary" disabled={!guestDeleteAccepted || guestDeletePhrase !== 'DELETE GUESTS' || pending} onClick={() => void deleteGuestPlayers()}>{t('admin.finalDeleteGuests')}</Button><Button variant="ghost" onClick={() => { setGuestDeleteArmed(false); setGuestDeleteAccepted(false); setGuestDeletePhrase(''); }}>{t('common.cancel')}</Button></div>}
       </section>
 
-      <section className="admin-audit"><header><span className="eyebrow">AUDIT LOG</span><h2>Letzte Admin-Aktionen</h2></header>{overview?.recentAudit.length ? <ol>{overview.recentAudit.map((entry) => <li key={entry.id}><span><b>{auditLabel(entry.action)}</b><small>{entry.adminName}{entry.targetName ? ` → ${entry.targetName}` : ''}</small></span><time>{date(entry.createdAt)}</time></li>)}</ol> : <p>Noch keine Admin-Aktionen.</p>}</section>
+      <section className="admin-audit"><header><span className="eyebrow">{t('admin.auditLog')}</span><h2>{t('admin.recentActions')}</h2></header>{overview?.recentAudit.length ? <ol>{overview.recentAudit.map((entry) => <li key={entry.id}><span><b>{auditLabel(entry.action)}</b><small>{entry.adminName}{entry.targetName ? ` → ${entry.targetName}` : ''}</small></span><time>{date(entry.createdAt)}</time></li>)}</ol> : <p>{t('admin.noActions')}</p>}</section>
     </main>
   );
 }

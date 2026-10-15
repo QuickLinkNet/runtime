@@ -1,8 +1,8 @@
 # Kartensystem
 
-`shared/cards.json` enthält 72 spielbare Karten und die vier nicht zum Deck zählenden Tokens CHILD COMPONENT, REPLICA, BUG und BOOTSTRAP. Der Pool besteht aus 48 Basiskarten und den 24 Karten aus **Set 2 – Production Incident**. Jede Definition besitzt eine stabile technische ID, sichtbare Metadaten und optional eine `effectId`.
+`shared/cards.json` enthält 90 spielbare Karten und die vier nicht zum Deck zählenden Tokens CHILD COMPONENT, REPLICA, BUG und BOOTSTRAP. Der Pool besteht aus 48 Basiskarten und 42 Erweiterungskarten: 24 Karten aus **Set 2 – Production Incident** sowie 18 zusätzliche **System-Upgrade**-Karten. Jede Definition besitzt eine stabile technische ID, sichtbare Metadaten und optional eine `effectId`.
 
-Die 48 Basiskarten sind für jeden Account dauerhaft mit zwei Kopien verfügbar. `shared/card-sets.json` grenzt das Erweiterungsset zentral ab: Booster enthalten ausschließlich diese 24 Erweiterungskarten. Die Sammlung zeigt sowohl „Besessen“ als auch „Noch nicht erworben“; ein globaler Admin-Reset entfernt nur erworbene Erweiterungskarten, nie das permanente Basis-Set.
+Die 48 Basiskarten sind für jeden Account dauerhaft mit zwei Kopien verfügbar. `shared/card-sets.json` grenzt das Erweiterungsset zentral ab: Booster enthalten ausschließlich die 42 Erweiterungskarten. Die Sammlung zeigt sowohl „Besessen“ als auch „Noch nicht erworben“; ein globaler Admin-Reset entfernt nur erworbene Erweiterungskarten, nie das permanente Basis-Set.
 
 Die technische Kartentyp-Taxonomie besteht aus `service`, `command` und `infrastructure`. `token` ist kein eigener Kartentyp, sondern eine nicht deckbaubare Sonderkategorie: CHILD COMPONENT, REPLICA und BUG sind Service-Tokens; BOOTSTRAP ist ein Command-Token.
 

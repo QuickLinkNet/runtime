@@ -7,6 +7,7 @@ import type { MatchSelection } from '../model/types';
 import { animationSpeedScale, storedAnimationSpeed, type AnimationSpeed } from '../model/animationSpeed';
 import { cardPlaySfx, playSfx } from '../../../audio/sfx';
 import { tutorialAllowsAction, tutorialAllowsCard, tutorialSteps } from '../../tutorial/tutorialSteps';
+import { useI18n } from '../../../i18n';
 
 interface UseMatchControllerOptions {
   state: GameState;
@@ -15,6 +16,7 @@ interface UseMatchControllerOptions {
 }
 
 export function useMatchController({ state, pending, onAction }: UseMatchControllerOptions) {
+  const { t } = useI18n();
   const [selection, setSelection] = useState<MatchSelection>(null);
   const [mulligan, setMulligan] = useState<string[]>([]);
   const [overclock, setOverclock] = useState(false);
@@ -70,12 +72,12 @@ export function useMatchController({ state, pending, onAction }: UseMatchControl
   function selectHandCard(instanceId: string) {
     if (!myTurn) {
       playSfx('ui-error');
-      setInteractionNotice('Warte auf deinen Zug.');
+      setInteractionNotice(t('match.notice.waitTurn'));
       return;
     }
     if (pending) {
       playSfx('ui-error');
-      setInteractionNotice('Die vorherige Aktion wird noch verarbeitet.');
+      setInteractionNotice(t('match.notice.pending'));
       return;
     }
     const card = player.hand.find((item) => item.instanceId === instanceId);
@@ -90,22 +92,22 @@ export function useMatchController({ state, pending, onAction }: UseMatchControl
       const effectiveCost = knownCardCost(state, card, definition);
       if (effectiveCost > availableCompute) {
         playSfx('ui-error');
-        setInteractionNotice(`${definition.name} braucht ${effectiveCost} Compute. Du hast ${availableCompute}.`);
+        setInteractionNotice(t('match.notice.compute', { name: definition.name, cost: effectiveCost, available: availableCompute }));
         return;
       }
       if (!canPlayIntoServiceBoard(definition, player)) {
         playSfx('ui-error');
         setInteractionNotice(definition.type === 'service'
-          ? 'Kein freier Service-Slot für diese Karte.'
-          : 'Dieser Effekt benötigt einen freien Service-Slot.');
+          ? t('match.notice.noServiceSlot')
+          : t('match.notice.effectNoServiceSlot'));
         return;
       }
       playSfx('card-select');
       setSelection({ kind: 'card', id: instanceId, definition });
       if (definition.type === 'infrastructure' && player.infrastructure.length >= 2) {
-        setInteractionNotice('2/2 Infrastructure-Slots belegt: Ersetze eine ausgelegte Karte – oder dekommissioniere diese Handkarte und ziehe 1.');
+        setInteractionNotice(t('match.notice.infrastructureFull'));
       } else {
-        setInteractionNotice(`${definition.name} ausgewählt.`);
+        setInteractionNotice(t('match.notice.selected', { name: definition.name }));
       }
     }
   }
@@ -113,7 +115,7 @@ export function useMatchController({ state, pending, onAction }: UseMatchControl
   function selectAttacker(entity: BoardEntity) {
     if (!myTurn) {
       playSfx('ui-error');
-      setInteractionNotice('Angreifen kannst du nur in deinem Zug.');
+      setInteractionNotice(t('match.notice.attackOwnTurn'));
       return;
     }
     const definition = cardById.get(entity.definitionId);
@@ -126,13 +128,13 @@ export function useMatchController({ state, pending, onAction }: UseMatchControl
         return;
       }
     }
-    if (entity.exhausted) { playSfx('ui-error'); setInteractionNotice('Dieser Service ist noch erschöpft.'); }
-    else if (entity.sandboxed) { playSfx('ui-error'); setInteractionNotice('Dieser Service befindet sich in der Sandbox.'); }
-    else if (definition?.cannotAttack) { playSfx('ui-error'); setInteractionNotice('Dieser Service kann nicht angreifen.'); }
+    if (entity.exhausted) { playSfx('ui-error'); setInteractionNotice(t('match.notice.exhausted')); }
+    else if (entity.sandboxed) { playSfx('ui-error'); setInteractionNotice(t('match.notice.sandboxed')); }
+    else if (definition?.cannotAttack) { playSfx('ui-error'); setInteractionNotice(t('match.notice.cannotAttack')); }
     else if (canSelectAttacker(entity)) {
       playSfx('card-select');
       setSelection({ kind: 'attacker', id: entity.instanceId });
-      setInteractionNotice(`${definition?.name ?? 'Service'} ist angriffsbereit.`);
+      setInteractionNotice(t('match.notice.attackReady', { name: definition?.name ?? t('match.notice.serviceFallback') }));
     }
   }
 

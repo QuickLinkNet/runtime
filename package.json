@@ -9,6 +9,7 @@
     "dev:all": "node scripts/dev.mjs",
     "build": "tsc -b && vite build && node scripts/build-sw.mjs",
     "test:pwa": "node scripts/test-pwa.mjs",
+    "test:i18n": "node scripts/check-i18n.mjs",
     "deploy": "npm run build && node scripts/deploy.mjs",
     "test:php": "php tests/run.php",
     "test:api": "php tests/api-integration.php"

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { GameCard } from '../features/cards';
-import { starterKeyForDeck, starterNames, type StarterDeckKey } from '../game/catalog';
+import { starterKeyForDeck, type StarterDeckKey } from '../game/catalog';
 import type { Domain } from '../game/types';
+import { useI18n } from '../i18n';
 import { Button } from '../ui/atoms';
 
 interface StarterDeckPageProps {
@@ -14,10 +15,7 @@ interface StarterDeckPageProps {
 interface StarterProfile {
   key: StarterDeckKey;
   code: string;
-  domains: Array<{ id: Domain; label: string }>;
-  tagline: string;
-  description: string;
-  difficulty: string;
+  domains: Domain[];
   traits: string[];
   featuredCards: string[];
   recommended?: boolean;
@@ -27,32 +25,23 @@ const profiles: StarterProfile[] = [
   {
     key: 'frontend-backend',
     code: 'STACK_01',
-    domains: [{ id: 'frontend', label: 'Frontend' }, { id: 'backend', label: 'Backend' }],
-    tagline: 'Schnell deployen. Stabil weiterlaufen.',
-    description: 'Baue Components auf, repariere angeschlagene Services und halte deinen Stack zuverlässig online.',
-    difficulty: 'Einsteigerfreundlich',
-    traits: ['Components', 'PATCH', 'Stabile Services'],
+    domains: ['frontend', 'backend'],
+    traits: ['components', 'patch', 'stableServices'],
     featuredCards: ['frontend-react-component', 'frontend-web-worker', 'backend-api-gateway'],
     recommended: true,
   },
   {
     key: 'infrastructure-security',
     code: 'STACK_02',
-    domains: [{ id: 'infrastructure', label: 'DevOps' }, { id: 'security', label: 'Security' }],
-    tagline: 'Absichern. Skalieren. Überleben.',
-    description: 'Schütze deinen Core, kontrolliere gegnerische Services und ersetze Ausfälle durch Replicas.',
-    difficulty: 'Taktisch',
-    traits: ['FIREWALL', 'SANDBOX', 'Replicas'],
+    domains: ['infrastructure', 'security'],
+    traits: ['firewall', 'sandbox', 'replicas'],
     featuredCards: ['infrastructure-kubernetes-cluster', 'security-firewall-gateway', 'security-sandbox-container'],
   },
   {
     key: 'data-ai',
     code: 'STACK_03',
-    domains: [{ id: 'data', label: 'Data' }, { id: 'ai', label: 'AI' }],
-    tagline: 'Daten sammeln. Modelle entfesseln.',
-    description: 'Ziehe gezielt Karten, generiere neue Optionen und überlade deine Modelle für explosive Züge.',
-    difficulty: 'Anspruchsvoll',
-    traits: ['Card Draw', 'Generieren', 'OVERCLOCK'],
+    domains: ['data', 'ai'],
+    traits: ['cardDraw', 'generate', 'overclock'],
     featuredCards: ['data-vector-database', 'ai-llm-agent', 'ai-inference-worker'],
   },
 ];
@@ -66,6 +55,7 @@ function FeaturedCard({ definitionId, index }: { definitionId: string; index: nu
 }
 
 export function StarterDeckPage({ currentDeck, allowBack, onConfirm, onBack }: StarterDeckPageProps) {
+  const { t } = useI18n();
   const currentStarter = starterKeyForDeck(currentDeck);
   const [selected, setSelected] = useState<StarterDeckKey>(currentStarter ?? 'frontend-backend');
   const selectedProfile = profiles.find((profile) => profile.key === selected) ?? profiles[0];
@@ -74,16 +64,16 @@ export function StarterDeckPage({ currentDeck, allowBack, onConfirm, onBack }: S
     <main className="starter-screen">
       <header className="starter-header">
         <div className="brand-small">RUNTIME<span>_</span></div>
-        <span>INITIAL CONFIGURATION · 01/01</span>
+        <span>{t('starter.configuration')}</span>
       </header>
 
       <section className="starter-intro">
-        <span className="eyebrow">CHOOSE YOUR STACK</span>
-        <h1><span>Womit gehst du</span><em>in Production?</em></h1>
-        <p>Dein erster Stack bestimmt deinen Spielstil. Alle drei Decks sind vollständig und können später jederzeit gewechselt oder umgebaut werden.</p>
+        <span className="eyebrow">{t('starter.choose')}</span>
+        <h1><span>{t('starter.titleStart')}</span><em>{t('starter.titleEnd')}</em></h1>
+        <p>{t('starter.intro')}</p>
       </section>
 
-      <section className="starter-grid" aria-label="Starter-Stacks">
+      <section className="starter-grid" aria-label={t('starter.aria')}>
         {profiles.map((profile) => {
           const active = selected === profile.key;
           return (
@@ -94,25 +84,25 @@ export function StarterDeckPage({ currentDeck, allowBack, onConfirm, onBack }: S
             >
               <span className="starter-option-topline">
                 <span>{profile.code}</span>
-                {profile.recommended && <b>EMPFOHLEN</b>}
+                {profile.recommended && <b>{t('starter.recommended')}</b>}
               </span>
               <span className="starter-card-fan" onClick={(event) => event.stopPropagation()}>
                 {profile.featuredCards.map((id, index) => <FeaturedCard definitionId={id} index={index} key={id} />)}
               </span>
               <span className="starter-option-copy">
                 <span className="starter-domains">
-                  {profile.domains.map((domain) => <span className={`domain-${domain.id}`} key={domain.id}><i />{domain.label}</span>)}
+                  {profile.domains.map((domain) => <span className={`domain-${domain}`} key={domain}><i />{t(`domain.${domain}`)}</span>)}
                 </span>
-                <strong>{starterNames[profile.key]}</strong>
-                <em>{profile.tagline}</em>
-                <span className="starter-description">{profile.description}</span>
+                <strong>{t(`starter.${profile.key}.name`)}</strong>
+                <em>{t(`starter.${profile.key}.tagline`)}</em>
+                <span className="starter-description">{t(`starter.${profile.key}.description`)}</span>
               </span>
               <span className="starter-meta">
-                <span><small>SPIELSTIL</small>{profile.difficulty}</span>
-                <span className="starter-traits">{profile.traits.map((trait) => <i key={trait}>{trait}</i>)}</span>
+                <span><small>{t('starter.playstyle')}</small>{t(`starter.${profile.key}.difficulty`)}</span>
+                <span className="starter-traits">{profile.traits.map((trait) => <i key={trait}>{t(`starter.trait.${trait}`)}</i>)}</span>
               </span>
               <button className="starter-selection-mark" type="button" aria-pressed={active} onClick={() => setSelected(profile.key)}>
-                {active ? 'AUSGEWÄHLT' : 'AUSWÄHLEN'} <i>→</i>
+                {t(active ? 'starter.selected' : 'starter.select')} <i>→</i>
               </button>
             </article>
           );
@@ -121,13 +111,13 @@ export function StarterDeckPage({ currentDeck, allowBack, onConfirm, onBack }: S
 
       <footer className="starter-confirmation">
         <div>
-          <small>AKTIVER STACK</small>
-          <strong>{starterNames[selectedProfile.key]}</strong>
-          <span>{selectedProfile.domains.map((domain) => domain.label).join(' + ')} · 30 Karten</span>
+          <small>{t('deckManager.activeStack')}</small>
+          <strong>{t(`starter.${selectedProfile.key}.name`)}</strong>
+          <span>{selectedProfile.domains.map((domain) => t(`domain.${domain}`)).join(' + ')} · {t('starter.cardCount', { count: 30 })}</span>
         </div>
         <div className="starter-confirmation-actions">
-          {allowBack && <Button variant="ghost" onClick={onBack}>Abbrechen</Button>}
-          <Button variant="primary" onClick={() => onConfirm(selected)}>Diesen Stack deployen <span aria-hidden="true">→</span></Button>
+          {allowBack && <Button variant="ghost" onClick={onBack}>{t('common.cancel')}</Button>}
+          <Button variant="primary" onClick={() => onConfirm(selected)}>{t('starter.deploy')} <span aria-hidden="true">→</span></Button>
         </div>
       </footer>
     </main>

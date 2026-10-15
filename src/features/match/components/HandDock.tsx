@@ -6,6 +6,7 @@ import type { MatchSelection } from '../model/types';
 import { knownCardCost } from '../model/cardCost';
 import { canPlayIntoServiceBoard } from '../model/targeting';
 import { tutorialAllowsAction, tutorialAllowsCard } from '../../tutorial/tutorialSteps';
+import { useI18n } from '../../../i18n';
 
 interface HandDockProps {
   state: GameState;
@@ -20,6 +21,7 @@ interface HandDockProps {
 }
 
 export function HandDock({ state, player, selection, myTurn, pending, onSelectCard, onDebug, onDecommission, onEndTurn }: HandDockProps) {
+  const { t } = useI18n();
   const availableCompute = (player.compute ?? 0) + (player.temporaryCompute ?? 0);
   const bug = player.services.find((service) => service.definitionId === 'token-bug');
   const selectedInfrastructure = selection?.kind === 'card' && selection.definition.type === 'infrastructure';
@@ -53,7 +55,7 @@ export function HandDock({ state, player, selection, myTurn, pending, onSelectCa
               playable={myTurn && affordable && boardSpaceAvailable && tutorialPlayable}
               displayCost={effectiveCost}
               style={handStyle}
-              actionLabel="Karte auswählen"
+              actionLabel={t('card.select')}
               onClick={() => onSelectCard(card.instanceId)}
             />
           );
@@ -62,7 +64,7 @@ export function HandDock({ state, player, selection, myTurn, pending, onSelectCa
       <div className="turn-actions">
         {selectedInfrastructure && (
           <button type="button" disabled={!myTurn || pending || !player.canDecommission || state.mode === 'tutorial'} onClick={onDecommission}>
-            Dekommissionieren · Ziehe 1
+            {t('match.decommission')}
           </button>
         )}
         {bug && (
@@ -75,8 +77,8 @@ export function HandDock({ state, player, selection, myTurn, pending, onSelectCa
             DEBUG · 1
           </button>
         )}
-        <span className="hand-limit">Hand {player.hand.length}/10</span>
-        <button className="end-turn" type="button" disabled={!myTurn || pending || state.mode === 'tutorial'} onClick={onEndTurn}>Zug beenden</button>
+        <span className="hand-limit">{t('match.hand', { count: player.hand.length })}</span>
+        <button className="end-turn" type="button" disabled={!myTurn || pending || state.mode === 'tutorial'} onClick={onEndTurn}>{t('match.endTurn')}</button>
       </div>
     </section>
   );

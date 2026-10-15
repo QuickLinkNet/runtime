@@ -1,4 +1,5 @@
 import type { MatchPayload } from '../game/types';
+import { useI18n } from '../i18n';
 import { Button } from '../ui/atoms';
 import { PlayerSlot } from '../ui/molecules';
 
@@ -11,22 +12,23 @@ interface RoomLobbyPageProps {
 }
 
 export function RoomLobbyPage({ state, pending, error, onStart, onExit }: RoomLobbyPageProps) {
+  const { t } = useI18n();
   const owner = state.order[0] === state.viewerId;
 
   return (
     <main className="screen room-screen">
-      <button className="back-link" onClick={onExit}>← Raum verlassen</button>
-      <span className="eyebrow">PRIVATE ROOM</span>
+      <button className="back-link" onClick={onExit}>← {t('room.leave')}</button>
+      <span className="eyebrow">{t('room.eyebrow')}</span>
       <h1>{state.roomCode}</h1>
-      <button className="copy-code" onClick={() => navigator.clipboard.writeText(state.roomCode)}>Code kopieren</button>
+      <button className="copy-code" onClick={() => navigator.clipboard.writeText(state.roomCode)}>{t('room.copyCode')}</button>
       <div className="versus-slots">
-        <PlayerSlot name={state.players[state.order[0]]?.name} label="HOST" />
-        <i>VS</i>
-        <PlayerSlot name={state.players[state.order[1]]?.name} label="GUEST" waiting={state.order.length < 2} />
+        <PlayerSlot name={state.players[state.order[0]]?.name} label={t('room.host')} />
+        <i>{t('common.versus')}</i>
+        <PlayerSlot name={state.players[state.order[1]]?.name} label={t('room.guest')} waiting={state.order.length < 2} />
       </div>
       {owner
-        ? <Button variant="primary" disabled={pending || state.order.length < 2} onClick={onStart}>{state.order.length < 2 ? 'Warte auf Gegenspieler …' : 'Match starten'}</Button>
-        : <p className="waiting-copy">Der Host startet das Match.</p>}
+        ? <Button variant="primary" disabled={pending || state.order.length < 2} onClick={onStart}>{t(state.order.length < 2 ? 'room.waitingOpponent' : 'room.startMatch')}</Button>
+        : <p className="waiting-copy">{t('room.hostStarts')}</p>}
       {error && <p className="form-error">{error}</p>}
     </main>
   );

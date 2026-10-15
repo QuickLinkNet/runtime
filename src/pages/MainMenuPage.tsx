@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { GameCard } from '../features/cards';
-import { cardById, domainLabels, starterKeyForDeck, starterNames } from '../game/catalog';
+import { cardById, starterKeyForDeck } from '../game/catalog';
 import { botProfileKeys, botProfiles, type BotProfileKey } from '../game/botProfiles';
 import type { CollectionSnapshot, Domain, MatchPayload, PlayerIdentity } from '../game/types';
+import { useI18n } from '../i18n';
 import { Button } from '../ui/atoms';
 
 interface MainMenuPageProps {
@@ -44,8 +45,9 @@ function MenuAction({ kind, children }: { kind: MenuActionKind; children: string
 }
 
 export function MainMenuPage({ identity, deck, activeDeckName: activeDeckNameOverride, collection, resume, pending, onSingle, onMultiplayer, onDeck, onBoosters, onChooseStarter, onTutorial, onResume, onAccount, onAdmin }: MainMenuPageProps) {
+  const { t } = useI18n();
   const starterKey = starterKeyForDeck(deck);
-  const activeDeckName = activeDeckNameOverride ?? (starterKey ? starterNames[starterKey] : 'Custom Stack');
+  const activeDeckName = activeDeckNameOverride ?? (starterKey ? t(`starter.${starterKey}.name`) : t('menu.customStack'));
   const [launchMode, setLaunchMode] = useState<LaunchMode | null>(null);
   const [botProfile, setBotProfile] = useState<BotProfileKey>('junior');
   const deckDomains = [...new Set(deck
@@ -59,6 +61,7 @@ export function MainMenuPage({ identity, deck, activeDeckName: activeDeckNameOve
   const openMissionCount = collection
     ? [...collection.contracts.dailyItems, ...collection.contracts.items].filter((mission) => !mission.claimed).length
     : 0;
+  const incidentName = collection ? t(`incident.${collection.incident.id}.name`) : '';
 
   function startSelectedMode() {
     setLaunchMode(null);
@@ -75,80 +78,80 @@ export function MainMenuPage({ identity, deck, activeDeckName: activeDeckNameOve
             className="mission-control-chip"
             type="button"
             onClick={onBoosters}
-            aria-label={`Mission Control öffnen: ${openMissionCount} offene Missionen, Incident ${collection.incident.name}`}
+            aria-label={t('menu.missionControlAria', { count: openMissionCount, incident: incidentName })}
           >
             <span className="mission-control-pulse" aria-hidden="true" />
-            <span className="mission-control-copy"><small>MISSION CONTROL · {collection.contracts.dailyStreak}D STREAK</small><b><span>{openMissionCount}</span><em> Mission{openMissionCount === 1 ? '' : 'en'} offen</em></b></span>
-            <i>{collection.incident.name}</i>
+            <span className="mission-control-copy"><small>{t('menu.missionControlStreak', { days: collection.contracts.dailyStreak })}</small><b><span>{openMissionCount}</span><em> {t(openMissionCount === 1 ? 'menu.missionOpen.one' : 'menu.missionOpen.many')}</em></b></span>
+            <i>{incidentName}</i>
           </button>}
-          {identity.isAccount && collection && <span className="credits-chip"><small>CREDITS</small><b>{collection.credits}</b></span>}
-          {identity.isAdmin && <button type="button" className="admin-launch" onClick={onAdmin}>ADMIN</button>}
-          <button className={`profile-chip${identity.isAccount ? ' is-account' : ''}`} type="button" onClick={onAccount}><i />{identity.name}<small>{identity.isAccount ? 'ACCOUNT' : 'GAST'}</small></button>
+          {identity.isAccount && collection && <span className="credits-chip"><small>{t('common.credits')}</small><b>{collection.credits}</b></span>}
+          {identity.isAdmin && <button type="button" className="admin-launch" onClick={onAdmin}>{t('common.admin')}</button>}
+          <button className={`profile-chip${identity.isAccount ? ' is-account' : ''}`} type="button" onClick={onAccount}><i />{identity.name}<small>{t(identity.isAccount ? 'menu.account' : 'menu.guest')}</small></button>
         </div>
       </header>
       <section className="menu-hero">
-        <span className="eyebrow">MULTIPLAYER TECH CARD GAME</span>
-        <h1>Build your stack.<br /><em>Break theirs.</em></h1>
-        <p>Stelle Services bereit, sichere deinen Core und überlebe den nächsten Friday Deploy.</p>
+        <span className="eyebrow">{t('menu.heroEyebrow')}</span>
+        <h1>{t('menu.heroTitle')}<br /><em>{t('menu.heroEmphasis')}</em></h1>
+        <p>{t('menu.heroBody')}</p>
       </section>
       {resume && (
         <section className="resume-banner">
-          <div><span>AKTIVE SESSION</span><b>Match {resume.state.roomCode} · Zug {resume.state.turn}</b></div>
-          <Button variant="primary" onClick={onResume}>Match fortsetzen</Button>
+          <div><span>{t('menu.activeSession')}</span><b>{t('menu.matchTurn', { code: resume.state.roomCode, turn: resume.state.turn })}</b></div>
+          <Button variant="primary" onClick={onResume}>{t('menu.resume')}</Button>
         </section>
       )}
       {!identity.tutorialCompleted && <button className="tutorial-menu-banner" type="button" onClick={onTutorial}>
         <span className="tutorial-menu-index">00</span>
         <span>
-          <small>EMPFOHLENER ERSTER SCHRITT</small>
-          <strong>Geführtes Tutorial starten</strong>
-          <i>Lerne Compute, Deploy, Combat, BUG, PATCH und Infrastructure in ca. 5 Minuten.</i>
+          <small>{t('menu.tutorialRecommended')}</small>
+          <strong>{t('menu.tutorialStart')}</strong>
+          <i>{t('menu.tutorialDescription')}</i>
         </span>
-        <b>+1 BOOSTER <em>→</em></b>
+        <b>{t('menu.boosterReward')} <em>→</em></b>
       </button>}
       <section className="menu-grid">
         <article className={`mode-card featured${identity.tutorialCompleted ? ' has-training-replay' : ''}`}>
           <div className="mode-number">01</div>
           <img className="mode-card-art" src="/menu-assets/menu-singleplayer.png" alt="" aria-hidden="true" />
-          <div className="mode-card-copy"><span className="eyebrow">TRAINING ENVIRONMENT</span><h2>Singleplayer</h2><p>Teste deinen Stack gegen einen serverseitigen Bot.</p></div>
-          {identity.tutorialCompleted && <button className="training-replay-link" type="button" onClick={onTutorial}>Training wiederholen <span aria-hidden="true">↗</span></button>}
-          <Button className="mode-action" variant="primary" disabled={pending} onClick={() => setLaunchMode('single')}><MenuAction kind="singleplayer">{pending ? 'Initialisiere …' : 'Bot-Match starten'}</MenuAction></Button>
+          <div className="mode-card-copy"><span className="eyebrow">{t('menu.trainingEyebrow')}</span><h2>{t('menu.singleplayer')}</h2><p>{t('menu.singleplayerBody')}</p></div>
+          {identity.tutorialCompleted && <button className="training-replay-link" type="button" onClick={onTutorial}>{t('menu.trainingReplay')} <span aria-hidden="true">↗</span></button>}
+          <Button className="mode-action" variant="primary" disabled={pending} onClick={() => setLaunchMode('single')}><MenuAction kind="singleplayer">{t(pending ? 'menu.initializing' : 'menu.startBot')}</MenuAction></Button>
         </article>
         <article className="mode-card">
           <div className="mode-number">02</div>
           <img className="mode-card-art" src="/menu-assets/menu-multiplayer.png" alt="" aria-hidden="true" />
-          <div className="mode-card-copy"><span className="eyebrow">PRIVATE CONNECTION</span><h2>Multiplayer</h2><p>Erstelle einen privaten Raum oder tritt per Code bei.</p></div>
-          <Button className="mode-action" variant="secondary" onClick={() => setLaunchMode('multi')}><MenuAction kind="multiplayer">Lobby öffnen</MenuAction></Button>
+          <div className="mode-card-copy"><span className="eyebrow">{t('multiplayer.eyebrow')}</span><h2>{t('menu.multiplayer')}</h2><p>{t('menu.multiplayerBody')}</p></div>
+          <Button className="mode-action" variant="secondary" onClick={() => setLaunchMode('multi')}><MenuAction kind="multiplayer">{t('menu.openLobby')}</MenuAction></Button>
         </article>
         <article className="mode-card deck-mode">
           <div className="mode-number">03</div>
           <img className="mode-card-art" src="/menu-assets/menu-deck.png" alt="" aria-hidden="true" />
-          <div className="mode-card-copy"><span className="eyebrow">CURRENT LOADOUT · {deck.length}/30</span><h2>{identity.isAccount ? 'Deck konfigurieren' : 'Freie Stacks'}</h2><p>{identity.isAccount ? 'Zwei Tech-Domains, neutrale Karten, maximal zwei Kopien.' : 'Drei vollständige Starter-Stacks. Direkt spielbar, ohne Account.'}</p></div>
+          <div className="mode-card-copy"><span className="eyebrow">{t('menu.currentLoadout', { count: deck.length })}</span><h2>{t(identity.isAccount ? 'menu.configureDeck' : 'menu.freeStacks')}</h2><p>{t(identity.isAccount ? 'menu.configureDeckBody' : 'menu.freeStacksBody')}</p></div>
           <button className="active-stack" type="button" onClick={onChooseStarter}>
-            <span><small>AKTIVER STACK</small><b>{activeDeckName}</b></span>
-            <i>Wechseln →</i>
+            <span><small>{t('deckManager.activeStack')}</small><b>{activeDeckName}</b></span>
+            <i>{t('menu.change')} →</i>
           </button>
-          <Button className="mode-action" variant="ghost" onClick={identity.isAccount ? onDeck : onChooseStarter}><MenuAction kind="deck">{identity.isAccount ? 'Deck Builder' : 'Freien Stack wählen'}</MenuAction></Button>
+          <Button className="mode-action" variant="ghost" onClick={identity.isAccount ? onDeck : onChooseStarter}><MenuAction kind="deck">{t(identity.isAccount ? 'menu.deckBuilder' : 'menu.chooseFreeStack')}</MenuAction></Button>
         </article>
         <article className="mode-card booster-mode">
           <div className="mode-number">04</div>
           <img className="mode-card-art" src="/menu-assets/menu-booster-branded.png" alt="" aria-hidden="true" />
-          <div className="mode-card-copy"><span className="eyebrow">{identity.isAccount ? 'COLLECTION PROTOCOL' : 'ACCOUNT FEATURE'}</span><h2>{identity.isAccount ? 'Booster Lab' : 'Sammlung sichern'}</h2><p>{identity.isAccount ? 'Öffne Packs, entdecke Seltenheiten und baue deine Sammlung auf.' : 'Kostenloser Account: Booster, Sammlung und eigene, gespeicherte Decks.'}</p></div>
-          <Button className="mode-action" variant="secondary" onClick={identity.isAccount ? onBoosters : onAccount}><MenuAction kind="booster">{identity.isAccount ? 'Booster öffnen' : 'Account freischalten'}</MenuAction></Button>
+          <div className="mode-card-copy"><span className="eyebrow">{t(identity.isAccount ? 'menu.collectionProtocol' : 'menu.accountFeature')}</span><h2>{t(identity.isAccount ? 'menu.boosterLab' : 'menu.secureCollection')}</h2><p>{t(identity.isAccount ? 'menu.boosterBody' : 'menu.accountFeatureBody')}</p></div>
+          <Button className="mode-action" variant="secondary" onClick={identity.isAccount ? onBoosters : onAccount}><MenuAction kind="booster">{t(identity.isAccount ? 'menu.openBooster' : 'menu.unlockAccount')}</MenuAction></Button>
         </article>
       </section>
-      <footer className="menu-footer"><span>CORE INTEGRITY 30</span><span>BUILD 1.0 · MVP</span></footer>
+      <footer className="menu-footer"><span>{t('menu.coreIntegrity')}</span><span>{t('menu.build')}</span></footer>
       {launchMode && (
         <div className="modal-backdrop" role="presentation" onMouseDown={(event) => {
           if (event.currentTarget === event.target) setLaunchMode(null);
         }}>
           <section className="modal-shell launch-stack-dialog" role="dialog" aria-modal="true" aria-labelledby="launch-stack-title">
-            <button className="launch-stack-close" type="button" onClick={() => setLaunchMode(null)} aria-label="Auswahl schließen">×</button>
-            <span className="eyebrow">{launchMode === 'single' ? 'OPPONENT PROTOCOL' : 'ACTIVE LOADOUT'}</span>
-            <h2 id="launch-stack-title">{launchMode === 'single' ? 'Wen forderst du heraus?' : 'Mit diesem Stack starten?'}</h2>
-            <p>{launchMode === 'single' ? 'Jeder Bot testet eine andere Schwachstelle deines Stacks.' : 'Prüfe dein aktives Deck, bevor es in Production geht.'}</p>
+            <button className="launch-stack-close" type="button" onClick={() => setLaunchMode(null)} aria-label={t('menu.closeSelection')}>×</button>
+            <span className="eyebrow">{t(launchMode === 'single' ? 'menu.opponentProtocol' : 'menu.activeLoadout')}</span>
+            <h2 id="launch-stack-title">{t(launchMode === 'single' ? 'menu.chooseOpponentTitle' : 'menu.startStackTitle')}</h2>
+            <p>{t(launchMode === 'single' ? 'menu.chooseOpponentBody' : 'menu.startStackBody')}</p>
             {launchMode === 'single' && (
-              <div className="bot-profile-grid" aria-label="Bot-Profil wählen">
+              <div className="bot-profile-grid" aria-label={t('menu.chooseBotAria')}>
                 {botProfileKeys.map((key) => {
                   const profile = botProfiles[key];
                   return <button
@@ -158,21 +161,21 @@ export function MainMenuPage({ identity, deck, activeDeckName: activeDeckNameOve
                     aria-pressed={botProfile === key}
                     onClick={() => setBotProfile(key)}
                   >
-                    <span>{profile.label}</span><strong>{profile.name}</strong><i>{profile.description}</i><b>{profile.strategy}</b>
+                    <span>{t(`menu.bot.${key}.label`)}</span><strong>{profile.name}</strong><i>{t(`menu.bot.${key}.description`)}</i><b>{t(`menu.bot.${key}.strategy`)}</b>
                   </button>;
                 })}
               </div>
             )}
             <div className="launch-stack-summary">
               <div>
-                <small>{launchMode === 'single' ? 'GEWÄHLTER GEGNER' : 'AKTIVER STACK'}</small>
+                <small>{t(launchMode === 'single' ? 'menu.selectedOpponent' : 'deckManager.activeStack')}</small>
                 <strong>{launchMode === 'single' ? selectedBot.name : activeDeckName}</strong>
-                <span>{deckDomains.map((domain) => domainLabels[domain]).join(' + ')} · {deck.length} Karten</span>
+                <span>{deckDomains.map((domain) => t(`domain.${domain}`)).join(' + ')} · {t('starter.cardCount', { count: deck.length })}</span>
               </div>
-              {launchMode === 'single' && <span className="bot-profile-summary-tag">{selectedBot.name} · {selectedBot.strategy}</span>}
-              {launchMode === 'multi' && <button type="button" onClick={() => { setLaunchMode(null); onChooseStarter(); }}>Anderen Stack wählen →</button>}
+              {launchMode === 'single' && <span className="bot-profile-summary-tag">{selectedBot.name} · {t(`menu.bot.${botProfile}.strategy`)}</span>}
+              {launchMode === 'multi' && <button type="button" onClick={() => { setLaunchMode(null); onChooseStarter(); }}>{t('menu.chooseOtherStack')} →</button>}
             </div>
-            <div className="launch-card-fan" aria-label={launchMode === 'single' ? `Beispielkarten von ${selectedBot.name}` : 'Beispielkarten des aktiven Stacks'}>
+            <div className="launch-card-fan" aria-label={launchMode === 'single' ? t('menu.botCardsAria', { name: selectedBot.name }) : t('menu.stackCardsAria')}>
               {(launchMode === 'single' ? selectedBot.deck.slice(0, 3) : previewCards).map((definitionId, index) => (
                 <GameCard
                   card={{ instanceId: `launch-preview-${definitionId}-${index}`, definitionId }}
@@ -183,9 +186,9 @@ export function MainMenuPage({ identity, deck, activeDeckName: activeDeckNameOve
               ))}
             </div>
             <div className="launch-stack-actions">
-              <Button variant="ghost" onClick={() => setLaunchMode(null)}>Abbrechen</Button>
+              <Button variant="ghost" onClick={() => setLaunchMode(null)}>{t('common.cancel')}</Button>
               <Button variant="primary" disabled={pending} onClick={startSelectedMode}>
-                {launchMode === 'single' ? `${selectedBot.name} herausfordern` : 'Zur Multiplayer-Lobby'} <span aria-hidden="true">→</span>
+                {launchMode === 'single' ? t('menu.challenge', { name: selectedBot.name }) : t('menu.toLobby')} <span aria-hidden="true">→</span>
               </Button>
             </div>
           </section>

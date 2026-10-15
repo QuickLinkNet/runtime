@@ -20,6 +20,7 @@ import { RoomLobbyPage } from '../pages/RoomLobbyPage';
 import { StarterDeckPage } from '../pages/StarterDeckPage';
 import { TutorialIntroPage } from '../pages/TutorialIntroPage';
 import { ErrorToast } from '../ui/molecules';
+import { useI18n } from '../i18n';
 import { deckSlotFromPath, matchCodeFromPath, pathFor, screenFromPath, type AppScreen } from './routes';
 
 function loadStoredDeck(): string[] | null {
@@ -39,6 +40,7 @@ function actionId(): string {
 }
 
 export function App() {
+  const { t } = useI18n();
   const { store, dispatch } = useGame();
   const location = useLocation();
   const navigate = useNavigate();
@@ -89,7 +91,7 @@ export function App() {
       })
       .catch((error: unknown) => {
         if (cancelled) return;
-        dispatch({ type: 'ERROR', message: error instanceof Error ? error.message : 'Match konnte nicht geladen werden.' });
+        dispatch({ type: 'ERROR', message: error instanceof Error ? error.message : t('error.matchLoad') });
         navigateScreen('menu', true);
       });
     return () => { cancelled = true; };
@@ -127,7 +129,7 @@ export function App() {
         setCollection(collectionResult);
         if (slotsResult?.slots.length) applyDeckSlots(slotsResult.slots);
         else if (player.isAccount) {
-          const created = await api.createDeckSlot('Mein erster Stack', deck);
+          const created = await api.createDeckSlot(t('stack.firstName'), deck);
           applyDeckSlots(created.slots);
         }
         if (requestedRoom) {
@@ -208,7 +210,7 @@ export function App() {
       dispatch({ type: 'MATCH', payload });
       navigateMatch(payload.state.roomCode);
     } catch (error) {
-      dispatch({ type: 'ERROR', message: error instanceof Error ? error.message : 'Aktion fehlgeschlagen.' });
+      dispatch({ type: 'ERROR', message: error instanceof Error ? error.message : t('error.actionFailed') });
     }
   }
 
@@ -216,7 +218,7 @@ export function App() {
     if (!store.state || store.pending) return;
     if (!navigator.onLine) {
       dispatch({ type: 'SYNC', status: 'offline' });
-      dispatch({ type: 'ERROR', message: 'Du bist offline. Die Aktion wird nicht gesendet.' });
+      dispatch({ type: 'ERROR', message: t('error.offlineAction') });
       return;
     }
     const outgoing = { ...action, clientActionId: action.clientActionId ?? actionId() };
@@ -234,7 +236,7 @@ export function App() {
     } catch (error) {
       if (error instanceof ApiError && ['VERSION_CONFLICT', 'TURN_TIMED_OUT'].includes(error.code)) await refresh();
       if (!(error instanceof ApiError)) dispatch({ type: 'SYNC', status: 'offline' });
-      dispatch({ type: 'ERROR', message: error instanceof Error ? error.message : 'Aktion fehlgeschlagen.' });
+      dispatch({ type: 'ERROR', message: error instanceof Error ? error.message : t('error.actionFailed') });
     }
   }
 
@@ -340,14 +342,14 @@ export function App() {
     slots={deckSlots}
     pending={store.pending}
     onBack={() => navigateScreen('menu')}
-    onActivate={(slotId) => { void api.activateDeckSlot(slotId).then((snapshot) => applyDeckSlots(snapshot.slots)).catch((error: unknown) => dispatch({ type: 'ERROR', message: error instanceof Error ? error.message : 'Stack konnte nicht aktiviert werden.' })); }}
+    onActivate={(slotId) => { void api.activateDeckSlot(slotId).then((snapshot) => applyDeckSlots(snapshot.slots)).catch((error: unknown) => dispatch({ type: 'ERROR', message: error instanceof Error ? error.message : t('error.stackActivate') })); }}
     onEdit={(slotId) => { const slot = deckSlots.find((item) => item.id === slotId); if (slot) { setDeck(slot.deck); setEditingSlotId(slotId); navigate(`/deck/${slotId}`); } }}
-    onCreate={(name) => { const active = deckSlots.find((slot) => slot.isActive); void saveDeckSlot(null, name, active?.deck ?? deck).catch((error: unknown) => dispatch({ type: 'ERROR', message: error instanceof Error ? error.message : 'Stack konnte nicht angelegt werden.' })); }}
-    onRename={(slotId, name) => { const slot = deckSlots.find((item) => item.id === slotId); if (slot) void saveDeckSlot(slotId, name, slot.deck).catch((error: unknown) => dispatch({ type: 'ERROR', message: error instanceof Error ? error.message : 'Stack konnte nicht umbenannt werden.' })); }}
-    onDuplicate={(slotId, name) => { void api.duplicateDeckSlot(slotId, name).then((snapshot) => applyDeckSlots(snapshot.slots)).catch((error: unknown) => dispatch({ type: 'ERROR', message: error instanceof Error ? error.message : 'Stack konnte nicht dupliziert werden.' })); }}
-    onDelete={(slotId) => { void api.deleteDeckSlot(slotId).then((snapshot) => applyDeckSlots(snapshot.slots)).catch((error: unknown) => dispatch({ type: 'ERROR', message: error instanceof Error ? error.message : 'Stack konnte nicht gelöscht werden.' })); }}
+    onCreate={(name) => { const active = deckSlots.find((slot) => slot.isActive); void saveDeckSlot(null, name, active?.deck ?? deck).catch((error: unknown) => dispatch({ type: 'ERROR', message: error instanceof Error ? error.message : t('error.stackCreate') })); }}
+    onRename={(slotId, name) => { const slot = deckSlots.find((item) => item.id === slotId); if (slot) void saveDeckSlot(slotId, name, slot.deck).catch((error: unknown) => dispatch({ type: 'ERROR', message: error instanceof Error ? error.message : t('error.stackRename') })); }}
+    onDuplicate={(slotId, name) => { void api.duplicateDeckSlot(slotId, name).then((snapshot) => applyDeckSlots(snapshot.slots)).catch((error: unknown) => dispatch({ type: 'ERROR', message: error instanceof Error ? error.message : t('error.stackDuplicate') })); }}
+    onDelete={(slotId) => { void api.deleteDeckSlot(slotId).then((snapshot) => applyDeckSlots(snapshot.slots)).catch((error: unknown) => dispatch({ type: 'ERROR', message: error instanceof Error ? error.message : t('error.stackDelete') })); }}
   /></>;
-  if (screen === 'deck') return <DeckBuilder initialDeck={deck} collection={collection} onCancel={() => navigateScreen(identity.isAccount ? 'stacks' : 'menu')} onSave={(next) => { localStorage.setItem('runtime.deck', JSON.stringify(next)); localStorage.setItem('runtime.deckSelected', '1'); setDeck(next); setHasSelectedDeck(true); if (identity.isAccount) { const slot = deckSlots.find((item) => item.id === editingSlotId) ?? deckSlots.find((item) => item.isActive); void saveDeckSlot(slot?.id ?? null, slot?.name ?? 'Mein Stack', next).then(() => { setEditingSlotId(null); navigateScreen('stacks'); }).catch((error: unknown) => dispatch({ type: 'ERROR', message: error instanceof Error ? error.message : 'Stack konnte nicht gespeichert werden.' })); } else navigateScreen('menu'); }} />;
+  if (screen === 'deck') return <DeckBuilder initialDeck={deck} collection={collection} onCancel={() => navigateScreen(identity.isAccount ? 'stacks' : 'menu')} onSave={(next) => { localStorage.setItem('runtime.deck', JSON.stringify(next)); localStorage.setItem('runtime.deckSelected', '1'); setDeck(next); setHasSelectedDeck(true); if (identity.isAccount) { const slot = deckSlots.find((item) => item.id === editingSlotId) ?? deckSlots.find((item) => item.isActive); void saveDeckSlot(slot?.id ?? null, slot?.name ?? t('stack.defaultName'), next).then(() => { setEditingSlotId(null); navigateScreen('stacks'); }).catch((error: unknown) => dispatch({ type: 'ERROR', message: error instanceof Error ? error.message : t('error.stackSave') })); } else navigateScreen('menu'); }} />;
   if (screen === 'boosters') return <BoosterLab initialCollection={collection} onCollectionChange={setCollection} onBack={() => navigateScreen('menu')} />;
   if (screen === 'multiplayer') return <MultiplayerPage pending={store.pending} error={store.error} onBack={() => navigateScreen('menu')} onCreate={() => run(() => api.createMatch('multi', deck))} onJoin={(code) => run(() => api.joinMatch(code, deck))} />;
 

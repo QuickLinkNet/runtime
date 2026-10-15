@@ -1,4 +1,5 @@
 import type { MatchSelection } from '../model/types';
+import { useI18n } from '../../../i18n';
 
 interface SelectionPromptProps {
   selection: NonNullable<MatchSelection>;
@@ -11,10 +12,11 @@ interface SelectionPromptProps {
 }
 
 export function SelectionPrompt({ selection, message, overclock, optionalTarget, onOverclockChange, onPlayWithoutTarget, onCancel }: SelectionPromptProps) {
+  const { t } = useI18n();
   return (
     <div className="selection-panel" role="status">
       <div className="selection-copy">
-        <b>{selection.kind === 'attacker' ? 'Angriff' : selection.definition.name}</b>
+        <b>{selection.kind === 'attacker' ? t('match.selection.attack') : selection.definition.name}</b>
         <span>{message}</span>
       </div>
       {selection.kind === 'card' && selection.definition.overclockCost && (
@@ -24,8 +26,8 @@ export function SelectionPrompt({ selection, message, overclock, optionalTarget,
         </label>
       )}
       <div className="selection-actions">
-        {optionalTarget && <button className="selection-confirm" type="button" onClick={onPlayWithoutTarget}>Ausspielen</button>}
-        <button type="button" onClick={onCancel}>Abbrechen</button>
+        {optionalTarget && <button className="selection-confirm" type="button" onClick={onPlayWithoutTarget}>{t('match.selection.play')}</button>}
+        <button type="button" onClick={onCancel}>{t('common.cancel')}</button>
       </div>
     </div>
   );
