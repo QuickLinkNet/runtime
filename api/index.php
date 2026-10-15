@@ -117,7 +117,7 @@ try {
     $stmt = $db->prepare(
         'SELECT p.id, p.name, p.account_email, pp.tutorial_completed_at
          FROM players p LEFT JOIN player_progression pp ON pp.player_id = p.id
-         WHERE p.token_hash = ? AND p.is_bot = 0'
+         WHERE p.token_hash = ? AND p.is_bot = 0 AND p.deleted_at IS NULL'
     );
     $stmt->execute([hash('sha256', $token)]);
     $player = $stmt->fetch();
@@ -147,6 +147,14 @@ try {
         'logout' => (function () use ($accounts, $playerId): void {
             $accounts->logout($playerId);
             Http::success();
+        })(),
+        'deleteAccount' => (function () use ($accounts, $playerId, $isAccount, $body): void {
+            if (!$isAccount) throw new ApiException('ACCOUNT_REQUIRED', 'Für diese Aktion ist ein Account erforderlich.', 403);
+            Http::success($accounts->deleteAccount(
+                $playerId,
+                (string)($body['password'] ?? ''),
+                ($body['confirmed'] ?? false) === true
+            ));
         })(),
         'loadout' => (function () use ($accounts, $playerId, $isAccount): void {
             if (!$isAccount) throw new ApiException('ACCOUNT_REQUIRED', 'Melde dich an, um deinen Stack geräteübergreifend zu speichern.', 403);

@@ -1,4 +1,4 @@
-export type AppScreen = 'name' | 'starter' | 'tutorial' | 'menu' | 'deck' | 'stacks' | 'multiplayer' | 'boosters' | 'account' | 'admin' | 'match';
+export type AppScreen = 'name' | 'starter' | 'tutorial' | 'menu' | 'deck' | 'stacks' | 'multiplayer' | 'boosters' | 'account' | 'admin' | 'legal' | 'match';
 
 export function screenFromPath(pathname: string): AppScreen {
   if (pathname === '/identity') return 'name';
@@ -10,12 +10,13 @@ export function screenFromPath(pathname: string): AppScreen {
   if (pathname === '/multiplayer') return 'multiplayer';
   if (pathname === '/account') return 'account';
   if (pathname === '/admin') return 'admin';
+  if (pathname === '/legal') return 'legal';
   if (pathname.startsWith('/match/')) return 'match';
   return 'menu';
 }
 
 export function pathFor(screen: Exclude<AppScreen, 'match'>): string {
-  return ({ name: '/identity', starter: '/starter', tutorial: '/tutorial', menu: '/', deck: '/deck', stacks: '/stacks', multiplayer: '/multiplayer', boosters: '/collection', account: '/account', admin: '/admin' })[screen];
+  return ({ name: '/identity', starter: '/starter', tutorial: '/tutorial', menu: '/', deck: '/deck', stacks: '/stacks', multiplayer: '/multiplayer', boosters: '/collection', account: '/account', admin: '/admin', legal: '/legal' })[screen];
 }
 
 export function matchCodeFromPath(pathname: string): string | null {

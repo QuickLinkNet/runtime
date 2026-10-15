@@ -79,7 +79,7 @@ export function IdentityPage({ onCreated, onLoggedIn }: IdentityPageProps) {
           {mode !== 'login' && <button type="button" onClick={() => changeMode('login')}>{t('identity.switch.login')}</button>}
           {mode !== 'guest' && <button type="button" onClick={() => changeMode('guest')}>{t('identity.switch.guest')}</button>}
         </div>
-        <small>{t(mode === 'guest' ? 'identity.guestNote' : 'identity.accountNote')}</small>
+        <small>{t(mode === 'guest' ? 'identity.guestNote' : 'identity.accountNote')} <a href="#/legal">{t('legal.shortLink')}</a></small>
       </section>
       <footer className="identity-footer"><span>{t('identity.serverAuthoritative')}</span><span>{t('identity.noPayToWin')}</span></footer>
     </main>

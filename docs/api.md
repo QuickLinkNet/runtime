@@ -8,6 +8,7 @@ Alle Endpunkte verwenden `api/index.php?action=…` und antworten mit `{ "succes
 | `registerAccount` | POST | Kostenlosen Account mit Name, E-Mail und Passwort anlegen |
 | `login` | POST | Account anmelden und einen frischen Spieler-Token erhalten |
 | `logout` | POST | Aktuellen Spieler-Token serverseitig ungültig machen |
+| `deleteAccount` | POST | Account nach Passwort- und Löschbestätigung dauerhaft löschen |
 | `me` | GET | Aktuelle Identität prüfen |
 | `linkAccount` | POST | Gastprofil mit einem neuen Account verknüpfen |
 | `catalog` | GET | Karten und Starter-Decks laden |
@@ -41,6 +42,8 @@ Alle Endpunkte verwenden `api/index.php?action=…` und antworten mit `{ "succes
 
 Der Client speichert den Spieler-Token lokal und verwendet ihn nach einem Reload oder Browser-Neustart weiter. Er wird nur bei einer bestätigten Authentifizierungsablehnung oder durch explizites Abmelden entfernt. `logout` rotiert zusätzlich den serverseitigen Token-Hash, sodass der bisherige Token nicht erneut verwendet werden kann.
 
+`deleteAccount` ist ausschließlich für registrierte Accounts verfügbar und verlangt das aktuelle Passwort sowie `confirmed: true`. Zugeordnete Spiel-, Fortschritts-, Sammlungs-, Feedback- und Telemetriedaten werden transaktional entfernt; verbleibende notwendige Referenzen werden von der Identität getrennt. Der Spieler-Datensatz wird irreversibel anonymisiert, der aktive Token widerrufen und die bisherige E-Mail für eine erneute Registrierung freigegeben.
+
 `submitGameAction` erwartet `roomCode`, `expectedVersion` und eine `action`. Veraltete Versionen erhalten HTTP 409. Die normalen Action-Typen sind `MULLIGAN`, `PLAY_CARD`, `ATTACK`, `DEBUG` und `END_TURN`. Tutorial-Matches ergänzen `CONTINUE_TUTORIAL`; erlaubte Aktionen werden pro Lektion zusätzlich auf dem Server eingeschränkt.
 
 Für Singleplayer-Matches wählt `botProfile` einen serverseitig validierten Gegner: `junior` (gelegentlich suboptimal), `security` (FIREWALL, PATCH und sichere Trades) oder `chaos` (BUGs, CRASH und aggressive Trades). Fehlt der Wert, wird `junior` verwendet.
@@ -51,7 +54,7 @@ Die API protokolliert serverseitig akzeptierte und abgelehnte Aktionen in `match
 
 ## Integrationstest
 
-`npm run test:api` prüft den realen HTTP-Weg: Gast anlegen, Identität, Gastgrenze, Match erstellen, Aktion senden, dieselbe Aktion erneut senden, Match verlassen, abmelden und die Token-Sperre prüfen. Der Test legt Testdaten an und darf daher nur gegen eine lokale, entbehrliche Entwicklungsdatenbank laufen:
+`npm run test:api` prüft den realen HTTP-Weg: Gast anlegen, Identität, Gastgrenze, Match erstellen, Aktion senden, dieselbe Aktion erneut senden, Match verlassen, abmelden, Token-Sperre und die geschützte Account-Löschung. Der Test legt und löscht Testdaten und darf daher nur gegen eine ausdrücklich vorgesehene, entbehrliche Testdatenbank laufen:
 
 ```powershell
 npm run dev:api

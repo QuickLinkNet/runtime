@@ -1,6 +1,6 @@
 # Privacy notice draft
 
-> Internal draft only. Do not publish this text until every bracketed field and retention decision has been completed and reviewed for the actual operator and hosting setup.
+> Internal review copy corresponding to the notice currently available in the application. It is not a substitute for legal review of the actual operating and hosting setup.
 
 ## Controller
 
@@ -22,16 +22,13 @@
 
 The application code does not intentionally store IP addresses or advertising identifiers. Web-server and hosting logs must be documented separately because they are controlled by the production infrastructure rather than this repository.
 
-## Decisions required before publication
+## Decisions still requiring verification
 
-- Legal basis for account, gameplay, telemetry and security-log processing.
-- Concrete retention periods and automated deletion/anonymization rules for guest profiles, accounts, matches, telemetry, feedback, admin logs and server logs.
+- Concrete retention periods and automated cleanup rules for guest profiles, matches, admin logs and infrastructure logs.
 - Hosting provider and any other recipients/processors, including the applicable data-processing agreements.
 - Whether data is transferred outside the EEA and, if so, the applicable safeguards.
-- Contact and verified workflow for access, correction, export, objection and deletion requests.
-- Supervisory authority and complaint information applicable to the controller.
 - Whether minors may create accounts and which age/consent rules apply.
 
-## Account deletion acceptance criteria
+## Implemented account deletion
 
-The planned account-deletion feature must require fresh authentication, clearly explain irreversible effects, revoke the token, remove or anonymize personal data across related tables, preserve only records that have a documented legal/security need, and return a neutral confirmation. It requires API-domain tests plus an HTTP integration test against a disposable database.
+Account deletion requires the current password and an explicit irreversible-action confirmation. It revokes the active token, removes related gameplay, collection, progression, feedback and telemetry data, and irreversibly anonymizes the remaining player row. Admin audit references are detached rather than silently rewriting the audit history. The HTTP integration test covers missing confirmation, a wrong password, successful deletion, token invalidation and rejected login; execution still requires a disposable database or a narrowly scoped post-deployment smoke-test account.

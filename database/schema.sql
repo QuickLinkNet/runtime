@@ -8,7 +8,9 @@ CREATE TABLE IF NOT EXISTS players (
   is_bot TINYINT(1) NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   last_seen_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_players_last_seen (last_seen_at)
+  deleted_at DATETIME NULL,
+  INDEX idx_players_last_seen (last_seen_at),
+  INDEX idx_players_deleted (deleted_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS matches (

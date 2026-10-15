@@ -8,6 +8,7 @@ const errors: Record<string, readonly [en: string, nl: string]> = {
   ACCOUNT_EMAIL_TAKEN: ['An account already exists for this email address.', 'Er bestaat al een account voor dit e-mailadres.'],
   ACCOUNT_ALREADY_LINKED: ['This profile is already linked to an account.', 'Dit profiel is al aan een account gekoppeld.'],
   ACCOUNT_REQUIRED: ['Sign in with a free account to use this feature.', 'Log in met een gratis account om deze functie te gebruiken.'],
+  ACCOUNT_DELETE_CONFIRMATION_REQUIRED: ['Confirm that you want to permanently delete the account.', 'Bevestig dat je het account permanent wilt verwijderen.'],
   ACCOUNT_REQUIRED_FOR_CUSTOM_DECK: ['Guests can play one of the three free starter stacks. Sign in to use a custom stack.', 'Gasten kunnen een van de drie gratis starter-stacks spelen. Log in om een eigen stack te gebruiken.'],
   INVALID_EMAIL: ['Enter a valid email address.', 'Voer een geldig e-mailadres in.'],
   INVALID_NAME: ['The name must contain 2–24 valid characters.', 'De naam moet 2–24 geldige tekens bevatten.'],

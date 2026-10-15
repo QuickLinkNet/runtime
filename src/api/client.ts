@@ -77,6 +77,9 @@ export const api = {
     method: 'POST', body: JSON.stringify({ email, password }),
   }),
   logout: () => request<void>('logout', { method: 'POST', body: '{}' }),
+  deleteAccount: (password: string) => request<{ deleted: true; deletedMatches: number }>('deleteAccount', {
+    method: 'POST', body: JSON.stringify({ password, confirmed: true }),
+  }),
   me: () => request<{ player: PlayerIdentity }>('me'),
   collection: () => request<CollectionSnapshot>('collection'),
   loadout: () => request<{ deck: string[] | null }>('loadout'),

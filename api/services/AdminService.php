@@ -40,7 +40,7 @@ final class AdminService
              FROM players p
              LEFT JOIN player_progression pp ON pp.player_id = p.id
              LEFT JOIN (SELECT player_id, SUM(quantity) AS total_cards FROM player_collections GROUP BY player_id) cards ON cards.player_id = p.id
-             WHERE p.is_bot = 0'
+             WHERE p.is_bot = 0 AND p.deleted_at IS NULL'
         )->fetch();
 
         return [
@@ -68,7 +68,7 @@ final class AdminService
                 SELECT player_id, COUNT(*) AS unique_cards, SUM(quantity) AS total_cards
                 FROM player_collections GROUP BY player_id
              ) cards ON cards.player_id = p.id
-             WHERE p.is_bot = 0 AND (CHAR_LENGTH(?) = 0 OR p.name LIKE ? OR p.account_email LIKE ?)
+             WHERE p.is_bot = 0 AND p.deleted_at IS NULL AND (CHAR_LENGTH(?) = 0 OR p.name LIKE ? OR p.account_email LIKE ?)
              ORDER BY p.last_seen_at DESC, p.id DESC
              LIMIT 100'
         );
@@ -90,7 +90,7 @@ final class AdminService
                 COALESCE(pp.booster_balance, 0) AS boosterBalance,
                 COALESCE(pp.total_boosters_opened, 0) AS totalBoostersOpened
              FROM players p LEFT JOIN player_progression pp ON pp.player_id = p.id
-             WHERE p.id = ? AND p.is_bot = 0'
+             WHERE p.id = ? AND p.is_bot = 0 AND p.deleted_at IS NULL'
         );
         $statement->execute([$playerId]);
         $player = $statement->fetch();
@@ -160,9 +160,9 @@ final class AdminService
             $deletedMatches = $this->db->exec(
                 'DELETE matches FROM matches
                  INNER JOIN players ON players.id = matches.owner_player_id
-                 WHERE players.is_bot = 0 AND players.account_email IS NULL'
+                 WHERE players.is_bot = 0 AND players.account_email IS NULL AND players.deleted_at IS NULL'
             );
-            $deletedPlayers = $this->db->exec('DELETE FROM players WHERE is_bot = 0 AND account_email IS NULL');
+            $deletedPlayers = $this->db->exec('DELETE FROM players WHERE is_bot = 0 AND account_email IS NULL AND deleted_at IS NULL');
             $this->audit($adminId, null, 'guest_players_deleted', [
                 'deletedPlayers' => (int)$deletedPlayers,
                 'deletedOwnedMatches' => (int)$deletedMatches,
@@ -178,7 +178,7 @@ final class AdminService
     private function assertPlayer(string $playerId): void
     {
         if (!ctype_digit($playerId)) throw new ApiException('INVALID_PLAYER', 'Ungültige Spieler-ID.', 422);
-        $statement = $this->db->prepare('SELECT id FROM players WHERE id = ? AND is_bot = 0');
+        $statement = $this->db->prepare('SELECT id FROM players WHERE id = ? AND is_bot = 0 AND deleted_at IS NULL');
         $statement->execute([$playerId]);
         if (!$statement->fetch()) throw new ApiException('PLAYER_NOT_FOUND', 'Spieler wurde nicht gefunden.', 404);
     }

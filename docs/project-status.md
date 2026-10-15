@@ -38,10 +38,12 @@ Diese Datei ist der kurze, verbindliche Übergabepunkt für die weitere Entwickl
 - Erweiterungspool mit 24 „Production Incident“- und 18 „System Upgrade“-Karten sowie gekapselten Servereffekten
 - explizite, erweiterungssichere 30-Karten-Starterdecks in gemeinsamer Konfiguration
 - optionaler Account-Flow: Gast spielen ohne Zwang, registrieren/anmelden/verknüpfen für persistente eigene Stacks, Sammlung und Booster
+- dauerhaftes Löschen registrierter Accounts nach Passwortbestätigung, inklusive Token-Widerruf, Löschung zugeordneter Spieldaten und irreversibler Anonymisierung
+- dreisprachige Datenschutz-/Impressumsseite mit Links bei Registrierung und in allen Hauptansichten
 - Match-Abschluss mit serverseitigen Ergebnissen, Stats, Rewards und sicherem Rematch-/Deck-Flow
 - Härtung: idempotente `clientActionId`-Aktionen, Wiederverbindungsstatus und ein sicherer Einzel-Retry nach Netzfehlern
 - Balancing-Telemetrie für Aktionen und Match-Zusammenfassungen, inklusive automatischer Migration
-- HTTP-Integrationstest für Identität, Gastgrenze, Match-Aktion und Replay-Schutz
+- HTTP-Integrationstest für Identität, Gastgrenze, Match-Aktion, Replay-Schutz und geschützte Account-Löschung
 - drei auswählbare, serverautoritative Bot-Profile mit eigenen Decks und klaren Spielstilen: Junior Bot, Security Auditor und Chaos Engineer
 - geschützte Admin Console mit serverseitiger E-Mail-Allowlist, Spieler-/Economy-Übersicht, Audit-Log und doppelt bestätigtem globalem Sammlungs-Reset
 
@@ -49,12 +51,12 @@ Diese Datei ist der kurze, verbindliche Übergabepunkt für die weitere Entwickl
 
 - `npm run build` kompiliert TypeScript und erstellt den Production-Build.
 - `npm run test:php` prüft die Regeln, Tutorialabläufe, Booster-Garantien und Sicherheitsgrenzen der Engine.
-- `npm run test:api` prüft gegen eine lokale Test-API den HTTP-Flow und den idempotenten Replay-Schutz.
+- `npm run test:api` prüft gegen eine entbehrliche Test-API den HTTP-Flow, den idempotenten Replay-Schutz und die Account-Löschung.
 - `npm run test:i18n` prüft die drei Sprachkataloge, statische und dynamische Schlüssel sowie alle 94 Kartendefinitionen.
 - Sichtbare Änderungen werden zusätzlich in Desktop- und Mobile-Viewports geprüft.
 - TS-, TSX- und CSS-Dateien sollen nach Möglichkeit unter 500 Zeilen bleiben.
 - Letzte lokale Prüfung am 15. Oktober 2026: Production-Build, TypeScript, 105 PHP-Tests, i18n-Prüfung und PWA-Prüfung erfolgreich; der öffentliche Identitäts-/Account-Einstieg wurde auf Desktop und Smartphone in mehreren Sprachen visuell geprüft.
-- Der HTTP-Integrationstest bleibt einer lokalen Wegwerf-Testdatenbank vorbehalten und wurde in dieser Bestandsaufnahme nicht erneut ausgeführt.
+- Der HTTP-Integrationstest bleibt einer Wegwerf-Testdatenbank oder einem ausdrücklich abgegrenzten Testkonto vorbehalten und wurde in dieser Bestandsaufnahme nicht erneut ausgeführt.
 - Live geprüft: Manifest, Service Worker und Android-Icons liefern in der konfigurierten Produktionsumgebung HTTP 200.
 
 ## Nächste sinnvolle Ausbaustufe

@@ -86,7 +86,7 @@
   .menu-hero { padding: 56px 0 32px; }
   .menu-hero h1 { font-size: clamp(46px, 14.5vw, 62px); }
   .menu-hero p { font-size: 15px; }
-  .menu-grid, .connection-grid, .account-layout { grid-template-columns: 1fr; }
+  .menu-grid, .connection-grid, .account-layout, .account-connected-layout, .legal-grid { grid-template-columns: 1fr; }
   .mode-card.deck-mode { grid-column: auto; }
   .mode-card { min-height: 335px; gap: 12px; padding: 21px; }
   .mode-card.deck-mode { min-height: 390px; }
@@ -96,6 +96,8 @@
   .resume-banner { align-items: stretch; flex-direction: column; }
   .resume-banner .button { width: 100%; }
   .menu-footer { flex-wrap: wrap; gap: 8px 18px; }
+  .runtime-legal-link { bottom: 10px; left: 10px; }
+  body:has(.match-screen) .runtime-legal-link { bottom: calc(var(--match-mobile-hand-dock-height) + 10px); }
   .connection-grid { margin-block: 24px; }
   .connection-grid article { min-height: 0; padding: 22px; }
   .room-screen h1 { max-width: 100%; font-size: clamp(48px, 18vw, 78px); overflow-wrap: anywhere; }

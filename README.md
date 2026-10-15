@@ -1,111 +1,114 @@
-# RUNTIME
+<div align="center">
 
-RUNTIME ist ein serverautoritatives, rundenbasiertes Tech-Kartenspiel für zwei Spieler. Der aktuelle Pool enthält 90 spielbare Karten plus 4 erzeugte Tokens, drei Starter-Decks, einen Deck Builder, ein achtteiliges interaktives Tutorial, mehrere serverseitige Bot-Profile und private Multiplayer-Räume mit Polling und Reconnect. Die Oberfläche und alle Karten sind auf Deutsch, Englisch und Niederländisch verfügbar.
+# RUNTIME_
 
-## Voraussetzungen
+### Deploy. Defend. Debug.
 
-- Node.js 20 oder neuer (nur lokal für das Frontend)
-- PHP 8.0 oder neuer mit PDO MySQL
-- MySQL 5.7+ oder MariaDB 10.3+
+Ein serverautoritatives Tech-Kartenspiel über stabile Stacks, kaputte Deployments und den nächsten Production Incident.
+
+[**Jetzt spielen**](https://runtime.red-it.org/) · [Spielregeln](docs/game-rules.md) · [Kartensystem](docs/card-system.md) · [Mitmachen](CONTRIBUTING.md)
+
+![RUNTIME – taktisches Tech-Kartenspiel](public/backgrounds/runtime-wide.png)
+
+![React](https://img.shields.io/badge/React-19-61dafb?style=flat-square&logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?style=flat-square&logo=typescript&logoColor=white)
+![PHP](https://img.shields.io/badge/PHP-8%2B-777bb4?style=flat-square&logo=php&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL%20%2F%20MariaDB-supported-4479a1?style=flat-square&logo=mysql&logoColor=white)
+![PWA](https://img.shields.io/badge/PWA-installable-b9f44a?style=flat-square)
+![License](https://img.shields.io/badge/code-AGPL--3.0--or--later-b9f44a?style=flat-square)
+
+</div>
+
+## Was ist RUNTIME?
+
+RUNTIME ist ein kostenloses, rundenbasiertes Kartenspiel für zwei Spieler. Du kombinierst zwei Tech-Domains, stellst Services und Infrastructure bereit, sicherst deinen Core und bringst das gegnerische System zum Absturz. Jede Aktion wird auf dem Server validiert – der Browser sendet nur deine Spielabsicht.
+
+Der aktuelle Stand umfasst:
+
+- **90 spielbare Karten und 4 Token** mit vollständigen Artworks
+- **sieben Deck-Domains** mit eigenen Identitäten und Synergien
+- **drei Starter-Stacks** sowie eigene gespeicherte Decks
+- **Singleplayer** gegen drei unterschiedliche serverseitige Bots
+- **private Multiplayer-Räume** mit Reconnect und Replay-Schutz
+- **acht interaktive Tutorial-Lektionen** mit geführten Aktionen
+- **Booster, Sammlung, Crafting, Contracts und Mastery** ohne Pay-to-win
+- **Deutsch, Englisch und Niederländisch**, reaktiv wechselbar
+- **installierbare PWA** für Desktop und Mobilgeräte
+- freiwillige Accounts – Gastspielen funktioniert ohne E-Mail
+
+## So spielt es sich
+
+1. Wähle zwei Tech-Domains und baue einen Stack aus 30 Karten.
+2. Erhöhe dein Compute, deploye Services und sichere sie mit Infrastructure.
+3. Nutze Commands, Keywords und Synergien, um das gegnerische Board zu kontrollieren.
+4. Reduziere die gegnerische Core-Integrität auf null, bevor dein eigenes System crasht.
+
+Die Engine kennt unter anderem `DEPLOY`, `CRASH`, `PATCH`, `FIREWALL`, `REDUNDANCY`, `SANDBOX`, `FORK`, `OVERCLOCK`, `BUG` und `DEBUG`. Die vollständige Referenz steht in den [Spielregeln](docs/game-rules.md).
+
+## Architektur
+
+| Bereich | Umsetzung |
+| --- | --- |
+| Frontend | React 19, TypeScript, Vite, Hash-Routing |
+| Backend | PHP 8+, serverautoritative Rules Engine und JSON-API |
+| Persistenz | MySQL 5.7+ oder MariaDB 10.3+, automatische Migrationen |
+| Multiplayer | private Raumcodes, Versionskonfliktschutz, Polling und Reconnect |
+| Offline | versionierter Service Worker, App-Shell und kontrollierte Updates |
+| Qualität | PHP-Regeltests, HTTP-Integrationstest, i18n- und PWA-Prüfung |
+
+Weitere Details: [Architektur](docs/architecture.md), [Frontend-Struktur](docs/frontend-architecture.md), [API](docs/api.md) und [Projektstand](docs/project-status.md).
 
 ## Lokal starten
 
-1. Abhängigkeiten installieren:
+Vorausgesetzt werden Node.js 20+, PHP 8+ mit PDO MySQL und eine leere MySQL-/MariaDB-Datenbank.
 
-   ```text
-   npm install
-   ```
-
-2. Eine leere Datenbank anlegen. Das Schema wird beim ersten API-Aufruf automatisch migriert. Der Datenbankbenutzer benötigt dafür `CREATE`, `ALTER`, `INDEX` und `REFERENCES` zusätzlich zu den normalen Lese-/Schreibrechten. `database/schema.sql` bleibt als manueller Snapshot verfügbar.
-
-3. `api/.env.example` nach `api/.env` kopieren und die Datenbank-Zugangsdaten eintragen. Die `.env` wird von PHP automatisch geladen und von Git sowie dem Deployment-Paket ausgeschlossen. Alternativ kann weiterhin `api/config/config.php` verwendet werden.
-
-4. Frontend starten:
-
-   ```text
-   npm run dev
-   ```
-
-5. In einem zweiten Terminal die PHP-API starten:
-
-   ```text
-   npm run dev:api
-   ```
-
-   Vite leitet `/api` automatisch an PHP auf Port 8080 weiter. PHP lädt die Zugangsdaten aus `api/.env` und verbindet sich mit der dort eingetragenen externen Datenbank. Optional startet `npm run dev:all` beide Prozesse gemeinsam.
-
-6. Die von Vite angezeigte Adresse `http://localhost:5173` öffnen. Für Multiplayer einen zweiten Browser oder ein Inkognito-Fenster verwenden.
-
-## Tests
-
-Die Rules Engine wird ohne Webserver und ohne Datenbank getestet:
-
-```text
-npm run test:php
+```bash
+npm ci
 ```
 
-Der Testlauf deckt Match-Start, Mulligan, Compute, Limits, Combat, Keywords, Crash-Effekte, Memory Leak, Game Over, private Views, Bot-Aktionen und Sicherheitsgrenzen ab.
+Kopiere anschließend `api/.env.example` nach `api/.env` und trage ausschließlich lokale Entwicklungszugänge ein. Das Schema wird beim ersten API-Aufruf automatisch migriert.
 
-Die Vollständigkeit der Übersetzungen wird separat geprüft:
+```bash
+npm run dev:all
+```
 
-```text
+Öffne danach `http://localhost:5173`. Für einen privaten Multiplayer-Test eignet sich ein zweites Browser- oder Inkognito-Fenster.
+
+## Qualitätssicherung
+
+```bash
 npm run test:i18n
+npm run build
+npm run test:php
+npm run test:pwa
+npm audit
 ```
 
-Der i18n-Test kontrolliert die Nachrichten für `de`, `en` und `nl`, statische und dynamische Schlüsselverwendungen, sichtbare JSX-Literale sowie die Übersetzungen aller 94 Kartendefinitionen.
+`npm run test:api` legt und löscht Testdaten über die echte HTTP-API. Dieser Test darf ausschließlich gegen eine ausdrücklich dafür vorgesehene, entbehrliche Testdatenbank laufen – niemals gegen Produktionsdaten.
 
-## Production / Shared Hosting
+## Deployment
 
-Das Deployment-Ziel wird ausschließlich lokal in der ignorierten `.env.deploy` konfiguriert. Kopiere dafür `.env.deploy.example` und trage FTP-Zugang, Zielverzeichnis und öffentliche HTTPS-URL ein. Das Repository enthält keine konkrete Hosting-Konfiguration.
+RUNTIME benötigt auf dem Zielsystem nur PHP, MySQL/MariaDB und HTTPS. Node.js wird ausschließlich zum lokalen Erzeugen des Produktionspakets verwendet.
 
-Ein Aufruf erledigt den vollständigen Ablauf:
-
-```text
+```bash
+cp .env.deploy.example .env.deploy
 npm run deploy
 ```
 
-Der Befehl:
+`.env.deploy` und `api/.env` sind nicht versioniert. Das Deploy-Skript baut Frontend und Service Worker, erstellt ein geprüftes Paket, lädt es in das konfigurierte RUNTIME-Ziel und kontrolliert anschließend Seite, API und PWA-Artefakte. Es übernimmt keine Konfiguration aus benachbarten Projekten.
 
-1. kompiliert TypeScript und baut das Frontend mit relativen Pfaden für Verzeichnis und Subdomain,
-2. erstellt den uploadfertigen Ordner `deploy/`,
-3. übernimmt die lokale, nicht versionierte RUNTIME-Datenbankkonfiguration,
-4. lädt Frontend, PHP-API und Kartenkatalog in das konfigurierte RUNTIME-Zielverzeichnis,
-5. startet beim API-Aufruf noch fehlende Datenbankmigrationen und
-6. prüft anschließend die öffentliche Seite und den API-Healthcheck.
+## Datenschutz und Sicherheit
 
-Die FTP-Zugangsdaten liegen ausschließlich in der ignorierten `.env.deploy`. Das Skript akzeptiert aus Sicherheitsgründen nur ein Zielverzeichnis, das auf `/runtime` endet, verlangt eine öffentliche HTTPS-URL und löscht außerhalb des generierten Asset-Ordners keine Serverdateien. Verschlüsseltes FTP ist in der Beispielkonfiguration aktiviert.
+RUNTIME verwendet keine Werbe- oder Analyse-Tracker. Accounts sind optional, Passwörter werden ausschließlich gehasht gespeichert, Tokens liegen in der Datenbank nur als SHA-256-Hash vor und Accounts können nach erneuter Passworteingabe dauerhaft gelöscht werden. Datenschutz und Impressum sind in der Anwendung auf jeder Hauptansicht erreichbar.
 
-Node.js, Composer, Docker, Cronjobs oder ein dauerhaft laufender Prozess werden auf dem Server nicht benötigt.
+Bitte melde Sicherheitsprobleme nicht öffentlich, sondern entsprechend der [Security Policy](SECURITY.md). Die Datenschutz- und Veröffentlichungsprüfung wird in der [Public-Release-Checkliste](docs/public-release-checklist.md) festgehalten.
 
-## Progressive Web App
+## Freie Software und Assets
 
-Der Production-Build erzeugt automatisch eine installierbare PWA:
+- Quellcode und Dokumentation: [`AGPL-3.0-or-later`](LICENSE)
+- Projekteigene Bilder und Audiodateien: [`CC-BY-SA-4.0`](ASSET_LICENSES.md)
+- Abhängigkeiten: [Third-Party Notices](THIRD_PARTY_NOTICES.md)
+- Markenhinweise: [Trademarks](TRADEMARKS.md)
+- Beiträge: [Contributing Guide](CONTRIBUTING.md)
 
-- Manifest und App-Icons für Android, iOS und Desktop
-- versionierter Service Worker mit vorgeladener App-Hülle
-- Karten-Artworks werden bei Benutzung begrenzt offline zwischengespeichert
-- API-, Spieler- und Matchantworten werden niemals vom Service Worker gecacht
-- neue Versionen werden angeboten und erst nach Bestätigung aktiviert
-- `npm run deploy` prüft Manifest, Service Worker und App-Icon nach dem Upload
-
-Service Worker funktionieren lokal nur im Production-Build (`npm run build` plus Vite Preview) und im Deployment über HTTPS. Im normalen Vite-Entwicklungsmodus werden sie absichtlich nicht registriert.
-
-## API-Konfiguration
-
-Alternativ zu den Werten in `config.php` können `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` und `APP_ENV` als Umgebungsvariablen gesetzt werden. Roh-Tokens werden nie in der Datenbank gespeichert; dort liegt ausschließlich der SHA-256-Hash.
-
-Für die Admin Console wird zusätzlich eine serverseitige E-Mail-Allowlist gesetzt, zum Beispiel in `api/.env`:
-
-```ini
-RUNTIME_ADMIN_EMAILS=du@beispiel.de,kollege@beispiel.de
-```
-
-Nur angemeldete Accounts mit einer dieser E-Mail-Adressen sehen und nutzen den Admin-Zugang. Die Variable wird nie an den Browser ausgeliefert.
-
-Weitere Informationen: [Aktueller Projektstand](docs/project-status.md), [Architektur](docs/architecture.md), [Frontend-Struktur](docs/frontend-architecture.md), [Internationalisierung](docs/internationalization.md), [Spielregeln](docs/game-rules.md), [API](docs/api.md), [Kartensystem](docs/card-system.md), [Zukunftsideen](docs/future-ideas.md).
-
-## Lizenz und Mitarbeit
-
-Der Quellcode und die Dokumentation stehen unter `AGPL-3.0-or-later`; der vollständige Lizenztext liegt in [LICENSE](LICENSE). Projekt-eigene Bilder und Audiodateien stehen unter `CC-BY-SA-4.0`, wie in [ASSET_LICENSES.md](ASSET_LICENSES.md) beschrieben. Hinweise zu Marken und Abhängigkeiten stehen in [TRADEMARKS.md](TRADEMARKS.md) und [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-
-Sicherheitslücken bitte entsprechend [SECURITY.md](SECURITY.md) privat melden. Hinweise für Beiträge stehen in [CONTRIBUTING.md](CONTRIBUTING.md). Vor einer öffentlichen Freigabe ist die [Public release checklist](docs/public-release-checklist.md) vollständig abzuarbeiten.
+RUNTIME ist ein unabhängiges Projekt und nicht mit den im Spiel referenzierten Technologieanbietern verbunden.

@@ -13,7 +13,7 @@ final class AccountService
         $stmt = $this->db->prepare(
             'SELECT p.id, p.name, p.password_hash, pp.tutorial_completed_at
              FROM players p LEFT JOIN player_progression pp ON pp.player_id = p.id
-             WHERE p.account_email = ? AND p.is_bot = 0'
+             WHERE p.account_email = ? AND p.is_bot = 0 AND p.deleted_at IS NULL'
         );
         $stmt->execute([$email]);
         $player = $stmt->fetch();
@@ -31,6 +31,73 @@ final class AccountService
         $revokedHash = hash('sha256', random_bytes(32));
         $this->db->prepare('UPDATE players SET token_hash = ?, last_seen_at = CURRENT_TIMESTAMP WHERE id = ?')
             ->execute([$revokedHash, $playerId]);
+    }
+
+    public function deleteAccount(string $playerId, string $password, bool $confirmed): array
+    {
+        if (!$confirmed) {
+            throw new ApiException('ACCOUNT_DELETE_CONFIRMATION_REQUIRED', 'Bestätige die endgültige Account-Löschung.', 422);
+        }
+
+        $this->db->beginTransaction();
+        try {
+            $statement = $this->db->prepare(
+                'SELECT id, account_email, password_hash
+                 FROM players
+                 WHERE id = ? AND is_bot = 0 AND deleted_at IS NULL
+                 FOR UPDATE'
+            );
+            $statement->execute([$playerId]);
+            $player = $statement->fetch();
+            if (!$player || $player['account_email'] === null || !is_string($player['password_hash'])) {
+                throw new ApiException('ACCOUNT_REQUIRED', 'Für diese Aktion ist ein Account erforderlich.', 403);
+            }
+            if (!password_verify($password, $player['password_hash'])) {
+                throw new ApiException('INVALID_CREDENTIALS', 'E-Mail oder Passwort ist nicht korrekt.', 401);
+            }
+
+            $deletedMatches = $this->db->prepare(
+                'DELETE matches FROM matches
+                 LEFT JOIN match_players ON match_players.match_id = matches.id AND match_players.player_id = ?
+                 WHERE matches.owner_player_id = ? OR match_players.player_id IS NOT NULL'
+            );
+            $deletedMatches->execute([$playerId, $playerId]);
+
+            $this->db->prepare('DELETE FROM match_action_telemetry WHERE player_id = ?')->execute([$playerId]);
+            $this->db->prepare('UPDATE match_summaries SET winner_player_id = NULL WHERE winner_player_id = ?')->execute([$playerId]);
+            $this->db->prepare('DELETE FROM match_feedback WHERE player_id = ?')->execute([$playerId]);
+            $this->db->prepare('DELETE FROM player_rivalries WHERE player_id = ? OR opponent_player_id = ?')->execute([$playerId, $playerId]);
+            $this->db->prepare('DELETE FROM balance_recommendation_reviews WHERE reviewed_by = ?')->execute([$playerId]);
+            $this->db->prepare('DELETE FROM balance_reports WHERE admin_player_id = ?')->execute([$playerId]);
+            $this->db->prepare('UPDATE admin_audit_log SET target_player_id = NULL WHERE target_player_id = ?')->execute([$playerId]);
+
+            foreach ([
+                'player_deck_slots',
+                'player_loadouts',
+                'player_collections',
+                'player_contracts',
+                'player_faction_mastery',
+                'booster_openings',
+                'player_progression',
+            ] as $table) {
+                $this->db->prepare("DELETE FROM {$table} WHERE player_id = ?")->execute([$playerId]);
+            }
+
+            $anonymousName = 'Deleted-' . substr(bin2hex(random_bytes(8)), 0, 12);
+            $revokedHash = hash('sha256', random_bytes(32));
+            $this->db->prepare(
+                'UPDATE players
+                 SET name = ?, account_email = NULL, password_hash = NULL, account_created_at = NULL,
+                     token_hash = ?, deleted_at = CURRENT_TIMESTAMP, last_seen_at = CURRENT_TIMESTAMP
+                 WHERE id = ?'
+            )->execute([$anonymousName, $revokedHash, $playerId]);
+
+            $this->db->commit();
+            return ['deleted' => true, 'deletedMatches' => $deletedMatches->rowCount()];
+        } catch (Throwable $error) {
+            if ($this->db->inTransaction()) $this->db->rollBack();
+            throw $error;
+        }
     }
 
     public function register(string $name, string $email, string $password): array
@@ -67,7 +134,7 @@ final class AccountService
         $this->password($password);
         $this->db->beginTransaction();
         try {
-            $stmt = $this->db->prepare('SELECT p.id, p.name, p.account_email, pp.tutorial_completed_at FROM players p LEFT JOIN player_progression pp ON pp.player_id = p.id WHERE p.id = ? FOR UPDATE');
+            $stmt = $this->db->prepare('SELECT p.id, p.name, p.account_email, pp.tutorial_completed_at FROM players p LEFT JOIN player_progression pp ON pp.player_id = p.id WHERE p.id = ? AND p.deleted_at IS NULL FOR UPDATE');
             $stmt->execute([$playerId]);
             $player = $stmt->fetch();
             if (!$player) {

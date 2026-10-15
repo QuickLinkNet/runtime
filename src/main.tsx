@@ -6,11 +6,12 @@ import { App } from './app/App';
 import { PwaControls } from './pwa/PwaControls';
 import { BackgroundMusic } from './audio/BackgroundMusic';
 import { registerServiceWorker } from './pwa/registerServiceWorker';
-import { I18nProvider, LanguageSwitcher } from './i18n';
+import { I18nProvider, LanguageSwitcher, useI18n } from './i18n';
 import './styles/match-theme.css';
 import './styles/global.css';
 
 function RuntimeRoot() {
+  const { t } = useI18n();
   const [utilitiesReady, setUtilitiesReady] = useState(false);
 
   useEffect(() => {
@@ -32,6 +33,7 @@ function RuntimeRoot() {
         <LanguageSwitcher />
       </div>}
       <PwaControls />
+      <a className="runtime-legal-link" href="#/legal">{t('legal.shortLink')}</a>
     </>
   );
 }

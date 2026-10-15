@@ -85,6 +85,43 @@ try {
     data(apiRequest($baseUrl, 'logout', 'POST', [], $token), 'logout');
     $afterLogout = apiRequest($baseUrl, 'me', 'GET', null, $token);
     expectApi($afterLogout['status'] === 401 && ($afterLogout['payload']['error']['code'] ?? null) === 'UNAUTHENTICATED', 'logout did not revoke the player token.');
+
+    $accountName = 'DeleteCheck' . random_int(10000, 99999);
+    $accountEmail = strtolower($accountName) . '@example.invalid';
+    $accountPassword = 'Delete-check-password-42';
+    $registered = data(apiRequest($baseUrl, 'registerAccount', 'POST', [
+        'name' => $accountName,
+        'email' => $accountEmail,
+        'password' => $accountPassword,
+    ]), 'registerAccount for deletion');
+    $accountToken = (string)($registered['token'] ?? '');
+    expectApi(strlen($accountToken) >= 32, 'registerAccount did not return an account token.');
+
+    $unconfirmedDeletion = apiRequest($baseUrl, 'deleteAccount', 'POST', [
+        'password' => $accountPassword,
+        'confirmed' => false,
+    ], $accountToken);
+    expectApi($unconfirmedDeletion['status'] === 422 && ($unconfirmedDeletion['payload']['error']['code'] ?? null) === 'ACCOUNT_DELETE_CONFIRMATION_REQUIRED', 'account deletion must require explicit confirmation.');
+
+    $wrongPasswordDeletion = apiRequest($baseUrl, 'deleteAccount', 'POST', [
+        'password' => 'incorrect-password',
+        'confirmed' => true,
+    ], $accountToken);
+    expectApi($wrongPasswordDeletion['status'] === 401 && ($wrongPasswordDeletion['payload']['error']['code'] ?? null) === 'INVALID_CREDENTIALS', 'account deletion must verify the current password.');
+
+    $deleted = data(apiRequest($baseUrl, 'deleteAccount', 'POST', [
+        'password' => $accountPassword,
+        'confirmed' => true,
+    ], $accountToken), 'deleteAccount');
+    expectApi(($deleted['deleted'] ?? false) === true, 'deleteAccount did not confirm deletion.');
+
+    $afterDeletion = apiRequest($baseUrl, 'me', 'GET', null, $accountToken);
+    expectApi($afterDeletion['status'] === 401 && ($afterDeletion['payload']['error']['code'] ?? null) === 'UNAUTHENTICATED', 'deleted account token remained valid.');
+    $loginAfterDeletion = apiRequest($baseUrl, 'login', 'POST', [
+        'email' => $accountEmail,
+        'password' => $accountPassword,
+    ]);
+    expectApi($loginAfterDeletion['status'] === 401 && ($loginAfterDeletion['payload']['error']['code'] ?? null) === 'INVALID_CREDENTIALS', 'deleted account could still sign in.');
     echo "API integration passed\n";
 } catch (Throwable $error) {
     fwrite(STDERR, "API integration failed: {$error->getMessage()}\n");
