@@ -6,10 +6,10 @@ This is the compact continuation point for RUNTIME. Read it before broad code or
 
 ## Current worktree
 
-- Branch: `master`; the latest committed and pushed baseline is `20f354c`.
-- The intentional uncommitted work prepares the repository for a possible public release: code and asset licenses, contribution/security/trademark/third-party documentation, privacy and release checklists, dependency updates and deployment decoupling.
+- Branch: `master`; the public-release preparation and author-email history rewrite are committed and pushed.
+- The worktree is clean. Code and asset licenses, contribution/security/trademark/third-party documentation, privacy and release checklists, dependency updates and deployment decoupling are part of the current baseline.
 - The unrelated DOCX work directory and four root-level DOCX helper scripts are now ignored and must remain untouched.
-- Nothing from the public-release preparation is staged, committed, pushed or deployed.
+- The repository changes have not been deployed; deployment remains the owner's responsibility.
 
 ## Current product state
 
@@ -64,7 +64,7 @@ Do not repeat those audits merely to regain context. Re-audit only the area chan
 - Code is prepared for AGPL-3.0-or-later; original visual/audio assets are documented under CC BY-SA 4.0. The owner has confirmed the generated assets and necessary rights.
 - Hosting names and the accidental sibling-project deployment fallback were removed from tracked files. Future deploys require a local ignored `.env.deploy` created from `.env.deploy.example`.
 - Before making the repository public, implement account deletion, complete the privacy notice/operator details, decide whether an imprint is required, verify trademarks, enable repository security features and run a clean-clone release check. See [Public release checklist](public-release-checklist.md).
-- The personal author email remains embedded in all 13 existing commit objects. Removing it requires an agreed replacement address, rewriting history and force-pushing `master`; do not do this without explicit approval.
+- All commits reachable from public `master` use the approved project email. The rewritten history was force-pushed before public release.
 
 ## Handoff maintenance
 
