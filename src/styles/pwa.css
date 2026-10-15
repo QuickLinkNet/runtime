@@ -21,12 +21,12 @@
   box-shadow: 0 16px 48px rgba(0,0,0,.52);
   backdrop-filter: blur(12px);
   pointer-events: auto;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
 }
 
 .pwa-notice > span { flex: 1; }
-.pwa-notice button { border: 1px solid var(--accent); border-radius: 6px; padding: 7px 9px; color: #11180f; background: var(--accent); cursor: pointer; font-family: inherit; font-size: 11px; font-weight: 800; }
-.pwa-notice .pwa-dismiss { border-color: transparent; padding: 4px; color: var(--muted); background: transparent; font-size: 18px; }
+.pwa-notice button { border: 1px solid var(--accent); border-radius: 6px; padding: 7px 9px; color: #11180f; background: var(--accent); cursor: pointer; font-family: inherit; font-size: var(--font-size-sm); font-weight: 800; }
+.pwa-notice .pwa-dismiss { border-color: transparent; padding: 4px; color: var(--muted); background: transparent; font-size: var(--font-size-base); }
 .pwa-notice.is-offline { border-color: #d8a744; }
 .pwa-notice.is-offline i { display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; background: #f0b94d; box-shadow: 0 0 10px #f0b94d; }
 .pwa-notice.is-update { border-color: var(--accent); }

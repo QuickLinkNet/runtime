@@ -26,6 +26,13 @@ final class AccountService
         return ['token' => $token, 'player' => $this->identity($player, $email, true)];
     }
 
+    public function logout(string $playerId): void
+    {
+        $revokedHash = hash('sha256', random_bytes(32));
+        $this->db->prepare('UPDATE players SET token_hash = ?, last_seen_at = CURRENT_TIMESTAMP WHERE id = ?')
+            ->execute([$revokedHash, $playerId]);
+    }
+
     public function register(string $name, string $email, string $password): array
     {
         $name = $this->name($name);

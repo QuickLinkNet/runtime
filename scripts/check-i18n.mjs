@@ -115,6 +115,28 @@ for (const pattern of dynamicPatterns) {
   }
 }
 
+const tutorialStepKeys = [
+  'deploy-service', 'deploy-infrastructure', 'attack-core', 'debug-bug',
+  'patch-service', 'crash-service', 'replace-infrastructure', 'final-deploy',
+];
+for (const step of tutorialStepKeys) {
+  for (const field of ['eyebrow', 'title', 'instruction', 'objective', 'success']) {
+    const key = `tutorial.${step}.${field}`;
+    if (!catalogKeys.has(key)) failures.push(`tutorial: missing complete step message ${key}`);
+  }
+}
+
+const keywordIds = [
+  'compute', 'power', 'integrity', 'service', 'command', 'infrastructure', 'deploy', 'crash',
+  'firewall', 'redundancy', 'patch', 'sandbox', 'fork', 'overclock', 'bug', 'child-component', 'replica',
+];
+for (const keyword of keywordIds) {
+  for (const field of ['label', 'short', 'full']) {
+    const key = `keyword.${keyword}.${field}`;
+    if (!catalogKeys.has(key)) failures.push(`rules: missing complete keyword message ${key}`);
+  }
+}
+
 const cardSourcePath = path.join(sourceRoot, 'i18n', 'cardTranslations.ts');
 const cardSource = ts.createSourceFile(cardSourcePath, fs.readFileSync(cardSourcePath, 'utf8'), ts.ScriptTarget.Latest, true);
 const translatedCardIds = { en: new Set(), nl: new Set() };

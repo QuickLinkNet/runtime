@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { api, ApiError, hasToken } from '../api/client';
+import { api, ApiError, clearToken, hasToken } from '../api/client';
 import { DeckBuilder } from '../features/deck-builder/DeckBuilder';
 import { DeckManagerPage } from '../pages/DeckManagerPage';
 import { BoosterLab } from '../features/boosters/BoosterLab';
@@ -141,15 +141,19 @@ export function App() {
         const fallback = player.isAccount || hasSelectedDeck ? 'menu' : 'starter';
         const accountOnly = ['boosters', 'stacks', 'admin'].includes(requestedScreen);
         if (requestedScreen === 'name' || (accountOnly && !player.isAccount)) navigateScreen(fallback, true);
-      } catch {
-        const offlineIdentity = cachedIdentity();
-        if (!navigator.onLine && offlineIdentity) {
-          setIdentity(offlineIdentity);
+      } catch (error) {
+        const rememberedIdentity = cachedIdentity();
+        const unauthenticated = error instanceof ApiError && (error.status === 401 || error.code === 'UNAUTHENTICATED');
+        if (!unauthenticated && rememberedIdentity) {
+          setIdentity(rememberedIdentity);
+          dispatch({ type: 'SYNC', status: navigator.onLine ? 'reconnecting' : 'offline' });
           navigateScreen('menu', true);
           return;
         }
-        localStorage.removeItem('runtime.playerToken');
-        clearCachedIdentity();
+        if (unauthenticated) {
+          clearToken();
+          clearCachedIdentity();
+        }
         navigateScreen('name', true);
       }
     }
@@ -299,6 +303,25 @@ export function App() {
     navigateScreen('menu');
   }
 
+  function logout() {
+    void (async () => {
+      try { await api.logout(); } catch { /* local logout must also work while offline */ }
+      clearToken();
+      clearCachedIdentity();
+      dispatch({ type: 'CLEAR' });
+      setIdentity(null);
+      setResume(null);
+      setCollection(null);
+      setDeckSlots([]);
+      setEditingSlotId(null);
+      localStorage.removeItem('runtime.deck');
+      localStorage.removeItem('runtime.deckSelected');
+      setDeck(makeStarterDeck('frontend-backend'));
+      setHasSelectedDeck(false);
+      navigateScreen('name', true);
+    })();
+  }
+
   if (screen === 'name') return <IdentityPage onCreated={(player) => { setIdentity(player); navigateScreen('starter', true); }} onLoggedIn={(player) => {
     setIdentity(player);
     cacheIdentity(player);
@@ -311,7 +334,7 @@ export function App() {
   if (!identity) return <BootPage />;
 
   if (screen === 'starter') return <StarterDeckPage currentDeck={deck} allowBack={hasSelectedDeck} onConfirm={selectStarter} onBack={() => navigateScreen('menu')} />;
-  if (screen === 'account') return <AccountPage identity={identity} onLinked={accountLinked} onBack={() => navigateScreen('menu')} />;
+  if (screen === 'account') return <AccountPage identity={identity} onLinked={accountLinked} onLogout={logout} onBack={() => navigateScreen('menu')} />;
   if (screen === 'admin' && identity.isAdmin) return <AdminPage onBack={() => navigateScreen('menu')} />;
 
   if (screen === 'match' && store.state) {

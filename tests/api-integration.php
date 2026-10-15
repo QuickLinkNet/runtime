@@ -81,6 +81,10 @@ try {
     expectApi((int)($replay['version'] ?? 0) === $resolvedVersion, 'a replay advanced the match version.');
 
     data(apiRequest($baseUrl, 'leaveMatch', 'POST', ['roomCode' => $roomCode], $token), 'leaveMatch');
+
+    data(apiRequest($baseUrl, 'logout', 'POST', [], $token), 'logout');
+    $afterLogout = apiRequest($baseUrl, 'me', 'GET', null, $token);
+    expectApi($afterLogout['status'] === 401 && ($afterLogout['payload']['error']['code'] ?? null) === 'UNAUTHENTICATED', 'logout did not revoke the player token.');
     echo "API integration passed\n";
 } catch (Throwable $error) {
     fwrite(STDERR, "API integration failed: {$error->getMessage()}\n");

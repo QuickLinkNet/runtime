@@ -18,6 +18,8 @@ export const pageMessages: MessageCatalog = {
   'account.menu': { de: 'Menü', en: 'Menu', nl: 'Menu' },
   'account.active': { de: 'ACCOUNT AKTIV', en: 'ACCOUNT ACTIVE', nl: 'ACCOUNT ACTIEF' },
   'account.activeDescription': { de: 'Sammlung, Booster und dein eigener Stack sind auf diesem und weiteren Geräten verfügbar.', en: 'Your collection, boosters, and custom stack are available on this and other devices.', nl: 'Je collectie, boosters en eigen stack zijn beschikbaar op dit en andere apparaten.' },
+  'account.staySignedIn': { de: 'Deine Anmeldung bleibt auf diesem Gerät gespeichert.', en: 'Your sign-in stays saved on this device.', nl: 'Je aanmelding blijft op dit apparaat bewaard.' },
+  'account.logout': { de: 'Abmelden', en: 'Sign out', nl: 'Uitloggen' },
   'account.guestToAccount': { de: 'GAST → ACCOUNT', en: 'GUEST → ACCOUNT', nl: 'GAST → ACCOUNT' },
   'account.noLossTitle': { de: 'Kein Neustart. Kein Verlust.', en: 'No restart. No loss.', nl: 'Geen herstart. Geen verlies.' },
   'account.noLossBody': { de: 'Der aktuelle Name, das Tutorial, Booster und sämtliche Fortschritte bleiben an diesem Profil. Nur die Anmeldung kommt dazu.', en: 'Your current name, tutorial, boosters, and all progress stay with this profile. Only sign-in is added.', nl: 'Je huidige naam, tutorial, boosters en alle voortgang blijven bij dit profiel. Alleen aanmelden wordt toegevoegd.' },

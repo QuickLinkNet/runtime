@@ -144,6 +144,10 @@ try {
             $result['player']['isAdmin'] = $admin->isAllowed($result['player']['accountEmail']);
             Http::success($result);
         })(),
+        'logout' => (function () use ($accounts, $playerId): void {
+            $accounts->logout($playerId);
+            Http::success();
+        })(),
         'loadout' => (function () use ($accounts, $playerId, $isAccount): void {
             if (!$isAccount) throw new ApiException('ACCOUNT_REQUIRED', 'Melde dich an, um deinen Stack geräteübergreifend zu speichern.', 403);
             Http::success(['deck' => $accounts->loadout($playerId)]);

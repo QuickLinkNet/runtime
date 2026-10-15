@@ -20,6 +20,11 @@ export function setToken(token: string): void {
   localStorage.setItem('runtime.playerToken', token);
 }
 
+export function clearToken(): void {
+  playerToken = '';
+  localStorage.removeItem('runtime.playerToken');
+}
+
 export function hasToken(): boolean {
   return playerToken.length > 0;
 }
@@ -71,6 +76,7 @@ export const api = {
   linkAccount: (email: string, password: string) => request<{ player: PlayerIdentity; token: string }>('linkAccount', {
     method: 'POST', body: JSON.stringify({ email, password }),
   }),
+  logout: () => request<void>('logout', { method: 'POST', body: '{}' }),
   me: () => request<{ player: PlayerIdentity }>('me'),
   collection: () => request<CollectionSnapshot>('collection'),
   loadout: () => request<{ deck: string[] | null }>('loadout'),

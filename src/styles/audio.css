@@ -11,7 +11,7 @@
 .music-control.is-sfx-enabled .sfx-icon { color: var(--accent); filter: drop-shadow(0 0 6px rgba(185,244,74,.3)); }
 .music-control.is-playing .music-muted { display: none; }
 .music-control:not(.is-playing) .music-wave { display: none; }
-.music-label { font-size: 8px; font-weight: 900; letter-spacing: .13em; }
+.music-label { font-size: var(--font-size-xs); font-weight: 900; letter-spacing: .13em; }
 .music-volume { display: flex; align-items: center; }
 .music-volume .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .music-volume input { width: 72px; height: 18px; margin: 0; accent-color: var(--accent); cursor: pointer; }

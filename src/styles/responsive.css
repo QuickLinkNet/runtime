@@ -45,8 +45,7 @@
   .screen { padding: 70px 16px 30px; }
   .identity-screen { gap: 22px; padding: 20px 16px 18px; }
   .identity-hero { padding: 62px 0 0; }
-  .identity-hero h1 { margin-block: 12px 19px; font-size: clamp(64px, 20vw, 84px); }
-  .identity-hero > p { font-size: 15px; }
+  .identity-hero h1 { margin-block: 12px 19px; }
   .identity-specs { margin-top: 22px; }
   .identity-access-card { padding: 22px 18px 20px; }
   .identity-access-topline { margin-bottom: 48px; }
