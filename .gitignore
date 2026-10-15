@@ -10,3 +10,8 @@ api/.env
 .env.deploy
 *.log
 .DS_Store
+.codex_docx_work/
+/finalize_application_list.py
+/inspect_docx.py
+/inspect_page_breaks.py
+/rewrite_application_list.py

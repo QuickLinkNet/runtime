@@ -1,13 +1,12 @@
 import { cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { basename, dirname, join, resolve } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Client } from 'basic-ftp';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const target = join(root, 'deploy');
 const localDeployEnv = join(root, '.env.deploy');
-const sharedDeployEnv = resolve(root, '..', 'familieninsel', '.env.deploy');
 const apiEnv = join(root, 'api', '.env');
 
 function fail(message) {
@@ -60,36 +59,31 @@ async function preparePackage() {
 }
 
 async function deploymentConfig() {
-  if (existsSync(localDeployEnv)) {
-    return { ...(await readEnv(localDeployEnv)), source: '.env.deploy' };
+  if (!existsSync(localDeployEnv)) {
+    fail('.env.deploy fehlt. Kopiere .env.deploy.example und trage die RUNTIME-Zielumgebung lokal ein.');
   }
-  if (!existsSync(sharedDeployEnv)) {
-    fail('.env.deploy fehlt und es wurde keine vorhandene Hosting-Konfiguration gefunden.');
-  }
-  const shared = await readEnv(sharedDeployEnv);
-  return {
-    FTP_HOST: shared.FTP_HOST,
-    FTP_USER: shared.FTP_USER,
-    FTP_PASSWORD: shared.FTP_PASSWORD,
-    FTP_PORT: shared.FTP_PORT,
-    FTP_SECURE: shared.FTP_SECURE,
-    REMOTE_BASE_DIR: '/html/apps/runtime',
-    PUBLIC_APP_URL: 'https://www.red-it.org/apps/runtime/',
-    source: '../familieninsel/.env.deploy',
-  };
+  return { ...(await readEnv(localDeployEnv)), source: '.env.deploy' };
 }
 
 await preparePackage();
 const config = await deploymentConfig();
-const remoteBase = config.REMOTE_BASE_DIR || '/html/apps/runtime';
-const publicUrl = config.PUBLIC_APP_URL || 'https://www.red-it.org/apps/runtime/';
+for (const key of ['FTP_HOST', 'FTP_USER', 'FTP_PASSWORD', 'REMOTE_BASE_DIR', 'PUBLIC_APP_URL']) {
+  if (!config[key]) fail(`${key} fehlt in .env.deploy.`);
+}
+const remoteBase = config.REMOTE_BASE_DIR;
+const publicUrl = config.PUBLIC_APP_URL;
 const expectedCatalogSize = JSON.parse(await readFile(join(root, 'shared', 'cards.json'), 'utf8')).length;
 
 if (!remoteBase.endsWith('/runtime')) fail(`Unsicherer Zielpfad: ${remoteBase}`);
 if (['', '/', '/html', '/html/apps'].includes(remoteBase)) fail(`Unsicherer Zielpfad: ${remoteBase}`);
-for (const key of ['FTP_HOST', 'FTP_USER', 'FTP_PASSWORD']) {
-  if (!config[key]) fail(`${key} fehlt in der Deployment-Konfiguration.`);
+const healthUrl = new URL(publicUrl);
+if (healthUrl.protocol !== 'https:') fail('PUBLIC_APP_URL muss HTTPS verwenden.');
+
+const secureSetting = config.FTP_SECURE ?? 'true';
+if (!['true', 'false', 'implicit'].includes(secureSetting)) {
+  fail('FTP_SECURE muss true, false oder implicit sein.');
 }
+const secure = secureSetting === 'implicit' ? 'implicit' : secureSetting === 'true';
 
 const client = new Client();
 client.ftp.verbose = process.env.DEPLOY_VERBOSE === 'true';
@@ -102,7 +96,7 @@ try {
     user: config.FTP_USER,
     password: config.FTP_PASSWORD,
     port: Number(config.FTP_PORT || 21),
-    secure: (config.FTP_SECURE ?? 'false') === 'true',
+    secure,
   });
   await client.ensureDir(remoteBase);
 

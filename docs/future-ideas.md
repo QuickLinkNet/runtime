@@ -1,5 +1,7 @@
 # Zukunftsideen
 
+Verbindliche Aufgaben vor der Veröffentlichung des Repositories, insbesondere Account-Löschung und Datenschutzinformationen, stehen in der [Public release checklist](public-release-checklist.md).
+
 Nicht Bestandteil des MVP, aber mit der aktuellen Trennung von Match-Service, Rules Engine und Player View vereinbar:
 
 - öffentliche Matchmaking-Queue und Ranked

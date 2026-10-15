@@ -56,10 +56,7 @@ Der i18n-Test kontrolliert die Nachrichten für `de`, `en` und `nl`, statische u
 
 ## Production / Shared Hosting
 
-Das Deployment ist für beide öffentlichen Adressen eingerichtet:
-
-- `https://www.red-it.org/apps/runtime/`
-- `https://runtime.red-it.org/`
+Das Deployment-Ziel wird ausschließlich lokal in der ignorierten `.env.deploy` konfiguriert. Kopiere dafür `.env.deploy.example` und trage FTP-Zugang, Zielverzeichnis und öffentliche HTTPS-URL ein. Das Repository enthält keine konkrete Hosting-Konfiguration.
 
 Ein Aufruf erledigt den vollständigen Ablauf:
 
@@ -72,11 +69,11 @@ Der Befehl:
 1. kompiliert TypeScript und baut das Frontend mit relativen Pfaden für Verzeichnis und Subdomain,
 2. erstellt den uploadfertigen Ordner `deploy/`,
 3. übernimmt die lokale, nicht versionierte RUNTIME-Datenbankkonfiguration,
-4. lädt Frontend, PHP-API und Kartenkatalog nach `/html/apps/runtime`,
+4. lädt Frontend, PHP-API und Kartenkatalog in das konfigurierte RUNTIME-Zielverzeichnis,
 5. startet beim API-Aufruf noch fehlende Datenbankmigrationen und
 6. prüft anschließend die öffentliche Seite und den API-Healthcheck.
 
-Die FTP-Zugangsdaten liegen entweder in der ignorierten `.env.deploy` entsprechend `.env.deploy.example` oder werden in dieser lokalen Workspace-Struktur aus der vorhandenen Hosting-Konfiguration übernommen. Das Skript akzeptiert aus Sicherheitsgründen ausschließlich ein Zielverzeichnis, das auf `/runtime` endet, und löscht außerhalb des generierten Asset-Ordners keine Serverdateien.
+Die FTP-Zugangsdaten liegen ausschließlich in der ignorierten `.env.deploy`. Das Skript akzeptiert aus Sicherheitsgründen nur ein Zielverzeichnis, das auf `/runtime` endet, verlangt eine öffentliche HTTPS-URL und löscht außerhalb des generierten Asset-Ordners keine Serverdateien. Verschlüsseltes FTP ist in der Beispielkonfiguration aktiviert.
 
 Node.js, Composer, Docker, Cronjobs oder ein dauerhaft laufender Prozess werden auf dem Server nicht benötigt.
 
@@ -106,3 +103,9 @@ RUNTIME_ADMIN_EMAILS=du@beispiel.de,kollege@beispiel.de
 Nur angemeldete Accounts mit einer dieser E-Mail-Adressen sehen und nutzen den Admin-Zugang. Die Variable wird nie an den Browser ausgeliefert.
 
 Weitere Informationen: [Aktueller Projektstand](docs/project-status.md), [Architektur](docs/architecture.md), [Frontend-Struktur](docs/frontend-architecture.md), [Internationalisierung](docs/internationalization.md), [Spielregeln](docs/game-rules.md), [API](docs/api.md), [Kartensystem](docs/card-system.md), [Zukunftsideen](docs/future-ideas.md).
+
+## Lizenz und Mitarbeit
+
+Der Quellcode und die Dokumentation stehen unter `AGPL-3.0-or-later`; der vollständige Lizenztext liegt in [LICENSE](LICENSE). Projekt-eigene Bilder und Audiodateien stehen unter `CC-BY-SA-4.0`, wie in [ASSET_LICENSES.md](ASSET_LICENSES.md) beschrieben. Hinweise zu Marken und Abhängigkeiten stehen in [TRADEMARKS.md](TRADEMARKS.md) und [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+Sicherheitslücken bitte entsprechend [SECURITY.md](SECURITY.md) privat melden. Hinweise für Beiträge stehen in [CONTRIBUTING.md](CONTRIBUTING.md). Vor einer öffentlichen Freigabe ist die [Public release checklist](docs/public-release-checklist.md) vollständig abzuarbeiten.

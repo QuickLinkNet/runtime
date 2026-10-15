@@ -22,7 +22,7 @@ Diese Datei ist der kurze, verbindliche Übergabepunkt für die weitere Entwickl
 - Combat Feedback V2 mit Angreiferbewegung, Zielspur, Trefferzahlen und Block-Effekt
 - zerstörte Karten fliegen sichtbar zum Trash; erzeugte Tokens lösen sich auf
 - serverseitige Validierung von Kosten, Zielen, Slots und Zugberechtigung
-- Deployment für `red-it.org/apps/runtime` und `runtime.red-it.org`
+- konfigurierbares Deployment für Unterverzeichnis oder dedizierten Host
 - installierbare PWA für Android, iOS und Desktop mit eigenen App- und Maskable-Icons
 - versionierter Offline-App-Shell, kontrollierter Update-Hinweis und Installations-UI
 - API- und Matchdaten sind bewusst vom Service-Worker-Cache ausgeschlossen
@@ -55,7 +55,7 @@ Diese Datei ist der kurze, verbindliche Übergabepunkt für die weitere Entwickl
 - TS-, TSX- und CSS-Dateien sollen nach Möglichkeit unter 500 Zeilen bleiben.
 - Letzte lokale Prüfung am 15. Oktober 2026: Production-Build, TypeScript, 105 PHP-Tests, i18n-Prüfung und PWA-Prüfung erfolgreich; der öffentliche Identitäts-/Account-Einstieg wurde auf Desktop und Smartphone in mehreren Sprachen visuell geprüft.
 - Der HTTP-Integrationstest bleibt einer lokalen Wegwerf-Testdatenbank vorbehalten und wurde in dieser Bestandsaufnahme nicht erneut ausgeführt.
-- Live geprüft: Manifest, Service Worker und Android-Icons liefern auf `runtime.red-it.org` HTTP 200.
+- Live geprüft: Manifest, Service Worker und Android-Icons liefern in der konfigurierten Produktionsumgebung HTTP 200.
 
 ## Nächste sinnvolle Ausbaustufe
 
