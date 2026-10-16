@@ -10,6 +10,8 @@ This asset license covers the original expression in:
 - `public/audio/`
 - the RUNTIME application icons and other original RUNTIME graphics directly under `public/`
 
+`public/social-preview.png` is a generated promotional composition derived from the project's visual direction and `public/backgrounds/runtime-wide.png`. It is covered by the same `CC-BY-SA-4.0` terms.
+
 Attribution may be given as:
 
 > RUNTIME project contributors, CC BY-SA 4.0, source: the RUNTIME repository.

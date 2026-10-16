@@ -9,7 +9,7 @@ This is the compact continuation point for RUNTIME. Read it before broad code or
 - Branch: `master`; the public-release preparation and author-email history rewrite are committed and pushed.
 - The current baseline includes account deletion, in-app legal information and the public-facing project README. Code and asset licenses, contribution/security/trademark/third-party documentation, privacy and release checklists, dependency updates and deployment decoupling are also part of the baseline.
 - The unrelated DOCX work directory and four root-level DOCX helper scripts are now ignored and must remain untouched.
-- The repository changes have not been deployed; deployment remains the owner's responsibility.
+- Commit `49e6daf` is deployed at `https://runtime.red-it.org/`; deployment remains the owner's responsibility. The current social-preview and metadata work is not deployed yet.
 
 ## Current product state
 
@@ -21,6 +21,7 @@ This is the compact continuation point for RUNTIME. Read it before broad code or
 - Login tokens survive reloads and transient/offline API failures. Logout is available and invalidates the server token when the API is reachable.
 - Registered accounts can be deleted after password confirmation. Related game/progression data is removed, the remaining player row is anonymized and the active token becomes invalid.
 - A trilingual privacy/imprint page is reachable from registration and every main view; the concrete hosting setup still requires legal review.
+- A branded 1280×640 repository/social preview is used by the README and OpenGraph/Twitter metadata.
 - Typography uses five shared size tokens with `10px` as the minimum; pages outside the identity/login pass still need deliberate visual review.
 
 ## Where to work
@@ -58,14 +59,15 @@ Do not repeat those audits merely to regain context. Re-audit only the area chan
 - `npm run test:php`: passed — 105 tests.
 - `npm run test:pwa`: passed.
 - `npm audit` and `npm audit --omit=dev`: 0 vulnerabilities after updating `basic-ftp` and `source-map-js`.
-- Known non-blocking build warning: the main JavaScript chunk is about 644 kB after minification.
-- HTTP integration tests were not rerun because no disposable local database was supplied.
+- Known non-blocking build warning: the main JavaScript chunk is about 659 kB after minification.
+- The destructive HTTP integration suite was not rerun because no disposable local database was supplied. A narrow live account-deletion smoke test passed on 16 October 2026: registration, deletion, old-token rejection and rejected login.
 
 ## Public-release work and remaining gates
 
 - Code is prepared for AGPL-3.0-or-later; original visual/audio assets are documented under CC BY-SA 4.0. The owner has confirmed the generated assets and necessary rights.
 - Hosting names and the accidental sibling-project deployment fallback were removed from tracked files. Future deploys require a local ignored `.env.deploy` created from `.env.deploy.example`.
-- Before making the repository public, complete the legal/hosting review, verify trademarks and encrypted deployment, enable repository security features and run a clean-clone release check. The account-deletion HTTP flow still needs a disposable database or a narrowly scoped post-deployment test account. See [Public release checklist](public-release-checklist.md).
+- Explicit FTPS authentication was verified successfully on 16 October 2026 and the ignored local deployment configuration now enforces it.
+- Before making the repository public, complete the legal/hosting review, verify trademarks and encrypted deployment, enable repository security features and run a clean-clone release check. See [Public release checklist](public-release-checklist.md).
 - All commits reachable from public `master` use the approved project email. The rewritten history was force-pushed before public release.
 
 ## Handoff maintenance

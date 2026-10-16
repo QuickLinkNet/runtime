@@ -20,6 +20,8 @@ const worker = await readFile(join(dist, 'sw.js'), 'utf8');
 
 assert(html.includes('rel="manifest"'), 'Manifest-Link fehlt im HTML.');
 assert(html.includes('apple-touch-icon'), 'Apple-Touch-Icon fehlt im HTML.');
+assert(html.includes('property="og:image"'), 'OpenGraph-Vorschaubild fehlt im HTML.');
+assert(html.includes('name="twitter:card" content="summary_large_image"'), 'Twitter/X-Kartentyp fehlt im HTML.');
 assert(manifest.start_url === './' && manifest.scope === './', 'Start-URL oder Scope ist nicht deploymentneutral.');
 assert(manifest.display === 'standalone', 'Standalone-Modus fehlt.');
 assert(manifest.icons.some((icon) => icon.purpose === 'maskable'), 'Maskable Icon fehlt.');
@@ -31,6 +33,11 @@ for (const [name, expected] of [['runtime-icon-192.png', 192], ['runtime-icon-51
   const size = pngSize(icon);
   assert(size.width === expected && size.height === expected, `${name} hat ${size.width}x${size.height} statt ${expected}x${expected}.`);
 }
+
+const socialPreview = await readFile(join(dist, 'social-preview.png'));
+const socialPreviewSize = pngSize(socialPreview);
+assert(socialPreviewSize.width === 1280 && socialPreviewSize.height === 640, `social-preview.png hat ${socialPreviewSize.width}x${socialPreviewSize.height} statt 1280x640.`);
+assert(socialPreview.byteLength < 1024 * 1024, 'social-preview.png überschreitet GitHubs 1-MB-Grenze.');
 
 await access(join(dist, 'offline.html'));
 await access(join(dist, '.htaccess'));

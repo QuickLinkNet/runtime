@@ -15,13 +15,16 @@ This checklist is the release gate before changing the repository visibility to 
 - [x] Publish the privacy notice and imprint in the application and link them from registration and every main screen.
 - [x] Rewrite all reachable commits to the approved project email before changing repository visibility.
 - [x] Create the local ignored `.env.deploy` from `.env.deploy.example`.
+- [x] Add a branded 1280×640 social preview, README hero and OpenGraph/Twitter metadata.
+- [x] Verify the deployed account-deletion flow with a uniquely named production smoke-test account, including token and login revocation.
+- [x] Verify an explicit FTPS login and enable encrypted deployment in the local ignored configuration.
 
 ## Required before public release
 
 - [ ] Legally review the published privacy notice and imprint for the concrete operating model. Confirm server-log retention, hosting processors/data-processing agreements, EEA transfers and rules for minors.
 - [ ] Review recognizable third-party marks in card names and artwork; replace any mark whose intended use cannot be cleared.
-- [ ] Verify the deployment using encrypted FTP/FTPS.
+- [ ] Verify that the next full deployment and its post-upload checks complete over the now-enabled FTPS connection.
 - [ ] Enable GitHub private vulnerability reporting and repository secret scanning.
-- [ ] Run the account-deletion HTTP flow against a dedicated disposable database or, after deployment, with a uniquely named production smoke-test account.
+- [ ] Upload `public/social-preview.png` in GitHub's Social preview setting and add the repository description, homepage and discovery topics.
 - [ ] Run the full build, i18n, PHP and PWA suite from a clean clone.
 - [ ] Change repository visibility only after every required item above is checked.

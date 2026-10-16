@@ -8,7 +8,7 @@ Ein serverautoritatives Tech-Kartenspiel über stabile Stacks, kaputte Deploymen
 
 [**Jetzt spielen**](https://runtime.red-it.org/) · [Spielregeln](docs/game-rules.md) · [Kartensystem](docs/card-system.md) · [Mitmachen](CONTRIBUTING.md)
 
-![RUNTIME – taktisches Tech-Kartenspiel](public/backgrounds/runtime-wide.png)
+![RUNTIME – Deploy. Defend. Debug.](public/social-preview.png)
 
 ![React](https://img.shields.io/badge/React-19-61dafb?style=flat-square&logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?style=flat-square&logo=typescript&logoColor=white)
@@ -35,6 +35,15 @@ Der aktuelle Stand umfasst:
 - **Deutsch, Englisch und Niederländisch**, reaktiv wechselbar
 - **installierbare PWA** für Desktop und Mobilgeräte
 - freiwillige Accounts – Gastspielen funktioniert ohne E-Mail
+
+<table>
+  <tr>
+    <td align="center" width="25%"><img src="public/menu-assets/menu-singleplayer.png" width="170" alt="RUNTIME Singleplayer" /><br /><strong>Training</strong><br /><sub>Drei serverseitige Bot-Profile</sub></td>
+    <td align="center" width="25%"><img src="public/menu-assets/menu-multiplayer.png" width="190" alt="RUNTIME Multiplayer" /><br /><strong>Multiplayer</strong><br /><sub>Private Räume und Reconnect</sub></td>
+    <td align="center" width="25%"><img src="public/menu-assets/menu-deck.png" width="190" alt="RUNTIME Deck Builder" /><br /><strong>Deck Builder</strong><br /><sub>Zwei Domains, 30 Karten</sub></td>
+    <td align="center" width="25%"><img src="public/menu-assets/menu-booster-branded.png" width="140" alt="RUNTIME Booster" /><br /><strong>Booster Lab</strong><br /><sub>Sammlung ohne Pay-to-win</sub></td>
+  </tr>
+</table>
 
 ## So spielt es sich
 
