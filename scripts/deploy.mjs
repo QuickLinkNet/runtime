@@ -121,7 +121,7 @@ try {
   }
   const pageResponse = await fetch(publicUrl, { cache: 'no-store' });
   const page = await pageResponse.text();
-  if (!pageResponse.ok || !page.includes('<title>RUNTIME</title>')) {
+  if (!pageResponse.ok || !page.includes('<div id="root"></div>') || !page.includes('property="og:image"')) {
     fail(`Frontend-Check fehlgeschlagen (${pageResponse.status}).`);
   }
   const manifestResponse = await fetch(new URL('manifest.webmanifest', publicUrl), { cache: 'no-store' });

@@ -1,6 +1,6 @@
 # Agent handoff
 
-Last updated: 15 October 2026
+Last updated: 16 October 2026
 
 This is the compact continuation point for RUNTIME. Read it before broad code or history exploration. Product detail remains in the linked domain documents.
 
@@ -9,7 +9,7 @@ This is the compact continuation point for RUNTIME. Read it before broad code or
 - Branch: `master`; the public-release preparation and author-email history rewrite are committed and pushed.
 - The current baseline includes account deletion, in-app legal information and the public-facing project README. Code and asset licenses, contribution/security/trademark/third-party documentation, privacy and release checklists, dependency updates and deployment decoupling are also part of the baseline.
 - The unrelated DOCX work directory and four root-level DOCX helper scripts are now ignored and must remain untouched.
-- Commit `49e6daf` is deployed at `https://runtime.red-it.org/`; deployment remains the owner's responsibility. The current social-preview and metadata work is not deployed yet.
+- The social-preview release is deployed over explicit FTPS at `https://runtime.red-it.org/` and `https://www.red-it.org/apps/runtime/`; both public routes expose the same current build. Deployment remains the owner's responsibility.
 
 ## Current product state
 
@@ -61,13 +61,14 @@ Do not repeat those audits merely to regain context. Re-audit only the area chan
 - `npm audit` and `npm audit --omit=dev`: 0 vulnerabilities after updating `basic-ftp` and `source-map-js`.
 - Known non-blocking build warning: the main JavaScript chunk is about 659 kB after minification.
 - The destructive HTTP integration suite was not rerun because no disposable local database was supplied. A narrow live account-deletion smoke test passed on 16 October 2026: registration, deletion, old-token rejection and rejected login.
+- Clean-clone verification of commit `a142c36` passed on 16 October 2026: i18n, production build, 105 PHP tests, PWA checks and both npm audits.
 
 ## Public-release work and remaining gates
 
 - Code is prepared for AGPL-3.0-or-later; original visual/audio assets are documented under CC BY-SA 4.0. The owner has confirmed the generated assets and necessary rights.
 - Hosting names and the accidental sibling-project deployment fallback were removed from tracked files. Future deploys require a local ignored `.env.deploy` created from `.env.deploy.example`.
-- Explicit FTPS authentication was verified successfully on 16 October 2026 and the ignored local deployment configuration now enforces it.
-- Before making the repository public, complete the legal/hosting review, verify trademarks and encrypted deployment, enable repository security features and run a clean-clone release check. See [Public release checklist](public-release-checklist.md).
+- Explicit FTPS authentication and a complete FTPS deployment were verified successfully on 16 October 2026; the ignored local deployment configuration enforces encryption.
+- Before making the repository public, complete the legal/hosting and trademark reviews, enable repository security features and configure the GitHub social preview/repository metadata. See [Public release checklist](public-release-checklist.md).
 - All commits reachable from public `master` use the approved project email. The rewritten history was force-pushed before public release.
 
 ## Handoff maintenance
